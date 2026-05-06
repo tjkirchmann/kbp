@@ -1,31 +1,57 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
-import httpx
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from clerk_backend_api import Clerk
+from clerk_backend_api.security.verifytoken import verify_token
+from clerk_backend_api.security.types import VerifyTokenOptions
+from app.core.config import settings
+from app.core.database import get_db
+from app.models import User
 
 security = HTTPBearer()
+_verify_options = VerifyTokenOptions(secret_key=settings.clerk_secret_key)
+_clerk = Clerk(bearer_auth=settings.clerk_secret_key)
 
-_jwks_cache: dict | None = None
-
-async def _get_jwks() -> dict:
-    global _jwks_cache
-    if _jwks_cache is None:
-        async with httpx.AsyncClient() as client:
-            r = await client.get("https://api.clerk.com/v1/jwks")
-            r.raise_for_status()
-            _jwks_cache = r.json()
-    return _jwks_cache
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    token = credentials.credentials
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db),
+) -> User:
     try:
-        jwks = await _get_jwks()
-        payload = jwt.decode(token, jwks, algorithms=["RS256"])
-        user_id: str = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-        return {"user_id": user_id}
-    except JWTError:
+        payload = verify_token(credentials.credentials, _verify_options)
+    except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+    clerk_id: str = payload.get("sub")
+    if not clerk_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        clerk_user = await _clerk.users.get_async(user_id=clerk_id)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not fetch user from Clerk")
+
+    primary_email = next(
+        (e.email_address for e in clerk_user.email_addresses if e.id == clerk_user.primary_email_address_id),
+        clerk_user.email_addresses[0].email_address if clerk_user.email_addresses else None,
+    )
+    if not primary_email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No email on Clerk user")
+
+    parts = [p for p in [clerk_user.first_name, clerk_user.last_name] if p]
+    full_name = " ".join(parts) if parts else None
+
+    stmt = (
+        pg_insert(User)
+        .values(clerk_id=clerk_id, email=primary_email, name=full_name)
+        .on_conflict_do_update(
+            index_elements=["clerk_id"],
+            set_={"email": primary_email, "name": full_name, "updated_at": func.now()},
+        )
+        .returning(User)
+    )
+    result = await db.execute(stmt)
+    await db.commit()
+    return result.scalars().one()

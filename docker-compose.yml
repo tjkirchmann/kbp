@@ -30,7 +30,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - db
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: ["./start.sh"]
 
   db:
     image: postgres:16

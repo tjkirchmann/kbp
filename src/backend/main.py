@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.auth import get_current_user
 from app.core.config import settings
+import app.models  # noqa: F401 — registers models with Base.metadata
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,4 +28,4 @@ async def health():
 
 @app.get("/me")
 async def me(user=Depends(get_current_user)):
-    return {"user_id": user["user_id"]}
+    return {"id": user.id, "clerk_id": user.clerk_id, "email": user.email, "name": user.name}

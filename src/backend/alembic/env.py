@@ -7,8 +7,7 @@ from alembic import context
 
 from app.core.database import Base
 from app.core.config import settings
-# import all models here so autogenerate sees them:
-# from app.models import user
+import app.models  # noqa: F401 — registers models with Base.metadata
 
 config = context.config
 

@@ -24,26 +24,32 @@ You are designing a React UI component for the Kirchmann Bowl Pool (KBP). Stack:
 ## Design System Summary
 
 ### Colors
-- Background: warm off-white (`hsl(40, 20%, 97%)`) with dot-grid texture — never pure white
-- Cards / panels: `bg-card` (`hsl(40, 15%, 99%)`) — slightly off-white solid surface
-- Primary accent: warm amber-orange (`hsl(30, 90%, 48%)`)
-- Borders: `border-border` — light warm-gray, used on outer panels only
+- Background: dark gray (`#111318`) — `bg-background`
+- Cards / panels: `bg-card` (`#1A1D24`) — slightly lifted surface
+- Primary accent: NCAA blue (`#009CDE`) — `text-primary` / `bg-primary`
+- Success: `#3FB950`, Warning: `#F0A429`, Destructive: `#E5534B`
+- Borders: `border-border` (`#2A2E38`) — used on outer panels only
 
 ### Container Hierarchy
 
-**Outer panels** (page sections): border + shadow
+**Outer panels** (page sections, header pill): use `glass-panel` class — semi-transparent gradient with backdrop blur
 ```tsx
-<div className="bg-card border border-border rounded-xl shadow-sm p-6">
+<div className="glass-panel rounded-2xl p-6">
   {/* section */}
 </div>
 ```
 
 **Inner cards** (items within panels): no border, subtle hover
 ```tsx
-<div className="rounded-lg px-4 py-3 hover:bg-muted/60 transition-colors">
+<div className="rounded-lg px-4 py-3 hover:bg-white/5 transition-colors">
   {/* item */}
 </div>
 ```
+
+The `glass-panel` class is defined in `index.css`:
+- `background`: linear-gradient top (lighter) → bottom (darker), ~80% opacity
+- `backdrop-filter: blur(12px)` for frosted glass depth
+- `border: 1px solid rgba(255,255,255,0.07)` subtle highlight edge
 
 ### Typography
 - Font: Geist Sans
