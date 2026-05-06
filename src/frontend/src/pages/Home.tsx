@@ -115,7 +115,7 @@ function WelcomeCard() {
           alt="Kirchmann Bowl Pool group photo"
           width={896}
           height={595}
-          fetchpriority="high"
+          fetchPriority="high"
           decoding="async"
           className="w-full object-cover max-h-64"
         />
@@ -215,7 +215,7 @@ export default function Home() {
         </div>
 
         {isSignedIn && data && (
-          <p className="text-xs text-muted-foreground font-mono mt-2">{data.user_id}</p>
+          <p className="text-xs text-muted-foreground font-mono mt-2">{data.clerk_id}</p>
         )}
       </main>
     </div>

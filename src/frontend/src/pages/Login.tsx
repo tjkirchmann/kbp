@@ -1,5 +1,5 @@
 import { SignIn } from '@clerk/react'
-import type { Appearance } from '@clerk/types'
+import type { Appearance } from '@clerk/react'
 
 const appearance: Appearance = {
   variables: {
