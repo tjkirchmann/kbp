@@ -93,29 +93,22 @@
     border-color: var(--color-border);
   }
 
-  html,
+  html {
+    background-color: var(--background);
+    min-height: 100%;
+    overscroll-behavior: none;
+  }
+
   body {
     background-color: var(--background);
     color: hsl(var(--foreground));
     font-family: 'Geist', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
-    min-height: 100vh;
+    min-height: 100%;
     position: relative;
+    overscroll-behavior: none;
   }
 
-  /* Grain texture */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.92;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.28' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='500' height='500' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-    background-repeat: repeat;
-    background-size: 500px 500px;
-    mix-blend-mode: overlay;
-  }
 
   #root {
     position: relative;
@@ -135,27 +128,55 @@
   border: 1px solid rgba(255, 255, 255, 0.09);
 }
 
-/* 3D gradient primary button */
+/* Frosted glass blue button — used on image overlays */
+.btn-glass-blue {
+  background: rgba(0, 156, 222, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 156, 222, 0.35);
+  color: #58C8F5;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-glass-blue:hover {
+  background: rgba(0, 156, 222, 0.28);
+  border-color: rgba(0, 156, 222, 0.55);
+}
+
+.btn-glass-blue:active {
+  background: rgba(0, 156, 222, 0.12);
+}
+
+/* Primary button */
 .btn-primary {
-  background: linear-gradient(
-    to bottom,
-    #2BB8F5 0%,
-    #009CDE 40%,
-    #007DB8 100%
-  );
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.2) inset,
-    0 -1px 0 0 rgba(0, 0, 0, 0.25) inset,
-    0 2px 6px rgba(0, 156, 222, 0.35);
-  transition: filter 0.15s ease, box-shadow 0.15s ease;
+  background: linear-gradient(to bottom, #2BB8F5 0%, #0077AA 100%);
+  transition: filter 0.15s ease;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.08);
-  box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.2) inset,
-    0 -1px 0 0 rgba(0, 0, 0, 0.25) inset,
-    0 4px 12px rgba(0, 156, 222, 0.45);
+  filter: brightness(1.1);
+}
+
+.btn-primary:active {
+  filter: brightness(0.92);
+}
+
+.btn-gold {
+  background: rgba(240, 164, 41, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(240, 164, 41, 0.35);
+  color: #F0C050;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-gold:hover {
+  background: rgba(240, 164, 41, 0.28);
+  border-color: rgba(240, 164, 41, 0.55);
+}
+
+.btn-gold:active {
+  background: rgba(240, 164, 41, 0.12);
 }
 
 .btn-primary:active {
