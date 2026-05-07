@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.auth import get_current_user
 from app.core.config import settings
+from app.routers.admin import router as admin_router
 import app.models  # noqa: F401 — registers models with Base.metadata
 
 @asynccontextmanager
@@ -22,10 +23,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(admin_router)
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
 @app.get("/me")
 async def me(user=Depends(get_current_user)):
-    return {"id": user.id, "clerk_id": user.clerk_id, "email": user.email, "name": user.name}
+    return {"id": user.id, "clerk_id": user.clerk_id, "email": user.email, "name": user.name, "is_admin": user.is_admin}

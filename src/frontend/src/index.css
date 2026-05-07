@@ -161,6 +161,19 @@
   filter: brightness(0.92);
 }
 
+.btn-primary-gold {
+  background: linear-gradient(to bottom, #F5C842 0%, #C88A00 100%);
+  transition: filter 0.15s ease;
+}
+
+.btn-primary-gold:hover {
+  filter: brightness(1.1);
+}
+
+.btn-primary-gold:active {
+  filter: brightness(0.92);
+}
+
 .btn-gold {
   background: rgba(240, 164, 41, 0.18);
   backdrop-filter: blur(12px);

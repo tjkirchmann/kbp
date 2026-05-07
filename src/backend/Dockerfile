@@ -1,7 +1,13 @@
-FROM python:3.12-slim
+FROM python:3.12.9-slim
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
 COPY . .
 RUN chmod +x start.sh
+
+ENV PATH="/app/.venv/bin:$PATH"
 CMD ["./start.sh"]

@@ -55,3 +55,9 @@ async def get_current_user(
     result = await db.execute(stmt)
     await db.commit()
     return result.scalars().one()
+
+
+async def require_admin(user: User = Depends(get_current_user)) -> User:
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    return user

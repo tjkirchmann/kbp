@@ -17,7 +17,7 @@ deploy:
 # ── Database ─────────────────────────────────────────────────────────────────
 
 migrate:
-	docker compose exec backend alembic upgrade head
+	cd src/backend && ./migrate.sh
 
 migrate-new:
 	@read -p "Migration name: " name; \
