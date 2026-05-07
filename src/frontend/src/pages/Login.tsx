@@ -1,7 +1,6 @@
 import { SignIn } from '@clerk/react'
-import type { Appearance } from '@clerk/react'
 
-const appearance: Appearance = {
+const appearance = {
   variables: {
     colorBackground: '#1A1D24',
     colorInputBackground: '#21252E',
