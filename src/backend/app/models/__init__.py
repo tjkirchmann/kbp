@@ -14,3 +14,4 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    is_banned: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
