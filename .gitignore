@@ -7,3 +7,10 @@ node_modules/
 dist/
 .DS_Store
 inspiration/
+
+# Vite build info
+src/frontend/tsconfig.app.tsbuildinfo
+src/frontend/tsconfig.node.tsbuildinfo
+
+# Swap files
+*.swp
