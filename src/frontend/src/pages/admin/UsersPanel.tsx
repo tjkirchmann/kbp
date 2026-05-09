@@ -6,7 +6,6 @@ const PAGE_SIZE = 20
 
 const FIELD_LABELS: Record<keyof AdminUser, string> = {
   id: 'ID',
-  clerk_id: 'Clerk ID',
   email: 'Email',
   name: 'Name',
   is_admin: 'Admin',
@@ -86,7 +85,7 @@ function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => void }) {
             </span>
           ) : (
             <button
-              onClick={() => banUser.mutate(user.clerk_id)}
+              onClick={() => banUser.mutate(user.id)}
               disabled={banUser.isPending}
               className="px-3 py-1.5 rounded-full text-xs font-medium text-destructive border border-destructive/40 hover:bg-destructive/10 transition-colors disabled:opacity-50"
             >
@@ -95,7 +94,7 @@ function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => void }) {
           )}
           {user.is_admin ? (
             <button
-              onClick={() => setAdmin.mutate({ clerkId: user.clerk_id, isAdmin: false })}
+              onClick={() => setAdmin.mutate({ userId: user.id, isAdmin: false })}
               disabled={setAdmin.isPending}
               className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground border border-border/50 hover:text-foreground hover:border-border transition-colors disabled:opacity-50"
             >
@@ -103,7 +102,7 @@ function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => void }) {
             </button>
           ) : (
             <button
-              onClick={() => setAdmin.mutate({ clerkId: user.clerk_id, isAdmin: true })}
+              onClick={() => setAdmin.mutate({ userId: user.id, isAdmin: true })}
               disabled={setAdmin.isPending}
               className="px-3 py-1.5 rounded-full text-xs font-medium text-primary border border-primary/40 hover:bg-primary/10 transition-colors disabled:opacity-50"
             >
@@ -161,7 +160,7 @@ function UserList({ onSelect }: { onSelect: (user: AdminUser) => void }) {
                       </span>
                     ) : (
                       <button
-                        onClick={e => { e.stopPropagation(); banUser.mutate(user.clerk_id) }}
+                        onClick={e => { e.stopPropagation(); banUser.mutate(user.id) }}
                         disabled={banUser.isPending}
                         className="px-3 py-1 rounded-full text-xs font-medium text-destructive border border-destructive/40 hover:bg-destructive/10 transition-colors disabled:opacity-50"
                       >
@@ -170,7 +169,7 @@ function UserList({ onSelect }: { onSelect: (user: AdminUser) => void }) {
                     )}
                     {user.is_admin ? (
                       <button
-                        onClick={e => { e.stopPropagation(); setAdmin.mutate({ clerkId: user.clerk_id, isAdmin: false }) }}
+                        onClick={e => { e.stopPropagation(); setAdmin.mutate({ userId: user.id, isAdmin: false }) }}
                         disabled={setAdmin.isPending}
                         className="px-3 py-1 rounded-full text-xs font-medium text-muted-foreground border border-border/50 hover:text-foreground hover:border-border transition-colors disabled:opacity-50"
                       >
@@ -178,7 +177,7 @@ function UserList({ onSelect }: { onSelect: (user: AdminUser) => void }) {
                       </button>
                     ) : (
                       <button
-                        onClick={e => { e.stopPropagation(); setAdmin.mutate({ clerkId: user.clerk_id, isAdmin: true }) }}
+                        onClick={e => { e.stopPropagation(); setAdmin.mutate({ userId: user.id, isAdmin: true }) }}
                         disabled={setAdmin.isPending}
                         className="px-3 py-1 rounded-full text-xs font-medium text-primary border border-primary/40 hover:bg-primary/10 transition-colors disabled:opacity-50"
                       >

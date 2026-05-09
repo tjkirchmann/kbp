@@ -31,4 +31,4 @@ async def health():
 
 @app.get("/me")
 async def me(user=Depends(get_current_user)):
-    return {"id": user.id, "clerk_id": user.clerk_id, "email": user.email, "name": user.name, "is_admin": user.is_admin, "is_banned": user.is_banned}
+    return {"id": user.id, "email": user.email, "name": user.name, "is_admin": user.is_admin, "is_banned": user.is_banned}

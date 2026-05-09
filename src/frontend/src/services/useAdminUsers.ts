@@ -5,7 +5,6 @@ const API = import.meta.env.VITE_API_URL
 
 export interface AdminUser {
   id: number
-  clerk_id: string
   email: string
   name: string | null
   is_admin: boolean
@@ -37,9 +36,9 @@ export function useBanUser() {
   const { getToken } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (clerkId: string) => {
+    mutationFn: async (userId: number) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/users/${clerkId}/ban`, { method: 'POST' })
+      return authFetch(token!, `/admin/users/${userId}/ban`, { method: 'POST' })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'users'] }),
   })
@@ -49,9 +48,9 @@ export function useSetAdmin() {
   const { getToken } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ clerkId, isAdmin }: { clerkId: string; isAdmin: boolean }) => {
+    mutationFn: async ({ userId, isAdmin }: { userId: number; isAdmin: boolean }) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/users/${clerkId}/set-admin`, {
+      return authFetch(token!, `/admin/users/${userId}/set-admin`, {
         method: 'POST',
         body: JSON.stringify({ is_admin: isAdmin }),
       })

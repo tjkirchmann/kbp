@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict
 
 class UserSchema(BaseModel):
     id: int
-    clerk_id: str
     email: str
     name: str | None
     is_admin: bool

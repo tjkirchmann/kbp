@@ -20,16 +20,21 @@ async def list_users(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.post("/users/{clerk_id}/ban")
-async def ban_user(clerk_id: str, db: AsyncSession = Depends(get_db)):
-    await _clerk.users.ban_async(user_id=clerk_id)
-    await db.execute(update(User).where(User.clerk_id == clerk_id).values(is_banned=True))
+@router.post("/users/{user_id}/ban")
+async def ban_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="User not found")
+    await _clerk.users.ban_async(user_id=user.clerk_id)
+    await db.execute(update(User).where(User.id == user_id).values(is_banned=True))
     await db.commit()
     return {"ok": True}
 
 
-@router.post("/users/{clerk_id}/set-admin")
-async def set_admin(clerk_id: str, body: SetAdminBody, db: AsyncSession = Depends(get_db)):
-    await db.execute(update(User).where(User.clerk_id == clerk_id).values(is_admin=body.is_admin))
+@router.post("/users/{user_id}/set-admin")
+async def set_admin(user_id: int, body: SetAdminBody, db: AsyncSession = Depends(get_db)):
+    await db.execute(update(User).where(User.id == user_id).values(is_admin=body.is_admin))
     await db.commit()
     return {"ok": True}

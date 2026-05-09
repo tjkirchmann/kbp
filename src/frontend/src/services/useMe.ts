@@ -15,7 +15,7 @@ export function useMe() {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error('Unauthorized')
-      return res.json() as Promise<{ id: number; clerk_id: string; email: string; name: string | null; is_admin: boolean }>
+      return res.json() as Promise<{ id: number; email: string; name: string | null; is_admin: boolean }>
     },
   })
 }

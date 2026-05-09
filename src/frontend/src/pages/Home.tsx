@@ -117,9 +117,6 @@ export default function Home() {
           />
         </div>
 
-        {isSignedIn && data && (
-          <p className="text-xs text-muted-foreground font-mono mt-2">{data.clerk_id}</p>
-        )}
       </main>
     </div>
   )
