@@ -50,6 +50,43 @@ Kirchmann Bowl Pool — visual and component design reference.
 
 ---
 
+## Diagonal Hatch Texture
+
+Used as a decorative fill element — applied to empty space next to labels, headings, or section headers to add visual texture without weight. The pattern is intentionally understated: thin lines, wide spacing, very low opacity.
+
+**Implementation (`index.css`):**
+
+```css
+.hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.045) 0px,
+    rgba(255, 255, 255, 0.045) 1px,
+    transparent 1px,
+    transparent 18px
+  );
+}
+```
+
+**Usage pattern:** Place the label/heading left-aligned in a flex row, then a `<div className="hatch flex-1 h-10 rounded" />` fills the remaining space to the right. No border or outline on the hatch element.
+
+```tsx
+<div className="flex items-center gap-6">
+  <div className="shrink-0 flex flex-col gap-1">
+    <p className="text-xs font-semibold uppercase tracking-widest text-primary">Section Title</p>
+    <p className="text-sm text-muted-foreground">Subtitle</p>
+  </div>
+  <div className="hatch flex-1 h-10 rounded" />
+</div>
+```
+
+**Tuning:**
+- Opacity: `0.045` — raise toward `0.07` for more presence, lower to `0.025` to fade further
+- Line spacing: `18px` — wider = more sparse, tighter = denser
+- Height: size the div to match the label block height
+
+---
+
 ## Background Texture
 
 Every page uses a textured background — a low-contrast dot/grid pattern over the off-white base. This gives depth and separates the background from solid content containers.

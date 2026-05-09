@@ -122,6 +122,19 @@
   }
 }
 
+/* Diagonal hatch texture — thin lines, wide spacing, understated */
+@layer utilities {
+  .hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.045) 0px,
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px,
+      transparent 18px
+    );
+  }
+}
+
 /* Glass panel — subtle top-to-bottom gradient for depth */
 @layer utilities {
   .glass-panel {

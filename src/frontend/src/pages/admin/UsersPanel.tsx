@@ -19,7 +19,7 @@ function formatValue(key: keyof AdminUser, value: AdminUser[keyof AdminUser]): s
   return value === null ? '—' : String(value)
 }
 
-function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => void }) {
+function UserDetail({ user }: { user: AdminUser }) {
   const banUser = useBanUser()
   const setAdmin = useSetAdmin()
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -34,19 +34,6 @@ function UserDetail({ user, onBack }: { user: AdminUser; onBack: () => void }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm">
-        <button
-          onClick={onBack}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Users
-        </button>
-        <span className="text-muted-foreground/40">/</span>
-        <span className="text-foreground">{user.email}</span>
-      </div>
-
-      <div className="border-b border-border/40" />
 
       {/* Key-value grid */}
       <div className="rounded-xl overflow-hidden border border-border/30 bg-[rgba(13,15,19,0.6)]">
@@ -129,8 +116,6 @@ function UserList({ onSelect }: { onSelect: (user: AdminUser) => void }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-xl font-semibold text-foreground">Users</h2>
-      <div className="border-b border-border/40" />
       <div className="glass-panel rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -219,11 +204,11 @@ function UserList({ onSelect }: { onSelect: (user: AdminUser) => void }) {
   )
 }
 
-export default function UsersPanel() {
-  const [selected, setSelected] = useState<AdminUser | null>(null)
-
-  if (selected) {
-    return <UserDetail user={selected} onBack={() => setSelected(null)} />
-  }
-  return <UserList onSelect={setSelected} />
+export default function UsersPanel({ selected, onSelect, onBack }: {
+  selected: AdminUser | null
+  onSelect: (user: AdminUser) => void
+  onBack: () => void
+}) {
+  if (selected) return <UserDetail user={selected} />
+  return <UserList onSelect={onSelect} />
 }
