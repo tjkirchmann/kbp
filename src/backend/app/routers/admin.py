@@ -16,7 +16,7 @@ async def ping():
 
 @router.get("/users", response_model=list[UserSchema])
 async def list_users(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).order_by(User.created_at))
+    result = await db.execute(select(User).where(User.deleted_at.is_(None)).order_by(User.created_at))
     return result.scalars().all()
 
 

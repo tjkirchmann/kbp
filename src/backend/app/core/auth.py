@@ -54,7 +54,10 @@ async def get_current_user(
     )
     result = await db.execute(stmt)
     await db.commit()
-    return result.scalars().one()
+    user = result.scalars().one()
+    if user.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account removed")
+    return user
 
 
 async def require_admin(user: User = Depends(get_current_user)) -> User:
