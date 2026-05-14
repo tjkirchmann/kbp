@@ -25,6 +25,7 @@ class Pool(Base):
     scoring_strategy: Mapped[Optional[ScoringStrategy]] = mapped_column(
         Enum(ScoringStrategy, name="scoring_strategy"), nullable=True
     )
+    password_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
     games: Mapped[list["PoolGame"]] = relationship(back_populates="pool", cascade="all, delete-orphan")

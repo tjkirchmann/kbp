@@ -7,6 +7,7 @@ import { useAdminPools } from '@/services/useAdminPools'
 const sections = [
   { id: 'users', label: 'Users' },
   { id: 'pools', label: 'Pools' },
+  { id: 'teams', label: 'Teams' },
 ]
 
 function useBreadcrumbs() {
@@ -46,7 +47,7 @@ export default function AdminShell() {
     <div className="min-h-screen">
       <Header />
       <main className="pt-24 pb-12 px-4 max-w-4xl mx-auto w-full">
-        <div className="glass-panel rounded-2xl w-full flex min-h-[calc(100vh-9rem)]">
+        <div className="glass-panel rounded-2xl w-full flex h-[calc(100vh-9rem)]">
           <nav className="flex flex-col gap-1 p-3 pt-4 w-40 shrink-0 border-r border-border/40 overflow-y-auto">
             {sections.map(s => (
               <NavLink

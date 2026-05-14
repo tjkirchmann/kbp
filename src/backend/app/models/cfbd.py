@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import Boolean, Integer, String
+from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
@@ -28,3 +29,20 @@ class CfbdGame(Base):
     last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
 
     pool_games: Mapped[list["PoolGame"]] = relationship(back_populates="cfbd_game")
+
+
+class CfbdTeam(Base):
+    __tablename__ = "cfbd_teams"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    school: Mapped[str] = mapped_column(String, nullable=False)
+    mascot: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    abbreviation: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    color: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    alt_color: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    logos: Mapped[Optional[list[str]]] = mapped_column(PG_ARRAY(String), nullable=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    division: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    classification: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    twitter: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)

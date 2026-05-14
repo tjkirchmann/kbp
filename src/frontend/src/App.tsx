@@ -8,6 +8,10 @@ import UserDetail from './pages/admin/UserDetail'
 import PoolsList from './pages/admin/PoolsList'
 import PoolCreate from './pages/admin/PoolCreate'
 import PoolDetail from './pages/admin/PoolDetail'
+import TeamsList from './pages/admin/TeamsList'
+import SubmissionShell from './pages/submission/SubmissionShell'
+import PoolSelectStep from './pages/submission/PoolSelectStep'
+import SubmissionWorkspace from './pages/submission/SubmissionWorkspace'
 
 export default function App() {
   return (
@@ -22,6 +26,11 @@ export default function App() {
         <Route path="pools" element={<PoolsList />} />
         <Route path="pools/new" element={<PoolCreate />} />
         <Route path="pools/:poolId" element={<PoolDetail />} />
+        <Route path="teams" element={<TeamsList />} />
+      </Route>
+      <Route path="/submission" element={<SubmissionShell />}>
+        <Route index element={<PoolSelectStep />} />
+        <Route path=":poolId" element={<SubmissionWorkspace />} />
       </Route>
     </Routes>
   )

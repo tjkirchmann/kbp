@@ -108,28 +108,25 @@ export default function PoolDetail() {
         </button>
       </div>
 
-      {/* Fixed-height tab content — keeps Danger Zone anchored below */}
-      <div style={{ height: 'calc(100vh - 31rem)' }}>
-        {tab === 'games' && (
-          isLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-              <Loader2 className="size-4 animate-spin" />
-              Loading games…
-            </div>
-          ) : games.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No games added to this pool yet.</p>
-          ) : (
-            <VirtualGameList games={games} />
-          )
-        )}
-
-        {tab === 'submissions' && (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
-            <p className="text-sm">Submissions not yet implemented.</p>
-            <p className="text-xs opacity-60">Come back soon.</p>
+      {tab === 'games' && (
+        isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+            <Loader2 className="size-4 animate-spin" />
+            Loading games…
           </div>
-        )}
-      </div>
+        ) : games.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4">No games added to this pool yet.</p>
+        ) : (
+          <VirtualGameList games={games} />
+        )
+      )}
+
+      {tab === 'submissions' && (
+        <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
+          <p className="text-sm">Submissions not yet implemented.</p>
+          <p className="text-xs opacity-60">Come back soon.</p>
+        </div>
+      )}
 
       <div className="border-b border-border/40" />
 
@@ -186,8 +183,8 @@ function VirtualGameList({ games }: { games: CfbdGame[] }) {
   return (
     <div
       ref={parentRef}
-      className="overflow-y-auto rounded-xl border border-border/30 bg-[rgba(13,15,19,0.4)] -mr-6 h-full"
-      style={{ scrollbarGutter: 'stable' }}
+      className="overflow-y-auto rounded-xl border border-border/30 bg-[rgba(13,15,19,0.4)]"
+      style={{ height: `${Math.min(games.length, 8) * ROW_HEIGHT}px`, scrollbarGutter: 'stable' }}
     >
       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
         {virtualizer.getVirtualItems().map(vRow => {

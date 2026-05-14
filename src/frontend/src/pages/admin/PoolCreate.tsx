@@ -254,7 +254,7 @@ function VirtualGameList({ games, selected, onToggle }: VirtualGameListProps) {
     <div
       ref={parentRef}
       className="overflow-y-auto rounded-lg -mr-6"
-      style={{ height: 'calc(100vh - 27rem)', scrollbarGutter: 'stable' }}
+      style={{ height: 'calc(100vh - 26rem)', scrollbarGutter: 'stable' }}
     >
       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
         {virtualizer.getVirtualItems().map(vRow => {

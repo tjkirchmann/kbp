@@ -7,6 +7,7 @@ import { useMe } from '@/services/useMe'
 import Header from '@/components/Header'
 
 function WelcomeCard() {
+  const { isSignedIn } = useAuth()
   const navigate = useNavigate()
   return (
     <div className="glass-panel rounded-2xl overflow-hidden flex flex-col gap-0">
@@ -24,7 +25,7 @@ function WelcomeCard() {
         />
         <div className="absolute bottom-4 left-0 right-0 flex gap-3 justify-center sm:justify-start sm:left-6 sm:right-auto px-4 sm:px-0">
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate(isSignedIn ? '/submission' : '/login')}
             className="btn-gold px-5 py-2.5 rounded-full text-sm font-semibold text-white"
           >
             Enter the Pool
@@ -113,7 +114,7 @@ export default function Home() {
             title="Join the Action"
             description="Ready to take the next step? No football knowledge or donation required — just sign in and make your picks."
             cta="Enter the Pool"
-            onClick={() => navigate('/login')}
+            onClick={() => navigate(isSignedIn ? '/submission' : '/login')}
           />
           <CTACard
             icon={<Newspaper className="size-5" />}
