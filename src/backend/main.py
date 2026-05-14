@@ -14,6 +14,8 @@ import app.models  # noqa: F401 — registers models with Base.metadata
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    from app.tasks.espn_poller import seed_missing_espn_games
+    seed_missing_espn_games.delay()
     yield
 
 app = FastAPI(title="App API", version="0.1.0", lifespan=lifespan)

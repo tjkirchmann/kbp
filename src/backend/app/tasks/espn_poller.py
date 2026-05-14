@@ -4,13 +4,16 @@ import time
 from datetime import datetime, timezone
 
 import redis.asyncio as aioredis
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.celery_app import celery_app
 from app.core.config import settings
 from app.core.database import SessionLocal
 from app.core.rate_limiter import acquire_espn_token
+from app.models.cfbd import CfbdGame
 from app.models.espn import EspnGame
+from app.models.pool import PoolGame
 from app.services.admin_config import get_espn_rate_limit, get_discord_webhook_url
 from app.services.discord import send_discord_alert
 from app.services.espn import fetch_espn_boxscore, extract_espn_scores
@@ -106,6 +109,50 @@ async def _run_poll() -> dict:
         await redis_client.aclose()
 
     return {"polled": polled, "live_games": n}
+
+
+async def _run_seed() -> int:
+    """Insert espn_games stub rows for any pool game missing one."""
+    async with SessionLocal() as db:
+        # cfbd_game IDs that are in at least one pool
+        pool_game_ids = select(PoolGame.cfbd_game_id).where(PoolGame.deleted_at.is_(None)).distinct()
+        # of those, which already have an espn_games row
+        existing_ids = select(EspnGame.cfbd_game_id)
+
+        result = await db.execute(
+            select(CfbdGame.id).where(
+                CfbdGame.id.in_(pool_game_ids),
+                CfbdGame.id.notin_(existing_ids),
+            )
+        )
+        missing_ids = result.scalars().all()
+
+        if not missing_ids:
+            return 0
+
+        rows = [{"cfbd_game_id": gid, "espn_event_id": str(gid)} for gid in missing_ids]
+        stmt = pg_insert(EspnGame).values(rows).on_conflict_do_nothing(index_elements=["cfbd_game_id"])
+        await db.execute(stmt)
+        await db.commit()
+        return len(missing_ids)
+
+
+@celery_app.task(
+    name="app.tasks.espn_poller.seed_missing_espn_games",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+)
+def seed_missing_espn_games(self):
+    logger.info("Seeding missing espn_games rows")
+    try:
+        count = asyncio.run(_run_seed())
+        if count:
+            logger.info("Seeded %d missing espn_games rows", count)
+        return {"seeded": count}
+    except Exception as exc:
+        logger.exception("espn seed error: %s", exc)
+        raise self.retry(exc=exc)
 
 
 @celery_app.task(
