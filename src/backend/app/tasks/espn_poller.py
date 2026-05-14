@@ -1,15 +1,15 @@
 import asyncio
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
 import redis.asyncio as aioredis
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.celery_app import celery_app
 from app.core.config import settings
-from app.core.database import SessionLocal
+from app.core.database import TaskSessionLocal as SessionLocal
 from app.core.rate_limiter import acquire_espn_token
 from app.models.cfbd import CfbdGame
 from app.models.espn import EspnGame
@@ -26,25 +26,28 @@ _config_cache_ts: float = 0.0
 _CONFIG_CACHE_TTL = 60.0
 
 
-async def _get_cached_config(db) -> tuple[int, str]:
+async def _get_cached_config() -> tuple[int, str]:
     global _config_cache, _config_cache_ts
     now = time.monotonic()
     if now - _config_cache_ts < _CONFIG_CACHE_TTL and _config_cache:
         return _config_cache["rate_limit"], _config_cache["webhook_url"]
-    rate_limit = await get_espn_rate_limit(db)
-    webhook_url = await get_discord_webhook_url(db)
+    async with SessionLocal() as db:
+        rate_limit = await get_espn_rate_limit(db)
+    async with SessionLocal() as db:
+        webhook_url = await get_discord_webhook_url(db)
     _config_cache = {"rate_limit": rate_limit, "webhook_url": webhook_url}
     _config_cache_ts = now
     return rate_limit, webhook_url
 
 
 async def _run_poll() -> dict:
-    async with SessionLocal() as db:
-        rate_limit, webhook_url = await _get_cached_config(db)
+    rate_limit, webhook_url = await _get_cached_config()
 
-        # Fetch games that are live (status_state='in') or recently created without a terminal state
+    async with SessionLocal() as db:
         result = await db.execute(
-            select(EspnGame).where(EspnGame.status_state.in_(["in", None]))
+            select(EspnGame).where(
+                (EspnGame.status_state == "in") | EspnGame.status_state.is_(None)
+            )
         )
         live_games: list[EspnGame] = list(result.scalars().all())
 
@@ -60,11 +63,11 @@ async def _run_poll() -> dict:
 
     try:
         for game in live_games:
-            now = datetime.now(tz=timezone.utc)
+            now = datetime.utcnow()
 
             # Skip if polled too recently
             if game.last_polled_at is not None:
-                elapsed = (now - game.last_polled_at.replace(tzinfo=timezone.utc)).total_seconds()
+                elapsed = (now - game.last_polled_at).total_seconds()
                 if elapsed < effective_interval:
                     continue
 

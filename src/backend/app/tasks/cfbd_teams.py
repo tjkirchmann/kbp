@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.celery_app import celery_app
-from app.core.database import SessionLocal
+from app.core.database import TaskSessionLocal as SessionLocal
 from app.models.cfbd import CfbdTeam
 from app.services.cfbd import fetch_teams
 
