@@ -11,6 +11,7 @@ from app.models.pool import Pool, PoolGame, PoolSubmission
 from app.schemas.pool import (
     PoolCreate, PoolSchema, PoolDetailSchema, PoolPatch,
     PoolGameAdd, PoolGameSchema, CfbdGameSchema,
+    PoolGamesBracketUpdate, PoolGamesMultiplierUpdate,
 )
 from app.services.cfbd import fetch_games
 
@@ -226,3 +227,104 @@ async def add_pool_games(pool_id: int, body: PoolGameAdd, db: AsyncSession = Dep
     )
     created = list(result.scalars().all())
     return [PoolGameSchema.model_validate(pg) for pg in created]
+
+
+VALID_PLAYOFF_SLOTS = {
+    'FR1', 'FR2', 'FR3', 'FR4',
+    'QF1', 'QF2', 'QF3', 'QF4',
+    'SF1', 'SF2',
+    'CH',
+}
+
+# Which FR slot must be assigned before each QF slot can be assigned
+_QF_REQUIRES_FR = {
+    'QF1': 'FR4',
+    'QF2': 'FR3',
+    'QF3': 'FR2',
+    'QF4': 'FR1',
+}
+
+
+@router.patch("/{pool_id}/games/bracket", response_model=list[PoolGameSchema])
+async def update_bracket(pool_id: int, body: PoolGamesBracketUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Pool).where(Pool.id == pool_id, Pool.deleted_at.is_(None)))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Pool not found")
+
+    pg_ids = [a.pool_game_id for a in body.assignments]
+    pg_result = await db.execute(
+        select(PoolGame).where(PoolGame.pool_id == pool_id, PoolGame.id.in_(pg_ids), PoolGame.deleted_at.is_(None))
+    )
+    pool_games = {pg.id: pg for pg in pg_result.scalars().all()}
+
+    for a in body.assignments:
+        if a.pool_game_id not in pool_games:
+            raise HTTPException(status_code=400, detail=f"pool_game_id {a.pool_game_id} not found in pool")
+        if a.playoff_slot is not None and a.playoff_slot not in VALID_PLAYOFF_SLOTS:
+            raise HTTPException(status_code=400, detail=f"Invalid playoff_slot: {a.playoff_slot}")
+
+    # Build the full slot → game_id map for validation
+    slot_to_game: dict[str, int] = {}
+    for a in body.assignments:
+        if a.playoff_slot is not None:
+            if a.playoff_slot in slot_to_game:
+                raise HTTPException(status_code=400, detail=f"Duplicate slot assignment: {a.playoff_slot}")
+            slot_to_game[a.playoff_slot] = a.pool_game_id
+
+    # Validate bracket dependencies
+    for qf, required_fr in _QF_REQUIRES_FR.items():
+        if qf in slot_to_game and required_fr not in slot_to_game:
+            raise HTTPException(status_code=400, detail=f"Must assign {required_fr} before {qf}")
+
+    sf_slots = {'SF1', 'SF2'}
+    all_qf = {'QF1', 'QF2', 'QF3', 'QF4'}
+    if sf_slots & slot_to_game.keys() and not all_qf <= slot_to_game.keys():
+        raise HTTPException(status_code=400, detail="Must assign all Quarterfinal games before assigning Semifinals")
+
+    if 'CH' in slot_to_game and not sf_slots <= slot_to_game.keys():
+        raise HTTPException(status_code=400, detail="Must assign both Semifinal games before assigning Championship")
+
+    # Apply updates — first clear all playoff_slot on this pool's games, then set
+    await db.execute(
+        update(PoolGame).where(PoolGame.pool_id == pool_id, PoolGame.deleted_at.is_(None)).values(playoff_slot=None)
+    )
+    for a in body.assignments:
+        pool_games[a.pool_game_id].playoff_slot = a.playoff_slot
+
+    await db.commit()
+
+    all_games_result = await db.execute(
+        select(PoolGame).options(joinedload(PoolGame.cfbd_game))
+        .where(PoolGame.pool_id == pool_id, PoolGame.deleted_at.is_(None))
+        .order_by(PoolGame.sort_order)
+    )
+    return [PoolGameSchema.model_validate(pg) for pg in all_games_result.scalars().all()]
+
+
+@router.patch("/{pool_id}/games/multipliers", response_model=list[PoolGameSchema])
+async def update_multipliers(pool_id: int, body: PoolGamesMultiplierUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Pool).where(Pool.id == pool_id, Pool.deleted_at.is_(None)))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Pool not found")
+
+    pg_ids = [m.pool_game_id for m in body.multipliers]
+    pg_result = await db.execute(
+        select(PoolGame).where(PoolGame.pool_id == pool_id, PoolGame.id.in_(pg_ids), PoolGame.deleted_at.is_(None))
+    )
+    pool_games = {pg.id: pg for pg in pg_result.scalars().all()}
+
+    for m in body.multipliers:
+        if m.pool_game_id not in pool_games:
+            raise HTTPException(status_code=400, detail=f"pool_game_id {m.pool_game_id} not found in pool")
+        if m.multiplier < 1:
+            raise HTTPException(status_code=400, detail="Multiplier must be >= 1")
+        pool_games[m.pool_game_id].multiplier = m.multiplier
+
+    await db.commit()
+
+    all_games_result = await db.execute(
+        select(PoolGame).options(joinedload(PoolGame.cfbd_game))
+        .where(PoolGame.pool_id == pool_id, PoolGame.deleted_at.is_(None))
+        .order_by(PoolGame.sort_order)
+    )
+    return [PoolGameSchema.model_validate(pg) for pg in all_games_result.scalars().all()]
