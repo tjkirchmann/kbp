@@ -28,6 +28,16 @@ export function useAdminConfig() {
   })
 }
 
+export function useTestDiscordWebhook() {
+  const { getToken } = useAuth()
+  return useMutation({
+    mutationFn: async () => {
+      const token = await getToken()
+      return authFetch(token!, '/admin/config/test-webhook', { method: 'POST' })
+    },
+  })
+}
+
 export function useUpdateAdminConfig() {
   const { getToken } = useAuth()
   const qc = useQueryClient()

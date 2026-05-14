@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
-import { useAdminConfig, useUpdateAdminConfig } from '@/services/useAdminConfig'
+import { useAdminConfig, useUpdateAdminConfig, useTestDiscordWebhook } from '@/services/useAdminConfig'
 
 export default function GeneralPanel() {
   const { data: config, isLoading, error } = useAdminConfig()
   const update = useUpdateAdminConfig()
+  const testWebhook = useTestDiscordWebhook()
 
   const [rateLimit, setRateLimit] = useState('')
   const [webhookUrl, setWebhookUrl] = useState('')
   const [saved, setSaved] = useState(false)
+  const [testStatus, setTestStatus] = useState<'idle' | 'ok' | 'error'>('idle')
 
   useEffect(() => {
     if (config) {
@@ -46,13 +48,32 @@ export default function GeneralPanel() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-foreground">Discord Webhook URL</label>
-          <input
-            type="url"
-            value={webhookUrl}
-            onChange={e => setWebhookUrl(e.target.value)}
-            placeholder="https://discord.com/api/webhooks/..."
-            className="px-3 py-2 rounded-lg bg-[rgba(13,15,19,0.6)] border border-border/40 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors"
-          />
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={webhookUrl}
+              onChange={e => setWebhookUrl(e.target.value)}
+              placeholder="https://discord.com/api/webhooks/..."
+              className="flex-1 px-3 py-2 rounded-lg bg-[rgba(13,15,19,0.6)] border border-border/40 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors"
+            />
+            <button
+              onClick={async () => {
+                setTestStatus('idle')
+                try {
+                  await testWebhook.mutateAsync()
+                  setTestStatus('ok')
+                } catch {
+                  setTestStatus('error')
+                } finally {
+                  setTimeout(() => setTestStatus('idle'), 3000)
+                }
+              }}
+              disabled={testWebhook.isPending || !config?.discord_webhook_url}
+              className="px-3 py-1.5 rounded-full text-sm font-medium bg-muted/20 text-muted-foreground border border-border/40 hover:bg-muted/40 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {testWebhook.isPending ? 'Sending...' : testStatus === 'ok' ? 'Sent!' : testStatus === 'error' ? 'Failed' : 'Test'}
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground">Alerts are sent here when ESPN returns a bad or unexpected response.</p>
         </div>
       </div>

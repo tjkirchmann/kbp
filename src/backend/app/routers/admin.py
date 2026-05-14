@@ -46,6 +46,17 @@ async def update_admin_config(body: AdminConfigUpdate, db: AsyncSession = Depend
     )
 
 
+@router.post("/config/test-webhook")
+async def test_discord_webhook(db: AsyncSession = Depends(get_db)):
+    from fastapi import HTTPException
+    from app.services.discord import send_discord_alert
+    url = await get_discord_webhook_url(db)
+    if not url:
+        raise HTTPException(status_code=400, detail="No Discord webhook URL configured")
+    await send_discord_alert(url, "Test message from KBP admin panel.")
+    return {"ok": True}
+
+
 @router.get("/ping")
 async def ping():
     return {"ok": True}
