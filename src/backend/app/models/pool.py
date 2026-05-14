@@ -43,6 +43,8 @@ class PoolGame(Base):
     pool_id: Mapped[int] = mapped_column(ForeignKey("pools.id"), nullable=False, index=True)
     cfbd_game_id: Mapped[int] = mapped_column(ForeignKey("cfbd_games.id"), nullable=False, index=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    multiplier: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    playoff_slot: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
     pool: Mapped["Pool"] = relationship(back_populates="games")

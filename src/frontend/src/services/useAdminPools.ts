@@ -83,6 +83,8 @@ export interface PoolGameDetail {
   id: number
   cfbd_game_id: number
   sort_order: number
+  multiplier: number
+  playoff_slot: string | null
   home_team: string
   away_team: string
   start_date: string
@@ -156,8 +158,52 @@ export function useAddPoolGames() {
       return authFetch(token!, `/admin/pools/${poolId}/games`, {
         method: 'POST',
         body: JSON.stringify({ cfbd_game_ids: cfbdGameIds }),
-      })
+      }) as Promise<PoolGameDetail[]>
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'pools'] }),
+  })
+}
+
+export interface BracketAssignmentItem {
+  pool_game_id: number
+  playoff_slot: string | null
+}
+
+export function useUpdateBracket() {
+  const { getToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ poolId, assignments }: { poolId: number; assignments: BracketAssignmentItem[] }) => {
+      const token = await getToken()
+      return authFetch(token!, `/admin/pools/${poolId}/games/bracket`, {
+        method: 'PATCH',
+        body: JSON.stringify({ assignments }),
+      }) as Promise<PoolGameDetail[]>
+    },
+    onSuccess: (_data, { poolId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'pools', poolId] })
+    },
+  })
+}
+
+export interface MultiplierItem {
+  pool_game_id: number
+  multiplier: number
+}
+
+export function useUpdateMultipliers() {
+  const { getToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ poolId, multipliers }: { poolId: number; multipliers: MultiplierItem[] }) => {
+      const token = await getToken()
+      return authFetch(token!, `/admin/pools/${poolId}/games/multipliers`, {
+        method: 'PATCH',
+        body: JSON.stringify({ multipliers }),
+      }) as Promise<PoolGameDetail[]>
+    },
+    onSuccess: (_data, { poolId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'pools', poolId] })
+    },
   })
 }

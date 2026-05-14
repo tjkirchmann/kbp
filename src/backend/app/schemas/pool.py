@@ -22,6 +22,8 @@ class PoolGameSchema(BaseModel):
     id: int
     cfbd_game_id: int
     sort_order: int
+    multiplier: int = 1
+    playoff_slot: str | None = None
     home_team: str
     away_team: str
     start_date: datetime
@@ -47,6 +49,8 @@ class PoolGameSchema(BaseModel):
             id=obj.id,
             cfbd_game_id=obj.cfbd_game_id,
             sort_order=obj.sort_order,
+            multiplier=obj.multiplier,
+            playoff_slot=obj.playoff_slot,
             home_team=cg.home_team,
             away_team=cg.away_team,
             start_date=cg.start_date,
@@ -168,3 +172,21 @@ class MySubmissionSchema(BaseModel):
     on_behalf_of_name: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+class BracketAssignmentItem(BaseModel):
+    pool_game_id: int
+    playoff_slot: str | None
+
+
+class PoolGamesBracketUpdate(BaseModel):
+    assignments: list[BracketAssignmentItem]
+
+
+class MultiplierItem(BaseModel):
+    pool_game_id: int
+    multiplier: int
+
+
+class PoolGamesMultiplierUpdate(BaseModel):
+    multipliers: list[MultiplierItem]
