@@ -15,7 +15,6 @@ function TeamRow({ team, style }: { team: CfbdTeam; style: React.CSSProperties }
   const logo = team.logos?.[0] ?? null
   return (
     <div style={style} className="flex items-center border-t border-border/20 hover:bg-[rgba(26,30,42,0.4)] transition-colors">
-      {/* School */}
       <div className="flex items-center gap-3 px-5 flex-[3] min-w-0">
         <div className="size-6 shrink-0 flex items-center justify-center">
           {logo
@@ -28,20 +27,16 @@ function TeamRow({ team, style }: { team: CfbdTeam; style: React.CSSProperties }
           {team.mascot && <span className="text-xs text-muted-foreground truncate block">{team.mascot}</span>}
         </div>
       </div>
-      {/* Abbr */}
       <div className="px-5 flex-[1] text-xs text-muted-foreground font-mono">{team.abbreviation ?? '—'}</div>
-      {/* Conference */}
       <div className="px-5 flex-[2] text-xs text-muted-foreground truncate">
         {[team.conference, team.division].filter(Boolean).join(' · ') || '—'}
       </div>
-      {/* Class */}
       <div className="px-5 flex-[1]">
         {team.classification
           ? <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/60 text-muted-foreground">{team.classification.toUpperCase()}</span>
           : <span className="text-xs text-muted-foreground">—</span>
         }
       </div>
-      {/* Colors */}
       <div className="px-5 flex-[1]">
         <div className="flex items-center gap-1">
           <ColorSwatch hex={team.color} />
@@ -62,21 +57,21 @@ export default function TeamsList() {
   const parentRef = useRef<HTMLDivElement>(null)
 
   const conferences = useMemo(() => {
-    const vals = [...new Set(teams.map(t => t.conference).filter(Boolean) as string[])].sort()
-    return vals
+    return [...new Set(teams.map(t => t.conference).filter(Boolean) as string[])].sort()
   }, [teams])
 
   const classifications = useMemo(() => {
-    const vals = [...new Set(teams.map(t => t.classification).filter(Boolean) as string[])].sort()
-    return vals
+    return [...new Set(teams.map(t => t.classification).filter(Boolean) as string[])].sort()
   }, [teams])
 
-  const filtered = useMemo(() => teams.filter(t => {
-    if (search && !t.school.toLowerCase().includes(search.toLowerCase())) return false
-    if (confFilter !== 'all' && t.conference !== confFilter) return false
-    if (classFilter !== 'all' && t.classification !== classFilter) return false
-    return true
-  }).sort((a, b) => (a.conference ?? '').localeCompare(b.conference ?? '') || a.school.localeCompare(b.school)), [teams, search, confFilter, classFilter])
+  const filtered = useMemo(() => {
+    return teams.filter(t => {
+      if (search && !t.school.toLowerCase().includes(search.toLowerCase())) return false
+      if (confFilter !== 'all' && t.conference !== confFilter) return false
+      if (classFilter !== 'all' && t.classification !== classFilter) return false
+      return true
+    }).sort((a, b) => (a.conference ?? '').localeCompare(b.conference ?? '') || a.school.localeCompare(b.school))
+  }, [teams, search, confFilter, classFilter])
 
   const virtualizer = useVirtualizer({
     count: filtered.length,
@@ -176,13 +171,23 @@ export default function TeamsList() {
             <div className="px-5 py-2.5 flex-[1]">Colors</div>
           </div>
           {/* Virtual rows */}
-          <div ref={parentRef} className="flex-1 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+          <div
+            ref={parentRef}
+            className="flex-1 overflow-y-auto"
+            style={{ scrollbarGutter: 'stable', willChange: 'transform' }}
+          >
             <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
               {virtualizer.getVirtualItems().map(vRow => (
                 <TeamRow
                   key={filtered[vRow.index].id}
                   team={filtered[vRow.index]}
-                  style={{ position: 'absolute', top: vRow.start, left: 0, right: 0, height: ROW_HEIGHT }}
+                  style={{
+                    position: 'absolute',
+                    transform: `translateY(${vRow.start}px)`,
+                    left: 0,
+                    right: 0,
+                    height: ROW_HEIGHT,
+                  }}
                 />
               ))}
             </div>

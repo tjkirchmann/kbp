@@ -37,6 +37,10 @@ function useBreadcrumbs() {
     return crumbs
   }
 
+  if (parts[0] === 'teams') {
+    return [{ label: 'Teams', to: '/admin/teams' }]
+  }
+
   return [{ label: 'Admin', to: '/admin' }]
 }
 

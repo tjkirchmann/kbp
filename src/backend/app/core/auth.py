@@ -11,16 +11,28 @@ from app.core.database import get_db
 from app.models import User
 
 security = HTTPBearer()
-_verify_options = VerifyTokenOptions(secret_key=settings.clerk_secret_key)
-_clerk = Clerk(bearer_auth=settings.clerk_secret_key)
+_verify_options = None
+_clerk = None
+
+
+def _get_clerk_clients():
+    global _verify_options, _clerk
+    if not settings.clerk_secret_key:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Auth not configured")
+    if _verify_options is None:
+        _verify_options = VerifyTokenOptions(secret_key=settings.clerk_secret_key)
+    if _clerk is None:
+        _clerk = Clerk(bearer_auth=settings.clerk_secret_key)
+    return _verify_options, _clerk
 
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
+    verify_options, clerk = _get_clerk_clients()
     try:
-        payload = verify_token(credentials.credentials, _verify_options)
+        payload = verify_token(credentials.credentials, verify_options)
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
@@ -29,7 +41,7 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
     try:
-        clerk_user = await _clerk.users.get_async(user_id=clerk_id)
+        clerk_user = await clerk.users.get_async(user_id=clerk_id)
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not fetch user from Clerk")
 

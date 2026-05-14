@@ -404,7 +404,7 @@ function VirtualGameList({ games, selected, onToggle }: VirtualGameListProps) {
           return (
             <div
               key={game.id}
-              style={{ position: 'absolute', top: vRow.start, left: 0, right: 0, height: ROW_HEIGHT }}
+              style={{ position: 'absolute', transform: `translateY(${vRow.start}px)`, left: 0, right: 0, height: ROW_HEIGHT }}
             >
               <GameRow
                 game={game}
