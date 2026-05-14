@@ -6,7 +6,7 @@ celery_app = Celery(
     "kbp",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["app.tasks.cfbd_teams"],
+    include=["app.tasks.cfbd_teams", "app.tasks.espn_poller"],
 )
 
 celery_app.conf.update(
@@ -22,5 +22,9 @@ celery_app.conf.beat_schedule = {
     "sync-cfbd-teams-nightly": {
         "task": "app.tasks.cfbd_teams.sync_cfbd_teams",
         "schedule": crontab(hour=3, minute=0),  # 3 AM US/Eastern daily
+    },
+    "poll-live-espn-games": {
+        "task": "app.tasks.espn_poller.poll_live_espn_games",
+        "schedule": 30.0,  # every 30s; task enforces per-game intervals internally
     },
 }

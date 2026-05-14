@@ -29,6 +29,7 @@ class CfbdGame(Base):
     last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
 
     pool_games: Mapped[list["PoolGame"]] = relationship(back_populates="cfbd_game")
+    espn_game: Mapped[Optional["EspnGame"]] = relationship(back_populates="cfbd_game", uselist=False)  # type: ignore[name-defined]
 
 
 class CfbdTeam(Base):

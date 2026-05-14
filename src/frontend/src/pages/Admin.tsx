@@ -3,12 +3,14 @@ import { ChevronRight } from 'lucide-react'
 import Header from '@/components/Header'
 import UsersPanel from './admin/UsersPanel'
 import PoolsPanel from './admin/PoolsPanel'
+import GeneralPanel from './admin/GeneralPanel'
 import type { AdminUser } from '@/services/useAdminUsers'
 import type { AdminPool } from '@/services/useAdminPools'
 
-type Section = 'users' | 'pools'
+type Section = 'general' | 'users' | 'pools'
 
 const sections: { id: Section; label: string }[] = [
+  { id: 'general', label: 'General' },
   { id: 'users', label: 'Users' },
   { id: 'pools', label: 'Pools' },
 ]
@@ -16,7 +18,7 @@ const sections: { id: Section; label: string }[] = [
 type Breadcrumb = { label: string; onClick?: () => void }
 
 export default function Admin() {
-  const [section, setSection] = useState<Section>('users')
+  const [section, setSection] = useState<Section>('general')
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   const [creatingPool, setCreatingPool] = useState(false)
   const [selectedPool, setSelectedPool] = useState<AdminPool | null>(null)
@@ -79,6 +81,7 @@ export default function Admin() {
             </div>
             {/* Panel content */}
             <div className="flex-1 p-6 overflow-y-auto">
+              {section === 'general' && <GeneralPanel />}
               {section === 'users' && (
                 <UsersPanel
                   selected={selectedUser}
