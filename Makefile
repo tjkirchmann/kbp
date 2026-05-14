@@ -1,4 +1,4 @@
-.PHONY: up down deploy migrate frontend-component backend frontend-logic
+.PHONY: up down deploy migrate frontend-component backend frontend-logic frontend-organize
 
 # ── Dev ──────────────────────────────────────────────────────────────────────
 
@@ -43,3 +43,7 @@ frontend-logic:
 migration:
 	@echo "Loading migration skill..."
 	@cat .claude/skills/migration.md
+
+frontend-organize:
+	@echo "Loading frontend organize skill..."
+	@cat .claude/skills/frontend-organize.md

@@ -109,6 +109,7 @@ Backend API + docs: `http://localhost:8000/docs`
 - **shadcn/ui** — install components with `npx shadcn@latest add <name>`. Output goes to `src/components/ui/`.
 - **No inline styles**. No CSS modules. Tailwind classes only.
 - **Icons**: `lucide-react` only. `size-4` inline, `size-5` standalone. Always paired with text unless inside a `<Tooltip>`.
+- **No Inline Components** - exceptions should only be very simple componenets, otherwise we should prepare for any potential resuability and proper organization
 
 ### Backend
 
@@ -131,11 +132,19 @@ Before starting a task, tell the agent which skill to use. The Makefile also pri
 ```bash
 make frontend-component   # UI component work
 make frontend-logic       # TanStack Query / Zustand / auth hooks
+make frontend-organize    # refactor: extract inline components, remove inline styles, fix raw colors
 make backend              # new route, service, or model
 make migration            # schema change
+make data-modeling        # adding tables, columns, or relationships
 ```
 
-Or just reference the file directly: `.claude/skills/frontend-component.md` is the most important one — it contains the full KBP design system.
+| Skill file | Use when |
+|---|---|
+| `.claude/skills/frontend-component.md` | Building or editing any UI component — contains the full design system |
+| `.claude/skills/frontend-logic.md` | TanStack Query hooks, Zustand slices, auth patterns |
+| `.claude/skills/backend.md` | New FastAPI route, service, or model |
+| `.claude/skills/migration.md` | Any Alembic migration — includes the Postgres ENUM gotcha |
+| `.claude/skills/data-modeling.md` | Schema decisions — soft deletes, table conventions, CFBD API shape, all locked-in decisions |
 
 ---
 

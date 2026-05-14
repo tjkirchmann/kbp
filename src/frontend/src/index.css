@@ -122,6 +122,16 @@
   }
 }
 
+/* Tag color palette — 6 rotating colors for classification/label pills */
+@layer utilities {
+  .tag-blue   { background: rgba(0,156,222,0.15);   color: #009CDE; }
+  .tag-teal   { background: rgba(38,166,154,0.15);  color: #26A69A; }
+  .tag-purple { background: rgba(124,106,247,0.15); color: #9D8DF7; }
+  .tag-amber  { background: rgba(240,164,41,0.15);  color: #F0A429; }
+  .tag-green  { background: rgba(63,185,80,0.15);   color: #3FB950; }
+  .tag-rose   { background: rgba(229,83,75,0.15);   color: #E5534B; }
+}
+
 /* Diagonal hatch texture — thin lines, wide spacing, understated */
 @layer utilities {
   .hatch {

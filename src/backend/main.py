@@ -5,6 +5,9 @@ from app.core.database import engine, Base
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.routers.admin import router as admin_router
+from app.routers.pools import router as pools_router
+from app.routers.submissions import router as submissions_router
+from app.routers.teams import router as teams_router
 import app.models  # noqa: F401 — registers models with Base.metadata
 
 @asynccontextmanager
@@ -24,6 +27,9 @@ app.add_middleware(
 )
 
 app.include_router(admin_router)
+app.include_router(pools_router)
+app.include_router(submissions_router)
+app.include_router(teams_router)
 
 @app.get("/health")
 async def health():

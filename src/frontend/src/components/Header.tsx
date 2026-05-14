@@ -84,7 +84,7 @@ export default function Header() {
 
         {/* Nav — desktop */}
         <nav className="hidden sm:flex items-center gap-1">
-          <button className={navBtn}>
+          <button className={navBtn} onClick={() => navigate('/record-book')}>
             <BookOpen className="size-4" />
             Record Book
           </button>
@@ -122,7 +122,7 @@ export default function Header() {
       {/* Mobile dropdown */}
       {menuOpen && (
         <div className="sm:hidden mt-2 glass-panel rounded-2xl px-3 py-3 flex flex-col gap-1">
-          <button className={mobileNavBtn} onClick={() => setMenuOpen(false)}>
+          <button className={mobileNavBtn} onClick={() => { navigate('/record-book'); setMenuOpen(false) }}>
             <BookOpen className="size-4" />
             Record Book
           </button>

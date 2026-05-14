@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import Header from '@/components/Header'
 import UsersPanel from './admin/UsersPanel'
+import PoolsPanel from './admin/PoolsPanel'
 import type { AdminUser } from '@/services/useAdminUsers'
+import type { AdminPool } from '@/services/useAdminPools'
 
-type Section = 'users'
+type Section = 'users' | 'pools'
 
 const sections: { id: Section; label: string }[] = [
   { id: 'users', label: 'Users' },
+  { id: 'pools', label: 'Pools' },
 ]
 
 type Breadcrumb = { label: string; onClick?: () => void }
@@ -15,11 +18,22 @@ type Breadcrumb = { label: string; onClick?: () => void }
 export default function Admin() {
   const [section, setSection] = useState<Section>('users')
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
+  const [creatingPool, setCreatingPool] = useState(false)
+  const [selectedPool, setSelectedPool] = useState<AdminPool | null>(null)
+  const [poolsResetKey, setPoolsResetKey] = useState(0)
+
+  function resetPools() {
+    setCreatingPool(false)
+    setSelectedPool(null)
+    setPoolsResetKey(k => k + 1)
+  }
 
   const activeLabel = sections.find(s => s.id === section)?.label ?? ''
 
-  const breadcrumbs: Breadcrumb[] = [{ label: activeLabel, onClick: selectedUser ? () => setSelectedUser(null) : undefined }]
+  const breadcrumbs: Breadcrumb[] = [{ label: activeLabel, onClick: (selectedUser || creatingPool || selectedPool) ? () => { setSelectedUser(null); resetPools() } : undefined }]
   if (selectedUser) breadcrumbs.push({ label: selectedUser.name ?? selectedUser.email })
+  if (creatingPool) breadcrumbs.push({ label: 'New Pool' })
+  if (selectedPool) breadcrumbs.push({ label: selectedPool.name })
 
   return (
     <div className="min-h-screen">
@@ -30,7 +44,7 @@ export default function Admin() {
             {sections.map(s => (
               <button
                 key={s.id}
-                onClick={() => { setSection(s.id); setSelectedUser(null) }}
+                onClick={() => { setSection(s.id); setSelectedUser(null); resetPools() }}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors text-center w-full ${
                   section === s.id
                     ? 'bg-primary/15 text-primary'
@@ -70,6 +84,14 @@ export default function Admin() {
                   selected={selectedUser}
                   onSelect={setSelectedUser}
                   onBack={() => setSelectedUser(null)}
+                />
+              )}
+              {section === 'pools' && (
+                <PoolsPanel
+                  key={poolsResetKey}
+                  onViewChange={setCreatingPool}
+                  selectedPool={selectedPool}
+                  onSelectPool={setSelectedPool}
                 />
               )}
             </div>
