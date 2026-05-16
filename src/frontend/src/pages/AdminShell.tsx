@@ -1,11 +1,14 @@
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Info } from 'lucide-react'
 import Header from '@/components/Header'
 import { useAdminUsers } from '@/services/useAdminUsers'
 import { useAdminPools } from '@/services/useAdminPools'
+import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
 
 const sections = [
-  { id: 'general', label: 'General' },
+  { id: 'comms', label: 'Comms' },
+  { id: 'espn', label: 'ESPN' },
   { id: 'users', label: 'Users' },
   { id: 'pools', label: 'Pools' },
   { id: 'teams', label: 'Teams' },
@@ -42,8 +45,12 @@ function useBreadcrumbs() {
     return [{ label: 'Teams', to: '/admin/teams' }]
   }
 
-  if (parts[0] === 'general') {
-    return [{ label: 'General', to: '/admin/general' }]
+  if (parts[0] === 'comms') {
+    return [{ label: 'Comms', to: '/admin/comms' }]
+  }
+
+  if (parts[0] === 'espn') {
+    return [{ label: 'ESPN', to: '/admin/espn' }]
   }
 
   return [{ label: 'Admin', to: '/admin' }]
@@ -51,12 +58,19 @@ function useBreadcrumbs() {
 
 export default function AdminShell() {
   const breadcrumbs = useBreadcrumbs()
+  const { pathname } = useLocation()
+  const [infoOpen, setInfoOpen] = useState(false)
+  const currentSection = breadcrumbs[0].label.toLowerCase()
+
+  useEffect(() => {
+    setInfoOpen(false)
+  }, [pathname])
 
   return (
     <div className="min-h-screen">
       <Header />
       <main className="pt-24 pb-12 px-4 max-w-4xl mx-auto w-full">
-        <div className="glass-panel rounded-2xl w-full flex h-[calc(100vh-9rem)]">
+        <div className="glass-panel rounded-2xl w-full flex min-h-[calc(100vh-9rem)]">
           <nav className="flex flex-col gap-1 p-3 pt-4 w-40 shrink-0 border-r border-border/40 overflow-y-auto">
             {sections.map(s => (
               <NavLink
@@ -102,9 +116,19 @@ export default function AdminShell() {
                 ))}
               </div>
               <div className="hatch flex-1 h-8 rounded" />
+              <button
+                onClick={() => setInfoOpen(v => !v)}
+                className={`p-1.5 rounded-full transition-colors shrink-0 ${
+                  infoOpen
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                }`}
+              >
+                <Info className="size-4" />
+              </button>
             </div>
-            <div className="flex-1 p-6 overflow-y-auto">
-              <Outlet />
+            <div className="p-6">
+              {infoOpen ? <AdminInfoPanel section={currentSection} /> : <Outlet />}
             </div>
           </div>
         </div>

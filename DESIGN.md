@@ -6,9 +6,9 @@ Kirchmann Bowl Pool — visual and component design reference.
 
 ## Aesthetic
 
-**Mood:** Professional + clean tech, with a slightly whimsical edge. Think a well-designed sports analytics tool that doesn't take itself too seriously. Warm, inviting, not sterile.
+**Mood:** Professional dark UI — clean, slightly technical, not sterile. Sports analytics feel without being flashy.
 
-**Mode:** Light only (for now). All whites are intentionally off-white — never pure `#ffffff` on backgrounds.
+**Mode:** Dark only.
 
 ---
 
@@ -18,43 +18,87 @@ Kirchmann Bowl Pool — visual and component design reference.
 
 | Token | Value | Use |
 |---|---|---|
-| `--background` | `hsl(40, 20%, 97%)` | Page background (warm off-white) |
-| `--foreground` | `hsl(30, 15%, 12%)` | Body text |
-| `--card` | `hsl(40, 15%, 99%)` | Card / content panel surface |
-| `--card-foreground` | `hsl(30, 15%, 12%)` | Card text |
-| `--border` | `hsl(35, 15%, 85%)` | Borders (light gray, warm tint) |
-| `--muted` | `hsl(35, 15%, 92%)` | Muted backgrounds (inputs, chips) |
-| `--muted-foreground` | `hsl(30, 10%, 45%)` | Secondary / placeholder text |
-| `--primary` | `hsl(30, 90%, 48%)` | Warm amber-orange — primary accent |
-| `--primary-foreground` | `hsl(0, 0%, 100%)` | Text on primary |
-| `--secondary` | `hsl(25, 70%, 62%)` | Lighter warm orange — secondary accent |
-| `--accent` | `hsl(35, 85%, 55%)` | Gold — used for highlights, icons, badges |
-| `--destructive` | `hsl(0, 72%, 51%)` | Error / destructive actions |
-| `--ring` | `hsl(30, 90%, 48%)` | Focus ring |
+| `--background` | `#111318` | Page background |
+| `--foreground` | `hsl(220, 20%, 92%)` | Body text |
+| `--card` | `#1A1D24` | Elevated surface |
+| `--card-foreground` | `hsl(220, 20%, 92%)` | Card text |
+| `--border` | `#2A2E38` | Borders |
+| `--muted` | `#1E2130` | Muted backgrounds |
+| `--muted-foreground` | `hsl(220, 10%, 55%)` | Secondary / placeholder text |
+| `--primary` | `#009CDE` | NCAA blue — primary accent |
+| `--primary-foreground` | `#ffffff` | Text on primary |
+| `--destructive` | `#E5534B` | Error / destructive actions |
+| `--ring` | `#009CDE` | Focus ring |
 | `--radius` | `0.5rem` | Base border radius |
 
-### Extended palette (for custom use)
+### Tag colors (classification/label pills)
 
 ```css
---amber-50:  hsl(40, 95%, 97%)
---amber-100: hsl(38, 92%, 93%)
---amber-200: hsl(36, 88%, 85%)
---amber-300: hsl(34, 84%, 74%)
---amber-400: hsl(32, 85%, 62%)
---amber-500: hsl(30, 90%, 48%)   /* = --primary */
---amber-600: hsl(28, 82%, 40%)
---amber-700: hsl(26, 75%, 32%)
---amber-800: hsl(24, 65%, 24%)
---amber-900: hsl(22, 55%, 16%)
+.tag-blue   { background: rgba(0,156,222,0.15);   color: #009CDE; }
+.tag-teal   { background: rgba(38,166,154,0.15);  color: #26A69A; }
+.tag-purple { background: rgba(124,106,247,0.15); color: #9D8DF7; }
+.tag-amber  { background: rgba(240,164,41,0.15);  color: #F0A429; }
+.tag-green  { background: rgba(63,185,80,0.15);   color: #3FB950; }
+.tag-rose   { background: rgba(229,83,75,0.15);   color: #E5534B; }
+```
+
+---
+
+## Background
+
+Body uses layered radial gradients for depth — no `background-attachment: fixed` (causes scroll repaint).
+
+```css
+body {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(0, 100, 180, 0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 50% at 85% 70%, rgba(0, 60, 120, 0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(20, 40, 80, 0.24) 0%, transparent 70%);
+  background-attachment: scroll;
+}
+```
+
+---
+
+## Layout Containers
+
+### Outer panels — `glass-panel`
+
+Every page section, the header pill, and the admin shell uses `glass-panel`. It is a gradient-only dark surface — **no `backdrop-filter`** (removed for scroll performance).
+
+```css
+.glass-panel {
+  background: linear-gradient(
+    to bottom,
+    rgba(42, 47, 62, 0.82) 0%,
+    rgba(26, 30, 42, 0.72) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+```
+
+```tsx
+<div className="glass-panel rounded-2xl p-6">
+  {/* section content */}
+</div>
+```
+
+### Inner cards (items within panels)
+
+No border, no background — rely on hover state for separation.
+
+```tsx
+<div className="rounded-lg px-4 py-3 hover:bg-white/5 transition-colors">
+  {/* item */}
+</div>
 ```
 
 ---
 
 ## Diagonal Hatch Texture
 
-Used as a decorative fill element — applied to empty space next to labels, headings, or section headers to add visual texture without weight. The pattern is intentionally understated: thin lines, wide spacing, very low opacity.
-
-**Implementation (`index.css`):**
+Decorative fill — placed next to labels or headings to add texture without visual weight.
 
 ```css
 .hatch {
@@ -68,88 +112,48 @@ Used as a decorative fill element — applied to empty space next to labels, hea
 }
 ```
 
-**Usage pattern:** Place the label/heading left-aligned in a flex row, then a `<div className="hatch flex-1 h-10 rounded" />` fills the remaining space to the right. No border or outline on the hatch element.
-
 ```tsx
 <div className="flex items-center gap-6">
-  <div className="shrink-0 flex flex-col gap-1">
-    <p className="text-xs font-semibold uppercase tracking-widest text-primary">Section Title</p>
-    <p className="text-sm text-muted-foreground">Subtitle</p>
-  </div>
-  <div className="hatch flex-1 h-10 rounded" />
+  <h2 className="text-2xl font-semibold tracking-tight">Title</h2>
+  <div className="hatch flex-1 h-8 rounded" />
 </div>
 ```
-
-**Tuning:**
-- Opacity: `0.045` — raise toward `0.07` for more presence, lower to `0.025` to fade further
-- Line spacing: `18px` — wider = more sparse, tighter = denser
-- Height: size the div to match the label block height
 
 ---
 
-## Background Texture
+## Admin Shell Layout
 
-Every page uses a textured background — a low-contrast dot/grid pattern over the off-white base. This gives depth and separates the background from solid content containers.
+The admin shell (`AdminShell.tsx`) is the layout wrapper for all `/admin/*` routes.
 
-**Implementation (CSS):**
+- Outer `<main>`: `pt-24 pb-12 px-4 max-w-4xl mx-auto`
+- Panel: `glass-panel rounded-2xl w-full flex min-h-[calc(100vh-9rem)]`
+  - `min-h` fills the viewport on short pages; tall pages scroll the whole page (not the inner panel)
+- Left sidebar: `w-40 shrink-0 border-r border-border/40` — NavLink buttons
+- Right content: `flex-1 flex flex-col` — breadcrumb header strip + `<Outlet />`
 
-```css
-/* Applied to html or body */
-background-color: hsl(40, 20%, 97%);
-background-image: radial-gradient(hsl(35, 15%, 82%) 1px, transparent 1px);
-background-size: 20px 20px;
-```
-
-This produces a subtle gray dot grid. Containers sit on top as solid white-ish panels.
+Page content is dropped into the `<Outlet />` slot — each admin page exports a default component and `App.tsx` wires it in.
 
 ---
 
-## Layout Containers
+## Header
 
-Two levels of containers — outer panels and inner cards. They behave differently.
-
-### Outer Panels (page sections, main content regions)
-
-- Background: `bg-card` (off-white)
-- Border: `border border-border` (visible, light warm-gray)
-- Border radius: `rounded-xl` (0.75rem)
-- Shadow: `shadow-sm` (very subtle)
-- Padding: `p-6` or `p-8`
-
-```tsx
-<div className="bg-card border border-border rounded-xl shadow-sm p-6">
-  {/* section content */}
-</div>
-```
-
-### Inner Cards (items within panels — leaderboard rows, pick cards, blog entries)
-
-- Background: transparent or `bg-muted/40`
-- Border: **none**
-- Border radius: `rounded-lg`
-- Use padding and subtle hover states for separation
-
-```tsx
-<div className="rounded-lg px-4 py-3 hover:bg-muted/60 transition-colors">
-  {/* card content */}
-</div>
-```
+- Fixed pill: `fixed top-4 left-1/2 -translate-x-1/2 max-w-4xl px-4`
+- Uses `glass-panel rounded-full px-6 h-14`
+- Logo left, nav right (desktop) / hamburger (mobile)
 
 ---
 
 ## Typography
 
-**Font stack:** [Geist Sans](https://vercel.com/font) for UI, `ui-monospace` for code.
+**Font:** Geist Sans
 
 ```css
 font-family: 'Geist', system-ui, -apple-system, sans-serif;
 ```
 
-Geist is clean, modern, slightly technical without being sterile. Has good weight range. Import via `@fontsource/geist` or Google Fonts equivalent.
-
 | Role | Class | Size |
 |---|---|---|
-| Page title | `text-2xl font-bold tracking-tight` | 1.5rem |
+| Page title / breadcrumb | `text-2xl font-semibold tracking-tight` | 1.5rem |
 | Section heading | `text-lg font-semibold` | 1.125rem |
 | Body | `text-sm` | 0.875rem |
 | Caption / label | `text-xs text-muted-foreground` | 0.75rem |
@@ -159,102 +163,51 @@ Geist is clean, modern, slightly technical without being sterile. Has good weigh
 
 ## Icons
 
-**Library:** [Lucide React](https://lucide.dev/) — consistent stroke style, works natively with shadcn/ui.
+**Library:** Lucide React only.
 
-```bash
-# Already installed with shadcn; if not:
-npm install lucide-react
-```
-
-**Usage rules:**
-- Every nav item gets an icon
-- Every section heading gets a small contextual icon (inline, left of text)
-- Status indicators (win/loss, up/down) always use icons, never just color alone
-- Icon size: `size-4` (16px) inline, `size-5` (20px) standalone/button
-- Pair icons with text — don't use icon-only unless in a `<Tooltip>`
-
-**Key icons to reserve for KBP:**
+- Inline with text: `size-4` (16px)
+- Standalone / button: `size-5` (20px)
+- Never icon-only without a `<Tooltip>`
 
 | Use | Icon |
 |---|---|
-| Pool / standings | `Trophy` |
-| Bowl games / schedule | `Calendar` |
+| Standings | `Trophy` |
+| Schedule / games | `Calendar` |
 | User picks | `ClipboardList` |
-| Admin | `Shield` |
-| Points / score | `Star` or `Zap` |
-| Record book / history | `BookOpen` |
+| Admin | `ShieldCheck` |
+| Score / points | `Zap` |
+| Record book | `BookOpen` |
 | Settings | `Settings` |
-| Lock (form closed) | `Lock` |
-| Open (form open) | `Unlock` |
-
----
-
-## Temporary Logo Mark
-
-Until the real logo is ready, use a composed SVG mark in the header: the letters **KBP** in a rounded square badge using the primary amber color.
-
-```tsx
-// src/frontend/src/components/Logo.tsx
-export function Logo() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-        <span className="text-white font-bold text-xs tracking-wider">KBP</span>
-      </div>
-      <span className="font-semibold text-foreground tracking-tight text-sm">
-        Kirchmann Bowl Pool
-      </span>
-    </div>
-  )
-}
-```
-
----
-
-## Code / Data Blocks
-
-Styled after Railway's codeblock approach — rounded, soft background, monospace:
-
-```tsx
-<pre className="bg-muted rounded-lg px-4 py-3 font-mono text-sm leading-relaxed overflow-x-auto">
-  {content}
-</pre>
-```
-
----
-
-## Header
-
-- Height: `h-16`
-- Background: `bg-card` with `border-b border-border`
-- Logo mark left-aligned
-- Nav icons + labels center or right
-- Max width: `max-w-7xl mx-auto`
-
-No drop shadow on header — the border-b is sufficient separation from the textured background.
+| Form locked | `Lock` |
+| Form open | `Unlock` |
 
 ---
 
 ## Buttons
 
-Use shadcn `Button` with these variant conventions:
+Custom classes defined in `index.css` — not shadcn variants.
 
-| Variant | Use |
+| Class | Use |
 |---|---|
-| `default` | Primary CTA ("Enter the Pool") — amber fill |
-| `outline` | Secondary actions |
-| `ghost` | Nav items, icon buttons |
-| `destructive` | Delete / remove |
+| `btn-primary` | Primary CTA — blue fill |
+| `btn-primary-gold` | Gold accent CTA |
+| `btn-glass-blue` | Frosted blue — overlays only |
+| Tailwind `hover:bg-[rgba(26,30,42,0.6)]` | Ghost / nav items |
 
-All buttons use `rounded-lg` (matches `--radius`).
+Nav buttons use inline Tailwind with `rounded-full`.
 
 ---
 
-## Open Questions
+## Spacing
 
-- Final logo asset from owner
-- Transactional email provider (for non-Google auth / notifications)
-- Scoring algorithm details (needed at data model time, not design time)
-- Admin-specific UI — separate admin panel or inline role-gated controls?
-- Whether standings update live (WebSocket) or on page load/refresh
-- Historical data import strategy for record books
+Tailwind scale: `4, 6, 8, 12, 16` → `1rem, 1.5rem, 2rem, 3rem, 4rem`
+
+Max content width: `max-w-4xl mx-auto`
+
+---
+
+## Performance Notes
+
+- No `backdrop-filter` on `glass-panel` — causes GPU re-composite on scroll
+- No `background-attachment: fixed` on body — causes repaint on every scroll tick
+- Virtual scrolling (`@tanstack/react-virtual`) used in TeamsList, PoolDetail, PoolCreate for large lists

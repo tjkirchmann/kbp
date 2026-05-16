@@ -1,15 +1,17 @@
 import asyncio
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import redis.asyncio as aioredis
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import selectinload
 
 from app.celery_app import celery_app
 from app.core.config import settings
 from app.core.database import TaskSessionLocal as SessionLocal
+from app.core.event_logger import log_event
 from app.core.rate_limiter import acquire_espn_token
 from app.models.cfbd import CfbdGame
 from app.models.espn import EspnGame
@@ -24,6 +26,9 @@ logger = logging.getLogger(__name__)
 _config_cache: dict = {}
 _config_cache_ts: float = 0.0
 _CONFIG_CACHE_TTL = 60.0
+
+_PRE_GAME_WINDOW = timedelta(minutes=15)
+_STALE_PRE_CUTOFF = timedelta(hours=2)
 
 
 async def _get_cached_config() -> tuple[int, str]:
@@ -40,13 +45,30 @@ async def _get_cached_config() -> tuple[int, str]:
     return rate_limit, webhook_url
 
 
+def _game_label(game: EspnGame) -> str:
+    cfbd = game.cfbd_game
+    if cfbd:
+        return f"{cfbd.away_team} @ {cfbd.home_team}"
+    return f"event {game.espn_event_id}"
+
+
 async def _run_poll() -> dict:
     rate_limit, webhook_url = await _get_cached_config()
+    now = datetime.utcnow()
 
     async with SessionLocal() as db:
         result = await db.execute(
-            select(EspnGame).where(
-                (EspnGame.status_state == "in") | EspnGame.status_state.is_(None)
+            select(EspnGame)
+            .join(EspnGame.cfbd_game)
+            .options(selectinload(EspnGame.cfbd_game))
+            .where(
+                (EspnGame.status_state == "in")
+                | EspnGame.status_state.is_(None)
+                | (
+                    (EspnGame.status_state == "pre")
+                    & (CfbdGame.start_date <= now + _PRE_GAME_WINDOW)
+                    & (CfbdGame.start_date >= now - _STALE_PRE_CUTOFF)
+                )
             )
         )
         live_games: list[EspnGame] = list(result.scalars().all())
@@ -55,8 +77,8 @@ async def _run_poll() -> dict:
         return {"polled": 0}
 
     n = len(live_games)
-    # Effective per-game interval: share rate limit equally, floor at 60s
-    effective_interval = max(60, n)
+    # Share rate limit equally across active games: n games / rate_limit req/min * 60s/min
+    effective_interval = (n / rate_limit) * 60
 
     redis_client = aioredis.from_url(settings.redis_url)
     polled = 0
@@ -64,6 +86,16 @@ async def _run_poll() -> dict:
     try:
         for game in live_games:
             now = datetime.utcnow()
+
+            # Bail out stale pre-game: start_date passed 2h ago and still pre
+            if game.status_state == "pre" and game.cfbd_game.start_date < now - _STALE_PRE_CUTOFF:
+                async with SessionLocal() as db:
+                    game_row = await db.get(EspnGame, game.id)
+                    if game_row:
+                        game_row.status_state = "post"
+                        await db.commit()
+                logger.info("Marking stale pre-game %s as post", game.espn_event_id)
+                continue
 
             # Skip if polled too recently
             if game.last_polled_at is not None:
@@ -75,18 +107,28 @@ async def _run_poll() -> dict:
             allowed = await acquire_espn_token(redis_client, rate_limit)
             if not allowed:
                 logger.warning("ESPN rate limit exhausted, skipping remaining games this tick")
+                await log_event(redis_client, "espn_poller", "rate_limited", {
+                    "live_games": n,
+                    "effective_interval": effective_interval,
+                })
                 break
+
+            game_label = f"{game.cfbd_game.away_team} vs {game.cfbd_game.home_team}"
 
             # Fetch and update
             try:
                 payload = await fetch_espn_boxscore(game.espn_event_id)
                 extracted = extract_espn_scores(payload)
             except Exception as exc:
-                msg = f"Bad ESPN response for event {game.espn_event_id}: {exc}"
+                label = _game_label(game)
+                msg = f"⚠️ ESPN error ({label}): {exc}"
                 logger.error(msg)
-                async with SessionLocal() as db:
-                    wh = await get_discord_webhook_url(db)
-                await send_discord_alert(wh, msg)
+                await send_discord_alert(webhook_url, msg)
+                await log_event(redis_client, "espn_poller", "poll_error", {
+                    "espn_event_id": game.espn_event_id,
+                    "game_label": game_label,
+                    "error": str(exc),
+                })
                 async with SessionLocal() as db:
                     game_row = await db.get(EspnGame, game.id)
                     if game_row:
@@ -94,18 +136,43 @@ async def _run_poll() -> dict:
                         await db.commit()
                 continue
 
+            old_state = game.status_state
+            old_detail = game.status_detail or ""
+            new_state = extracted["status_state"]
+            new_detail = extracted["status_detail"] or ""
+            home_score = extracted["home_score"]
+            away_score = extracted["away_score"]
+            label = _game_label(game)
+
+            notify_msg = None
+            if old_state != "in" and new_state == "in":
+                notify_msg = f"\U0001f3c8 Game starting: {label} — now polling live"
+            elif new_state == "in" and "halftime" in new_detail.lower() and "halftime" not in old_detail.lower():
+                notify_msg = f"⏸️ Halftime: {label} | {away_score}–{home_score}"
+            elif old_state != "post" and new_state == "post":
+                notify_msg = f"\U0001f3c1 Final: {label} | {away_score}–{home_score}"
+
+            if notify_msg:
+                await send_discord_alert(webhook_url, notify_msg)
+
             async with SessionLocal() as db:
                 game_row = await db.get(EspnGame, game.id)
                 if game_row:
-                    game_row.status_state = extracted["status_state"]
-                    game_row.status_detail = extracted["status_detail"]
+                    game_row.status_state = new_state
+                    game_row.status_detail = new_detail
                     game_row.period = extracted["period"]
                     game_row.clock = extracted["clock"]
-                    game_row.home_score = extracted["home_score"]
-                    game_row.away_score = extracted["away_score"]
+                    game_row.home_score = home_score
+                    game_row.away_score = away_score
                     game_row.raw_payload = payload
                     game_row.last_polled_at = now
                     await db.commit()
+
+            await log_event(redis_client, "espn_poller", "poll_ok", {
+                "espn_event_id": game.espn_event_id,
+                "game_label": game_label,
+                "status_state": extracted["status_state"],
+            })
 
             polled += 1
     finally:
@@ -140,6 +207,15 @@ async def _run_seed() -> int:
         return len(missing_ids)
 
 
+async def _alert_seed_error(exc: Exception) -> None:
+    try:
+        async with SessionLocal() as db:
+            wh = await get_discord_webhook_url(db)
+        await send_discord_alert(wh, f"⚠️ ESPN seed error: {exc}")
+    except Exception:
+        logger.exception("Failed to send seed error Discord alert")
+
+
 @celery_app.task(
     name="app.tasks.espn_poller.seed_missing_espn_games",
     bind=True,
@@ -155,6 +231,7 @@ def seed_missing_espn_games(self):
         return {"seeded": count}
     except Exception as exc:
         logger.exception("espn seed error: %s", exc)
+        asyncio.run(_alert_seed_error(exc))
         raise self.retry(exc=exc)
 
 
