@@ -5,6 +5,7 @@ import { useAdminUsers } from '@/services/useAdminUsers'
 import { useAdminPools } from '@/services/useAdminPools'
 
 const sections = [
+  { id: 'general', label: 'General' },
   { id: 'users', label: 'Users' },
   { id: 'pools', label: 'Pools' },
   { id: 'teams', label: 'Teams' },
@@ -39,6 +40,10 @@ function useBreadcrumbs() {
 
   if (parts[0] === 'teams') {
     return [{ label: 'Teams', to: '/admin/teams' }]
+  }
+
+  if (parts[0] === 'general') {
+    return [{ label: 'General', to: '/admin/general' }]
   }
 
   return [{ label: 'Admin', to: '/admin' }]

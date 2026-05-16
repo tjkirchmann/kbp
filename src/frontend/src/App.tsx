@@ -9,6 +9,7 @@ import PoolsList from './pages/admin/PoolsList'
 import PoolCreate from './pages/admin/PoolCreate'
 import PoolDetail from './pages/admin/PoolDetail'
 import TeamsList from './pages/admin/TeamsList'
+import GeneralPanel from './pages/admin/GeneralPanel'
 import SubmissionShell from './pages/submission/SubmissionShell'
 import PoolSelectStep from './pages/submission/PoolSelectStep'
 import SubmissionWorkspace from './pages/submission/SubmissionWorkspace'
@@ -20,7 +21,8 @@ export default function App() {
       <Route path="/login/*" element={<Login />} />
       <Route path="/record-book" element={<RecordBook />} />
       <Route path="/admin" element={<AdminShell />}>
-        <Route index element={<Navigate to="users" replace />} />
+        <Route index element={<Navigate to="general" replace />} />
+        <Route path="general" element={<GeneralPanel />} />
         <Route path="users" element={<UsersList />} />
         <Route path="users/:userId" element={<UserDetail />} />
         <Route path="pools" element={<PoolsList />} />
