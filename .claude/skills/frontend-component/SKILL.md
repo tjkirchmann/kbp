@@ -32,7 +32,7 @@ You are designing a React UI component for the Kirchmann Bowl Pool (KBP). Stack:
 
 ### Container Hierarchy
 
-**Outer panels** (page sections, header pill): use `glass-panel` class — semi-transparent gradient with backdrop blur
+**Outer panels** (page sections, header pill): use `glass-panel` class — gradient only, no blur
 ```tsx
 <div className="glass-panel rounded-2xl p-6">
   {/* section */}
@@ -47,9 +47,9 @@ You are designing a React UI component for the Kirchmann Bowl Pool (KBP). Stack:
 ```
 
 The `glass-panel` class is defined in `index.css`:
-- `background`: linear-gradient top (lighter) → bottom (darker), ~80% opacity
-- `backdrop-filter: blur(12px)` for frosted glass depth
-- `border: 1px solid rgba(255,255,255,0.07)` subtle highlight edge
+- `background`: linear-gradient top `rgba(42,47,62,0.82)` → bottom `rgba(26,30,42,0.72)`
+- No `backdrop-filter` — removed for scroll performance
+- `border: 1px solid rgba(255,255,255,0.09)` subtle highlight edge
 
 ### Typography
 - Font: Geist Sans

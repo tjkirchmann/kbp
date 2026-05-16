@@ -56,7 +56,7 @@ export default function AdminShell() {
     <div className="min-h-screen">
       <Header />
       <main className="pt-24 pb-12 px-4 max-w-4xl mx-auto w-full">
-        <div className="glass-panel rounded-2xl w-full flex h-[calc(100vh-9rem)]">
+        <div className="glass-panel rounded-2xl w-full flex min-h-[calc(100vh-9rem)]">
           <nav className="flex flex-col gap-1 p-3 pt-4 w-40 shrink-0 border-r border-border/40 overflow-y-auto">
             {sections.map(s => (
               <NavLink
@@ -103,7 +103,7 @@ export default function AdminShell() {
               </div>
               <div className="hatch flex-1 h-8 rounded" />
             </div>
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="p-6">
               <Outlet />
             </div>
           </div>
