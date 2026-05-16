@@ -17,4 +17,5 @@ dependencies = [
     "passlib[bcrypt]==1.7.4",
     "celery[redis]==5.4.0",
     "redis==5.2.1",
+    "supervisor==4.2.5",
 ]
