@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Info } from 'lucide-react'
 import Header from '@/components/Header'
 import { useAdminUsers } from '@/services/useAdminUsers'
 import { useAdminPools } from '@/services/useAdminPools'
+import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
 
 const sections = [
   { id: 'general', label: 'General' },
@@ -51,6 +53,13 @@ function useBreadcrumbs() {
 
 export default function AdminShell() {
   const breadcrumbs = useBreadcrumbs()
+  const { pathname } = useLocation()
+  const [infoOpen, setInfoOpen] = useState(false)
+  const currentSection = breadcrumbs[0].label.toLowerCase()
+
+  useEffect(() => {
+    setInfoOpen(false)
+  }, [pathname])
 
   return (
     <div className="min-h-screen">
@@ -102,9 +111,19 @@ export default function AdminShell() {
                 ))}
               </div>
               <div className="hatch flex-1 h-8 rounded" />
+              <button
+                onClick={() => setInfoOpen(v => !v)}
+                className={`p-1.5 rounded-full transition-colors shrink-0 ${
+                  infoOpen
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+                }`}
+              >
+                <Info className="size-4" />
+              </button>
             </div>
             <div className="p-6">
-              <Outlet />
+              {infoOpen ? <AdminInfoPanel section={currentSection} /> : <Outlet />}
             </div>
           </div>
         </div>
