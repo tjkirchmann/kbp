@@ -6,6 +6,7 @@ from datetime import datetime
 import redis.asyncio as aioredis
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm import selectinload
 
 from app.celery_app import celery_app
 from app.core.config import settings
@@ -40,14 +41,21 @@ async def _get_cached_config() -> tuple[int, str]:
     return rate_limit, webhook_url
 
 
+def _game_label(game: EspnGame) -> str:
+    cfbd = game.cfbd_game
+    if cfbd:
+        return f"{cfbd.away_team} @ {cfbd.home_team}"
+    return f"event {game.espn_event_id}"
+
+
 async def _run_poll() -> dict:
     rate_limit, webhook_url = await _get_cached_config()
 
     async with SessionLocal() as db:
         result = await db.execute(
-            select(EspnGame).where(
-                (EspnGame.status_state == "in") | EspnGame.status_state.is_(None)
-            )
+            select(EspnGame)
+            .options(selectinload(EspnGame.cfbd_game))
+            .where((EspnGame.status_state == "in") | EspnGame.status_state.is_(None))
         )
         live_games: list[EspnGame] = list(result.scalars().all())
 
@@ -82,11 +90,10 @@ async def _run_poll() -> dict:
                 payload = await fetch_espn_boxscore(game.espn_event_id)
                 extracted = extract_espn_scores(payload)
             except Exception as exc:
-                msg = f"Bad ESPN response for event {game.espn_event_id}: {exc}"
+                label = _game_label(game)
+                msg = f"⚠️ ESPN error ({label}): {exc}"
                 logger.error(msg)
-                async with SessionLocal() as db:
-                    wh = await get_discord_webhook_url(db)
-                await send_discord_alert(wh, msg)
+                await send_discord_alert(webhook_url, msg)
                 async with SessionLocal() as db:
                     game_row = await db.get(EspnGame, game.id)
                     if game_row:
@@ -94,15 +101,34 @@ async def _run_poll() -> dict:
                         await db.commit()
                 continue
 
+            old_state = game.status_state
+            old_detail = game.status_detail or ""
+            new_state = extracted["status_state"]
+            new_detail = extracted["status_detail"] or ""
+            home_score = extracted["home_score"]
+            away_score = extracted["away_score"]
+            label = _game_label(game)
+
+            notify_msg = None
+            if old_state != "in" and new_state == "in":
+                notify_msg = f"\U0001f3c8 Game starting: {label} — now polling live"
+            elif new_state == "in" and "halftime" in new_detail.lower() and "halftime" not in old_detail.lower():
+                notify_msg = f"⏸️ Halftime: {label} | {away_score}–{home_score}"
+            elif old_state != "post" and new_state == "post":
+                notify_msg = f"\U0001f3c1 Final: {label} | {away_score}–{home_score}"
+
+            if notify_msg:
+                await send_discord_alert(webhook_url, notify_msg)
+
             async with SessionLocal() as db:
                 game_row = await db.get(EspnGame, game.id)
                 if game_row:
-                    game_row.status_state = extracted["status_state"]
-                    game_row.status_detail = extracted["status_detail"]
+                    game_row.status_state = new_state
+                    game_row.status_detail = new_detail
                     game_row.period = extracted["period"]
                     game_row.clock = extracted["clock"]
-                    game_row.home_score = extracted["home_score"]
-                    game_row.away_score = extracted["away_score"]
+                    game_row.home_score = home_score
+                    game_row.away_score = away_score
                     game_row.raw_payload = payload
                     game_row.last_polled_at = now
                     await db.commit()
@@ -140,6 +166,15 @@ async def _run_seed() -> int:
         return len(missing_ids)
 
 
+async def _alert_seed_error(exc: Exception) -> None:
+    try:
+        async with SessionLocal() as db:
+            wh = await get_discord_webhook_url(db)
+        await send_discord_alert(wh, f"⚠️ ESPN seed error: {exc}")
+    except Exception:
+        logger.exception("Failed to send seed error Discord alert")
+
+
 @celery_app.task(
     name="app.tasks.espn_poller.seed_missing_espn_games",
     bind=True,
@@ -155,6 +190,7 @@ def seed_missing_espn_games(self):
         return {"seeded": count}
     except Exception as exc:
         logger.exception("espn seed error: %s", exc)
+        asyncio.run(_alert_seed_error(exc))
         raise self.retry(exc=exc)
 
 
