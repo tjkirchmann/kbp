@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, Trophy, TrendingUp, TrendingDown } from 'lucide-react'
+import { Trophy, TrendingUp, TrendingDown } from 'lucide-react'
 import Header from '@/components/Header'
 import { cn } from '@/lib/utils'
 

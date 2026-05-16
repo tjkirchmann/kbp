@@ -92,7 +92,7 @@ function CTACard({ icon, title, description, cta, onClick }: {
 export default function Home() {
   const { isSignedIn } = useAuth()
   const navigate = useNavigate()
-  const { data } = useMe()
+  useMe()
 
   return (
     <div className="min-h-screen">

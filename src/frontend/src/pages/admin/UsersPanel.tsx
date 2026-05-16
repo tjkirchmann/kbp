@@ -204,7 +204,7 @@ function UserList({ onSelect }: { onSelect: (user: AdminUser) => void }) {
   )
 }
 
-export default function UsersPanel({ selected, onSelect, onBack }: {
+export default function UsersPanel({ selected, onSelect }: {
   selected: AdminUser | null
   onSelect: (user: AdminUser) => void
   onBack: () => void

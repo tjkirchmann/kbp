@@ -511,7 +511,7 @@ interface PoolDetailProps {
   onDeleted: () => void
 }
 
-function PoolDetail({ pool, onBack, onDeleted }: PoolDetailProps) {
+function PoolDetail({ pool, onDeleted }: PoolDetailProps) {
   const { data: detail, isLoading } = usePoolDetail(pool.id)
   const patchPool = usePatchPool()
   const deletePool = useDeletePool()
@@ -587,16 +587,19 @@ function PoolDetail({ pool, onBack, onDeleted }: PoolDetailProps) {
                 id: g.cfbd_game_id,
                 home_team: g.home_team,
                 away_team: g.away_team,
-                start_date: g.game_date,
-                start_time_tbd: false,
+                start_date: g.start_date,
+                start_time_tbd: g.start_time_tbd,
                 bowl_name: g.bowl_name,
-                season_type: 'postseason',
-                home_classification: null,
-                away_classification: null,
-                home_conference: null,
-                away_conference: null,
-                conference_game: false,
-                neutral_site: false,
+                season_type: g.season_type,
+                home_classification: g.home_classification,
+                away_classification: g.away_classification,
+                home_conference: g.home_conference,
+                away_conference: g.away_conference,
+                conference_game: g.conference_game,
+                neutral_site: g.neutral_site,
+                completed: g.completed,
+                home_score: g.home_score,
+                away_score: g.away_score,
               }
               return <GameRow key={g.id} game={asCfbdGame} readOnly />
             })}
