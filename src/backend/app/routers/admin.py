@@ -1,11 +1,16 @@
-from typing import Optional
-from fastapi import APIRouter, Depends
+import json
+from datetime import datetime, timedelta
+from typing import Optional, Any
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from app.core.auth import require_admin, _clerk
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.event_logger import STREAM_KEY
 from app.models import User
+from app.models.espn import EspnGame
 from app.schemas.user import UserSchema, SetAdminBody
 from app.services.admin_config import (
     get_espn_rate_limit,
@@ -86,3 +91,72 @@ async def set_admin(user_id: int, body: SetAdminBody, db: AsyncSession = Depends
     await db.execute(update(User).where(User.id == user_id).values(is_admin=body.is_admin))
     await db.commit()
     return {"ok": True}
+
+
+class EventBucket(BaseModel):
+    minute: str
+    count: int
+    events: list[dict[str, Any]]
+
+
+@router.get("/events", response_model=list[EventBucket])
+async def get_events(
+    source: Optional[str] = Query(None),
+    minutes: int = Query(30, ge=1, le=1440),
+):
+    import redis.asyncio as aioredis
+    cutoff = datetime.utcnow() - timedelta(minutes=minutes)
+    redis_client = aioredis.from_url(settings.redis_url)
+    try:
+        entries = await redis_client.xrange(STREAM_KEY)
+    finally:
+        await redis_client.aclose()
+
+    buckets: dict[str, list[dict]] = {}
+    for _id, fields in entries:
+        ts_str = fields.get(b"ts", b"").decode()
+        try:
+            ts = datetime.fromisoformat(ts_str)
+        except ValueError:
+            continue
+        if ts < cutoff:
+            continue
+        entry_source = fields.get(b"source", b"").decode()
+        if source and entry_source != source:
+            continue
+        minute_key = ts.strftime("%Y-%m-%dT%H:%M:00")
+        event = fields.get(b"event", b"").decode()
+        try:
+            payload = json.loads(fields.get(b"payload", b"{}").decode())
+        except (ValueError, json.JSONDecodeError):
+            payload = {}
+        buckets.setdefault(minute_key, []).append({"event": event, "source": entry_source, "payload": payload})
+
+    result = []
+    for minute_key in sorted(buckets):
+        evts = buckets[minute_key]
+        result.append(EventBucket(minute=minute_key, count=len(evts), events=evts))
+    return result
+
+
+class EspnStatusSchema(BaseModel):
+    live_games: int
+    effective_interval_seconds: float
+    rate_limit_per_minute: int
+
+
+@router.get("/espn/status", response_model=EspnStatusSchema)
+async def get_espn_status(db: AsyncSession = Depends(get_db)):
+    rate_limit = await get_espn_rate_limit(db)
+    result = await db.execute(
+        select(EspnGame).where(
+            (EspnGame.status_state == "in") | EspnGame.status_state.is_(None)
+        )
+    )
+    live_games = len(result.scalars().all())
+    effective_interval = (live_games / rate_limit) * 60 if live_games else 0
+    return EspnStatusSchema(
+        live_games=live_games,
+        effective_interval_seconds=effective_interval,
+        rate_limit_per_minute=rate_limit,
+    )

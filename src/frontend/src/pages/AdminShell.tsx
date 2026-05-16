@@ -7,7 +7,8 @@ import { useAdminPools } from '@/services/useAdminPools'
 import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
 
 const sections = [
-  { id: 'general', label: 'General' },
+  { id: 'comms', label: 'Comms' },
+  { id: 'espn', label: 'ESPN' },
   { id: 'users', label: 'Users' },
   { id: 'pools', label: 'Pools' },
   { id: 'teams', label: 'Teams' },
@@ -44,8 +45,12 @@ function useBreadcrumbs() {
     return [{ label: 'Teams', to: '/admin/teams' }]
   }
 
-  if (parts[0] === 'general') {
-    return [{ label: 'General', to: '/admin/general' }]
+  if (parts[0] === 'comms') {
+    return [{ label: 'Comms', to: '/admin/comms' }]
+  }
+
+  if (parts[0] === 'espn') {
+    return [{ label: 'ESPN', to: '/admin/espn' }]
   }
 
   return [{ label: 'Admin', to: '/admin' }]

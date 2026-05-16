@@ -2,20 +2,31 @@ type InfoFeature = { name: string; description: string }
 type SectionInfo = { title: string; description: string; features: InfoFeature[] }
 
 const INFO: Record<string, SectionInfo> = {
-  general: {
-    title: 'General Settings',
-    description:
-      'Site-wide configuration for external integrations. Changes here affect all background polling and alert delivery.',
+  comms: {
+    title: 'Comms',
+    description: 'Configuration for outbound notifications and alerts.',
     features: [
-      {
-        name: 'ESPN Rate Limit',
-        description:
-          'Maximum ESPN API requests per minute across the entire server. The live-score poller shares this budget equally across all active games — each game is guaranteed at least a 60-second polling interval regardless of this setting.',
-      },
       {
         name: 'Discord Webhook URL',
         description:
           'Webhook endpoint for operational alerts. The server posts here when ESPN returns a bad or unexpected response during live polling. Use the Test button to verify the webhook is reachable before saving.',
+      },
+    ],
+  },
+  espn: {
+    title: 'ESPN',
+    description:
+      'Configuration and live visibility for the ESPN polling service, which keeps game scores up to date during bowl season.',
+    features: [
+      {
+        name: 'Rate Limit',
+        description:
+          'Maximum ESPN API requests per minute across the entire server. The poller divides this budget equally across all active games — if there are more games than requests per minute, polling slows proportionally (e.g. 70 active games at 60 req/min = one poll per game every 70 seconds).',
+      },
+      {
+        name: 'Poll Activity Chart',
+        description:
+          'Shows polls per minute over the last 30 minutes. Hover any bar to see which games were polled that minute and whether any errors occurred. Refreshes every 30 seconds.',
       },
     ],
   },
