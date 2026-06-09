@@ -15,7 +15,7 @@ dependencies = [
     "openai==1.45.0",
     "psycopg2-binary==2.9.9",
     "passlib[bcrypt]==1.7.4",
-    "celery[redis]==5.4.0",
-    "redis==5.2.1",
     "supervisor==4.2.5",
+    "procrastinate==3.8.1",
+    "psycopg[binary,pool]==3.2.3",
 ]

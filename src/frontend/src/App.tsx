@@ -11,6 +11,7 @@ import PoolDetail from './pages/admin/PoolDetail'
 import TeamsList from './pages/admin/TeamsList'
 import CommsPanel from './pages/admin/CommsPanel'
 import EspnPanel from './pages/admin/EspnPanel'
+import SyncPanel from './pages/admin/SyncPanel'
 import SubmissionShell from './pages/submission/SubmissionShell'
 import PoolSelectStep from './pages/submission/PoolSelectStep'
 import SubmissionWorkspace from './pages/submission/SubmissionWorkspace'
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="general" element={<Navigate to="/admin/comms" replace />} />
         <Route path="comms" element={<CommsPanel />} />
         <Route path="espn" element={<EspnPanel />} />
+        <Route path="sync" element={<SyncPanel />} />
         <Route path="users" element={<UsersList />} />
         <Route path="users/:userId" element={<UserDetail />} />
         <Route path="pools" element={<PoolsList />} />
