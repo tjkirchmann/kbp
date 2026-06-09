@@ -9,6 +9,7 @@ import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
 const sections = [
   { id: 'comms', label: 'Comms' },
   { id: 'espn', label: 'ESPN' },
+  { id: 'sync', label: 'Sync' },
   { id: 'users', label: 'Users' },
   { id: 'pools', label: 'Pools' },
   { id: 'teams', label: 'Teams' },
@@ -51,6 +52,10 @@ function useBreadcrumbs() {
 
   if (parts[0] === 'espn') {
     return [{ label: 'ESPN', to: '/admin/espn' }]
+  }
+
+  if (parts[0] === 'sync') {
+    return [{ label: 'Sync', to: '/admin/sync' }]
   }
 
   return [{ label: 'Admin', to: '/admin' }]

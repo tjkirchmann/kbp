@@ -1,19 +1,8 @@
-import json
-from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
 
-STREAM_KEY = "kbp:events"
-STREAM_MAXLEN = 100_000
+from app.models.event_log import EventLog
 
 
-async def log_event(redis, source: str, event: str, payload: dict) -> None:
-    await redis.xadd(
-        STREAM_KEY,
-        {
-            "ts": datetime.utcnow().isoformat(),
-            "source": source,
-            "event": event,
-            "payload": json.dumps(payload),
-        },
-        maxlen=STREAM_MAXLEN,
-        approximate=True,
-    )
+async def log_event(db: AsyncSession, source: str, event: str, payload: dict) -> None:
+    """Append an operational event. The caller commits."""
+    db.add(EventLog(source=source, event=event, payload=payload))

@@ -1,27 +1,24 @@
-import time
-import redis.asyncio as aioredis
+from sqlalchemy import delete, func, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
-_ESPN_RATE_KEY = "espn:rate_limit"
+from app.models.rate_limit import EspnRateToken
 
 
-async def acquire_espn_token(redis_client: aioredis.Redis, rate_limit_per_minute: int) -> bool:
+async def acquire_espn_token(db: AsyncSession, rate_limit_per_minute: int) -> bool:
+    """Postgres sliding-window rate limiter.
+
+    Returns True if a token was acquired (request allowed), False if the limit
+    is already exhausted for the current 60-second window. The caller is the
+    single, sequential poll loop, so a plain check-then-insert is correct —
+    there is no concurrent acquisition to overshoot. The caller commits.
     """
-    Sliding window rate limiter. Returns True if a token was acquired (request allowed),
-    False if the rate limit is already exhausted for the current 60-second window.
-    """
-    now = time.time()
-    window_start = now - 60.0
-
-    pipe = redis_client.pipeline()
-    pipe.zremrangebyscore(_ESPN_RATE_KEY, "-inf", window_start)
-    pipe.zadd(_ESPN_RATE_KEY, {str(now): now})
-    pipe.zcard(_ESPN_RATE_KEY)
-    pipe.expire(_ESPN_RATE_KEY, 120)
-    results = await pipe.execute()
-
-    count: int = results[2]
-    if count > rate_limit_per_minute:
-        # Remove the token we just added — we're over the limit
-        await redis_client.zrem(_ESPN_RATE_KEY, str(now))
+    await db.execute(
+        delete(EspnRateToken).where(
+            EspnRateToken.acquired_at < func.now() - text("interval '60 seconds'")
+        )
+    )
+    count = await db.scalar(select(func.count()).select_from(EspnRateToken))
+    if count >= rate_limit_per_minute:
         return False
+    db.add(EspnRateToken())
     return True

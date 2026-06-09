@@ -14,3 +14,6 @@ src/frontend/tsconfig.node.tsbuildinfo
 
 # Swap files
 *.swp
+
+# VS Code
+.vscode/

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
 from app.core.auth import get_current_user
 from app.core.config import settings
+from app.core.procrastinate import procrastinate_app
 from app.routers.admin import router as admin_router
 from app.routers.pools import router as pools_router
 from app.routers.submissions import router as submissions_router
@@ -14,9 +15,16 @@ import app.models  # noqa: F401 — registers models with Base.metadata
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    from app.tasks.espn_poller import seed_missing_espn_games
-    seed_missing_espn_games.delay()
-    yield
+    # Open Procrastinate's connection pool so admin endpoints can defer jobs.
+    async with procrastinate_app.open_async():
+        # Defer a one-off ESPN seed at startup; queueing_lock dedupes restarts.
+        from procrastinate.exceptions import AlreadyEnqueued
+        from app.tasks.espn_poller import seed_missing_espn_games
+        try:
+            await seed_missing_espn_games.defer_async()
+        except AlreadyEnqueued:
+            pass
+        yield
 
 app = FastAPI(title="App API", version="0.1.0", lifespan=lifespan)
 
