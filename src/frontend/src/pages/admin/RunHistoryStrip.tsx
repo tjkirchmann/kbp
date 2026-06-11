@@ -1,3 +1,6 @@
+import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import type { SyncRun } from '@/services/useAdminSync'
 import { relativeTime, absoluteTime, formatDuration } from '@/lib/utils'
 
@@ -32,31 +35,62 @@ function statusLabel(status: string): string {
   }
 }
 
-function Capsule({ run }: { run: SyncRun }) {
+// Fixed coords for the hovered capsule's tooltip. `below` flips it under the
+// strip when there isn't room above (e.g. the top card, near the header).
+type Pos = { left: number; top: number; below: boolean }
+
+function Capsule({ run, taskName }: { run: SyncRun; taskName?: string }) {
   const when = run.started_at ?? run.ended_at
+  const ref = useRef<HTMLAnchorElement>(null)
+  const [pos, setPos] = useState<Pos | null>(null)
+
+  const show = () => {
+    const r = ref.current?.getBoundingClientRect()
+    if (!r) return
+    const below = r.top < 120 // not enough room above -> render below the capsule
+    setPos({
+      left: r.left + r.width / 2,
+      top: below ? r.bottom + 8 : r.top - 8,
+      below,
+    })
+  }
+
   return (
-    <div className="group/cap relative flex-1 min-w-0">
+    <Link
+      ref={ref}
+      to={`/admin/sync/runs/${run.id}`}
+      state={taskName ? { taskName } : undefined}
+      onMouseEnter={show}
+      onMouseLeave={() => setPos(null)}
+      className="relative flex-1 min-w-0"
+    >
       <div className={`h-6 w-full rounded-full transition-colors ${statusColor(run.status)}`} />
-      <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden -translate-x-1/2 group-hover/cap:block">
-        <div className="rounded-lg border border-border bg-popover px-3 py-2.5 text-xs whitespace-nowrap shadow-xl">
-          <p className={`font-medium ${
-            run.status === 'succeeded' ? 'text-success'
-            : ['failed', 'aborted', 'cancelled'].includes(run.status) ? 'text-destructive'
-            : 'text-foreground'
-          }`}>
-            {statusLabel(run.status)}
-          </p>
-          <p className="text-muted-foreground mt-0.5">{relativeTime(when)} · {absoluteTime(when)}</p>
-          {run.duration_seconds != null && (
-            <p className="text-muted-foreground/80 mt-0.5">took {formatDuration(run.duration_seconds)}</p>
-          )}
-        </div>
-      </div>
-    </div>
+      {pos && createPortal(
+        <div
+          className={`pointer-events-none fixed z-50 -translate-x-1/2 ${pos.below ? '' : '-translate-y-full'}`}
+          style={{ left: pos.left, top: pos.top }}
+        >
+          <div className="rounded-lg border border-border bg-popover px-3 py-2.5 text-xs whitespace-nowrap shadow-xl">
+            <p className={`font-medium ${
+              run.status === 'succeeded' ? 'text-success'
+              : ['failed', 'aborted', 'cancelled'].includes(run.status) ? 'text-destructive'
+              : 'text-foreground'
+            }`}>
+              {statusLabel(run.status)}
+            </p>
+            <p className="text-muted-foreground mt-0.5">{relativeTime(when)} · {absoluteTime(when)}</p>
+            {run.duration_seconds != null && (
+              <p className="text-muted-foreground/80 mt-0.5">took {formatDuration(run.duration_seconds)}</p>
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
+    </Link>
   )
 }
 
-export default function RunHistoryStrip({ runs }: { runs: SyncRun[] }) {
+export default function RunHistoryStrip({ runs, taskName }: { runs: SyncRun[]; taskName?: string }) {
   // API gives newest-first; show oldest -> newest (most recent on the right),
   // left-padded with empty slots when there are fewer than 50 runs.
   const ordered = [...runs].reverse()
@@ -70,7 +104,7 @@ export default function RunHistoryStrip({ runs }: { runs: SyncRun[] }) {
         </div>
       ))}
       {ordered.map(run => (
-        <Capsule key={run.id} run={run} />
+        <Capsule key={run.id} run={run} taskName={taskName} />
       ))}
     </div>
   )

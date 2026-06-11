@@ -33,7 +33,7 @@ export default function CommsPanel() {
             value={webhookUrl}
             onChange={e => setWebhookUrl(e.target.value)}
             placeholder="https://discord.com/api/webhooks/..."
-            className="flex-1 px-3 py-2 rounded-lg bg-[rgba(13,15,19,0.6)] border border-border/40 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors"
+            className="flex-1 px-3 py-2 rounded-lg bg-white/[0.03] border border-border/20 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors"
           />
           <button
             onClick={async () => {

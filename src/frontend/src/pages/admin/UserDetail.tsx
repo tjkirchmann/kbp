@@ -46,7 +46,7 @@ export default function UserDetail() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-xl overflow-hidden border border-border/30 bg-[rgba(13,15,19,0.6)]">
+      <div className="rounded-xl overflow-hidden bg-white/[0.03] border border-border/20">
         {fields.map((key, i) => {
           const val = formatValue(key, user[key])
           return (

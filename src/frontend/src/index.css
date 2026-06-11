@@ -123,6 +123,12 @@
   }
 }
 
+/* Hide scrollbar while keeping the element scrollable. */
+@layer utilities {
+  .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
 /* Tag color palette — 6 rotating colors for classification/label pills */
 @layer utilities {
   .tag-blue   { background: rgba(0,156,222,0.15);   color: #009CDE; }
@@ -146,6 +152,23 @@
   }
 }
 
+/* Marquee — seamless infinite horizontal scroll (track rendered twice) */
+@layer utilities {
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .animate-marquee { animation: marquee 60s linear infinite; }
+  .marquee-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+            mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee { animation: none; }
+}
+
 /* Glass panel — subtle top-to-bottom gradient for depth */
 @layer utilities {
   .glass-panel {
@@ -155,6 +178,74 @@
       rgba(26, 30, 42, 0.72) 100%
     );
     border: 1px solid rgba(255, 255, 255, 0.09);
+  }
+
+  /* Interactive card — lift + primary-tinted glow on hover */
+  .glass-panel-hover {
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .glass-panel-hover:hover {
+    transform: translateY(-3px);
+    border-color: rgba(0, 156, 222, 0.35);
+    box-shadow:
+      0 0 0 1px rgba(0, 156, 222, 0.25),
+      0 16px 40px -16px rgba(0, 156, 222, 0.45);
+  }
+}
+
+/* Scroll-reveal — fade + rise once in view (.in toggled by IntersectionObserver) */
+@layer utilities {
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  .reveal.in {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Toast — slide + fade in from the right */
+@layer utilities {
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .animate-toast-in { animation: toast-in 0.22s cubic-bezier(0.22, 1, 0.36, 1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in { animation: none; }
+}
+
+/* Routed view — quick fade-in on mount/navigation, to soften load blink. */
+@layer utilities {
+  @keyframes view-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-view-fade-in { animation: view-fade-in 0.12s ease-out; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-view-fade-in { animation: none; }
+}
+
+/* Gradient text — on-brand primary → light, for headlines */
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #58C8F5 0%, #E8EAF0 60%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    color: transparent;
   }
 }
 

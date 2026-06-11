@@ -17,6 +17,7 @@ from app.models.pool import PoolGame
 from app.services.admin_config import get_espn_rate_limit, get_discord_webhook_url
 from app.services.discord import send_discord_alert
 from app.services.espn import fetch_espn_boxscore, extract_espn_scores
+from app.tasks.notify_decorator import notify
 
 logger = logging.getLogger(__name__)
 
@@ -227,8 +228,8 @@ async def _alert_seed_error(exc: Exception) -> None:
         logger.exception("Failed to send seed error Discord alert")
 
 
-@app.periodic(cron="* * * * *")  # every 60s
 @app.task(name="espn_poll", queueing_lock="espn_poll", retry=0)
+@notify(task_name="espn_poll")
 async def poll_live_espn_games(timestamp: int | None = None) -> dict:
     logger.debug("ESPN poller tick")
     try:
@@ -243,6 +244,7 @@ async def poll_live_espn_games(timestamp: int | None = None) -> dict:
 
 
 @app.task(name="espn_seed", queueing_lock="espn_seed", retry=3)
+@notify(task_name="espn_seed")
 async def seed_missing_espn_games(timestamp: int | None = None) -> dict:
     logger.info("Seeding missing espn_games rows")
     try:
