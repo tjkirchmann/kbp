@@ -134,6 +134,34 @@ _RUNS_SQL = text(
 
 _TERMINAL_STATUSES = {"succeeded", "failed", "aborted", "cancelled"}
 
+# Run-history time windows for the task-detail charts. Maps a selector key to the
+# lookback interval; runs whose latest event falls within it are returned.
+_RUN_WINDOWS: dict[str, timedelta] = {
+    "3h": timedelta(hours=3),
+    "1d": timedelta(days=1),
+    "3d": timedelta(days=3),
+    "7d": timedelta(days=7),
+    "30d": timedelta(days=30),
+}
+
+# Like _RUNS_SQL but bounded by time (any event in-window) instead of a fixed
+# count. A generous LIMIT caps a pathological high-frequency task; ordered newest
+# first so the cap drops the oldest runs in the window, not the newest.
+_RUNS_WINDOW_SQL = text(
+    """
+    SELECT j.id, j.status,
+           min(e.at) FILTER (WHERE e.type = 'started') AS started_at,
+           max(e.at) FILTER (WHERE e.type IN ('succeeded','failed','aborted','cancelled')) AS ended_at
+    FROM procrastinate_jobs j
+    LEFT JOIN procrastinate_events e ON e.job_id = j.id
+    WHERE j.task_name = :task
+    GROUP BY j.id, j.status
+    HAVING max(e.at) >= :since
+    ORDER BY j.id DESC
+    LIMIT 2000
+    """
+)
+
 
 def _registered_tasks() -> dict:
     """All app-defined tasks by name (excludes Procrastinate builtins)."""
@@ -521,6 +549,38 @@ async def get_task_detail(task_name: str, db: AsyncSession = Depends(get_db)):
         last_run_at=last_run_at, next_run_at=next_run_at, upcoming=upcoming,
         runs=runs, stats=stats, notify=_to_sync_notify(await get_notify_config(db, task_name)),
     )
+
+
+@router.get("/sync/tasks/{task_name}/runs", response_model=list[SyncRun])
+async def get_task_runs(
+    task_name: str,
+    window: str = Query("7d"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Runs for one task within a time window (for the detail-page charts).
+
+    Unlike the 50-run cap on the main detail endpoint, this returns every run
+    whose latest event falls within `window` (3h/1d/3d/7d/30d), up to a safety cap.
+    """
+    from fastapi import HTTPException
+
+    if task_name not in _registered_tasks():
+        raise HTTPException(status_code=404, detail=f"Unknown task {task_name!r}")
+    interval = _RUN_WINDOWS.get(window)
+    if interval is None:
+        raise HTTPException(status_code=400, detail=f"Unknown window {window!r}")
+
+    since = datetime.now(timezone.utc) - interval
+    rows = (await db.execute(_RUNS_WINDOW_SQL, {"task": task_name, "since": since})).mappings().all()
+    runs: list[SyncRun] = []
+    for r in rows:
+        started, ended = r["started_at"], r["ended_at"]
+        duration = (ended - started).total_seconds() if started and ended else None
+        runs.append(SyncRun(
+            id=r["id"], status=r["status"],
+            started_at=started, ended_at=ended, duration_seconds=duration,
+        ))
+    return runs
 
 
 class NotifyConfigUpdate(BaseModel):

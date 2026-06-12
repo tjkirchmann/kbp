@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
 
 const API = import.meta.env.VITE_API_URL
@@ -272,6 +272,25 @@ export function useTaskDetail(taskName: string | undefined) {
   })
 }
 
+export type RunWindow = '3h' | '1d' | '3d' | '7d' | '30d'
+
+/** Runs for a task within a time window — feeds the detail-page charts. */
+export function useTaskRuns(taskName: string | undefined, window: RunWindow) {
+  const { getToken } = useAuth()
+  return useQuery<SyncRun[]>({
+    queryKey: ['admin', 'sync', 'task', taskName, 'runs', window],
+    enabled: !!taskName,
+    queryFn: async () => {
+      const token = await getToken()
+      return authFetch(token!, `/admin/sync/tasks/${taskName}/runs?window=${window}`)
+    },
+    refetchInterval: 5000,
+    // Keep the prior window's data on screen while the new window loads, so the
+    // chart updates in place instead of blinking through the empty state.
+    placeholderData: keepPreviousData,
+  })
+}
+
 /** cancel | abort | retry a job; refreshes the run + the lists it appears in. */
 function useRunAction(jobId: string | undefined, action: 'cancel' | 'abort' | 'retry') {
   const { getToken } = useAuth()
@@ -305,8 +324,6 @@ export function useRunSyncTask(taskName: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: SYNC_STATUS_KEY }),
   })
 }
-
-export type RunMutation = ReturnType<typeof useRunSyncTask>
 
 export type NotifyEvent = 'start' | 'success' | 'failure'
 

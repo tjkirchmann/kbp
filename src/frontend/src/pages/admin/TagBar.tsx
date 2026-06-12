@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react'
-import { Plus, X } from 'lucide-react'
-import { useTags, useTagSuggestions, useAddTag, useRemoveTag, type Tag } from '@/services/useTags'
+import { useState, useRef, useMemo, useLayoutEffect } from 'react'
+import { Plus } from 'lucide-react'
+import { useTags, useTagSuggestions, useAddTag, useRemoveTag } from '@/services/useTags'
 import { useToast } from '@/components/toast/ToastContext'
+import TagChip from './TagChip'
+import { useClickOutside } from './useClickOutside'
 
 const dropdownStyle = {
   background: 'rgba(13, 15, 19, 0.92)',
@@ -37,36 +39,6 @@ function fitCount(widths: number[], available: number): number {
   if (n === widths.length) return n // all fit, no +N badge needed
   // Overflow: also reserve the +N badge so it never gets clipped.
   return fits(base - OVERFLOW_W - GAP)
-}
-
-function Chip({ tag, onRemove }: { tag: Tag; onRemove?: () => void }) {
-  return (
-    <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tag.color}`}>
-      {tag.name}
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="opacity-60 hover:opacity-100 transition-opacity"
-          aria-label={`Remove ${tag.name}`}
-        >
-          <X className="size-2.5" />
-        </button>
-      )}
-    </span>
-  )
-}
-
-/** Click-outside hook shared by the two popovers. */
-function useClickOutside<T extends HTMLElement>(onClose: () => void) {
-  const ref = useRef<T>(null)
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [onClose])
-  return ref
 }
 
 /**
@@ -136,7 +108,7 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
     <div ref={rowRef} className="flex items-center gap-1.5 w-full min-w-0">
       {/* Offscreen measurement layer: all chips at natural width, never shown. */}
       <div ref={measureRef} aria-hidden className="absolute -left-[9999px] top-0 flex gap-1.5 invisible">
-        {tags.map(t => <Chip key={t.name} tag={t} />)}
+        {tags.map(t => <TagChip key={t.name} tag={t} />)}
       </div>
 
       {/* Visible chips — as many as fit, left-justified. */}
@@ -145,7 +117,7 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
       ) : (
         visible.map(t => (
           <span key={t.name} className="shrink-0">
-            <Chip tag={t} onRemove={() => onRemove(t.name)} />
+            <TagChip tag={t} onRemove={() => onRemove(t.name)} />
           </span>
         ))
       )}
@@ -165,7 +137,7 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
               style={dropdownStyle}
             >
               {tags.map(t => (
-                <Chip key={t.name} tag={t} onRemove={() => onRemove(t.name)} />
+                <TagChip key={t.name} tag={t} onRemove={() => onRemove(t.name)} />
               ))}
             </div>
           )}
