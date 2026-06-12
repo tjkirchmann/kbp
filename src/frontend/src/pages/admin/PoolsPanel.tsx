@@ -114,7 +114,7 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. 2025 Kirchmann Bowl Pool"
-              className="w-full rounded-lg bg-muted border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <div className="space-y-1.5">
@@ -123,7 +123,7 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
               type="number"
               value={seasonYear}
               onChange={e => setSeasonYear(Number(e.target.value))}
-              className="w-full rounded-lg bg-muted border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-full rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         </div>
@@ -180,7 +180,7 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
               <select
                 value={activeSeasonType}
                 onChange={e => setActiveSeasonType(e.target.value)}
-                className="rounded-lg bg-muted border border-border px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
                 {seasonTypeOptions.map(v => (
@@ -193,7 +193,7 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
               <select
                 value={activeClass}
                 onChange={e => setActiveClass(e.target.value)}
-                className="rounded-lg bg-muted border border-border px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
                 {classOptions.map(v => (
@@ -341,7 +341,7 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
 
       {confirmDelete && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="glass-panel rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
+          <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
             <div className="space-y-1.5">
               <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -581,7 +581,7 @@ function PoolDetail({ pool, onDeleted }: PoolDetailProps) {
         ) : detail?.games.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">No games added to this pool yet.</p>
         ) : (
-          <div className="rounded-xl overflow-hidden border border-border/30 bg-[rgba(13,15,19,0.4)]">
+          <div className="rounded-xl overflow-hidden bg-white/[0.03] border border-border/20">
             {detail?.games.map(g => {
               const asCfbdGame: CfbdGame = {
                 id: g.cfbd_game_id,
@@ -622,7 +622,7 @@ function PoolDetail({ pool, onDeleted }: PoolDetailProps) {
 
       {confirmDelete && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="glass-panel rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
+          <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
             <div className="space-y-1.5">
               <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">

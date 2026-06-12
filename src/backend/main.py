@@ -17,13 +17,10 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     # Open Procrastinate's connection pool so admin endpoints can defer jobs.
     async with procrastinate_app.open_async():
-        # Defer a one-off ESPN seed at startup; queueing_lock dedupes restarts.
-        from procrastinate.exceptions import AlreadyEnqueued
-        from app.tasks.espn_poller import seed_missing_espn_games
-        try:
-            await seed_missing_espn_games.defer_async()
-        except AlreadyEnqueued:
-            pass
+        # Defer tasks flagged run_on_startup in admin_notify_config (queueing_lock
+        # dedupes restarts; staleness windows honored).
+        from app.tasks.startup import defer_startup_tasks
+        await defer_startup_tasks(procrastinate_app)
         yield
 
 app = FastAPI(title="App API", version="0.1.0", lifespan=lifespan)

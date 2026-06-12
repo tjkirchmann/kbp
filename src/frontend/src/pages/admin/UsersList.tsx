@@ -20,7 +20,7 @@ export default function UsersList() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="glass-panel rounded-2xl overflow-hidden">
+      <div className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/40">

@@ -36,7 +36,7 @@ function UserDetail({ user }: { user: AdminUser }) {
     <div className="flex flex-col gap-4">
 
       {/* Key-value grid */}
-      <div className="rounded-xl overflow-hidden border border-border/30 bg-[rgba(13,15,19,0.6)]">
+      <div className="rounded-xl overflow-hidden bg-white/[0.03] border border-border/20">
         {fields.map((key, i) => {
           const val = formatValue(key, user[key])
           return (
@@ -116,7 +116,7 @@ function UserList({ onSelect }: { onSelect: (user: AdminUser) => void }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="glass-panel rounded-2xl overflow-hidden">
+      <div className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border/40">

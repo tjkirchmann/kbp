@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.core.database import TaskSessionLocal as SessionLocal
 from app.core.procrastinate import procrastinate_app as app
 from app.models.cfbd import CfbdGame, CfbdTeam
+from app.tasks.notify_decorator import notify
 from app.services.sync.providers.cfbd import cfbd_provider
 from app.services.sync.snapshots import record_snapshot
 
@@ -111,8 +112,8 @@ async def _batch_upsert(db, model, rows: list[dict], batch_size: int) -> None:
         await db.execute(stmt)
 
 
-@app.periodic(cron="0 3 * * *")  # nightly 3 AM
 @app.task(name="cfbd_teams", queueing_lock="cfbd_teams", retry=3)
+@notify(task_name="cfbd_teams")
 async def sync_cfbd_teams(timestamp: int | None = None) -> dict[str, Any]:
     teams = [t for t in await cfbd_provider.fetch("teams") if t.get("id")]
     if not teams:
@@ -138,8 +139,8 @@ async def sync_cfbd_teams(timestamp: int | None = None) -> dict[str, Any]:
     return {"processed": len(teams), "changed": changed}
 
 
-@app.periodic(cron="*/15 * * * *")  # every 15 min during the season
 @app.task(name="cfbd_games", queueing_lock="cfbd_games", retry=3)
+@notify(task_name="cfbd_games")
 async def sync_cfbd_games(timestamp: int | None = None) -> dict[str, Any]:
     year = datetime.utcnow().year
     games = [g for g in await cfbd_provider.fetch("games", year=year) if g.get("id")]

@@ -207,7 +207,7 @@ export default function PoolCreate() {
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. 2025 Kirchmann Bowl Pool"
-              className="w-full rounded-lg bg-muted border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
           <div className="space-y-1.5">
@@ -216,7 +216,7 @@ export default function PoolCreate() {
               type="number"
               value={seasonYear}
               onChange={e => setSeasonYear(Number(e.target.value))}
-              className="w-full rounded-lg bg-muted border border-border px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-full rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         </div>
@@ -273,7 +273,7 @@ export default function PoolCreate() {
               <select
                 value={activeSeasonType}
                 onChange={e => setActiveSeasonType(e.target.value)}
-                className="rounded-lg bg-muted border border-border px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
                 {seasonTypeOptions.map(v => (
@@ -286,7 +286,7 @@ export default function PoolCreate() {
               <select
                 value={activeClass}
                 onChange={e => setActiveClass(e.target.value)}
-                className="rounded-lg bg-muted border border-border px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
                 {classOptions.map(v => (
@@ -409,7 +409,7 @@ export default function PoolCreate() {
                     gameToSlot[pg.id] === undefined || gameToSlot[pg.id] === slot.key
                   )
                   return (
-                    <div key={slot.key} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-muted/40 border border-border/40">
+                    <div key={slot.key} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.03] border border-border/20">
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0 ${ROUND_COLORS[round]}`}>
                         {slot.key}
                       </span>
@@ -417,7 +417,7 @@ export default function PoolCreate() {
                       <select
                         value={assignedPgId ?? ''}
                         onChange={e => assignSlot(slot.key, e.target.value)}
-                        className="rounded-lg bg-muted border border-border px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[220px] truncate"
+                        className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[220px] truncate"
                       >
                         <option value="">— Not assigned —</option>
                         {options.map(pg => {
@@ -483,7 +483,7 @@ export default function PoolCreate() {
           const mult = multipliers[pg.id] ?? 1
 
           return (
-            <div key={pg.id} className="rounded-lg bg-muted/40 border border-border/40 px-4 py-3 flex flex-col gap-2">
+            <div key={pg.id} className="rounded-lg bg-white/[0.03] border border-border/20 px-4 py-3 flex flex-col gap-2">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-medium text-foreground leading-snug truncate">{title}</p>
                 {slot && (

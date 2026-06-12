@@ -36,8 +36,9 @@ services:
       context: ./src/backend
       dockerfile: Dockerfile
     # Apply Procrastinate's schema only if it isn't there yet (schema --apply is
-    # not idempotent and errors on a second run), then run the worker — which
-    # also drives the @app.periodic CFBD and ESPN schedules.
+    # not idempotent and errors on a second run), then run the worker — a custom
+    # entrypoint (app/worker.py) that drives CFBD/ESPN schedules from DB-configured
+    # crons and re-syncs them on NOTIFY + a poll fallback.
     command:
       - sh
       - -c
@@ -46,7 +47,7 @@ services:
         if ! procrastinate --app=$$APP healthchecks 2>/dev/null | grep -q 'procrastinate_jobs table: OK'; then
           procrastinate --app=$$APP schema --apply
         fi
-        exec procrastinate --app=$$APP worker
+        exec python -m app.worker
     volumes:
       - ./src/backend:/app
       - /app/.venv

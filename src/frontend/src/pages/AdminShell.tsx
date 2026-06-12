@@ -1,26 +1,28 @@
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { ChevronRight, Info } from 'lucide-react'
-import Header from '@/components/Header'
 import { useAdminUsers } from '@/services/useAdminUsers'
 import { useAdminPools } from '@/services/useAdminPools'
 import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
+import AdminSidebar from '@/pages/admin/AdminSidebar'
+import AdminTopBar from '@/pages/admin/AdminTopBar'
+import { prettyTaskName } from '@/pages/admin/syncUtils'
+import { useRunDetail } from '@/services/useAdminSync'
 
-const sections = [
-  { id: 'comms', label: 'Comms' },
-  { id: 'espn', label: 'ESPN' },
-  { id: 'sync', label: 'Sync' },
-  { id: 'users', label: 'Users' },
-  { id: 'pools', label: 'Pools' },
-  { id: 'teams', label: 'Teams' },
-]
+const COLLAPSE_KEY = 'admin-sidebar-collapsed'
 
 function useBreadcrumbs() {
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
   const { data: users = [] } = useAdminUsers()
   const { data: pools = [] } = useAdminPools()
 
   const parts = pathname.replace(/^\/admin\/?/, '').split('/').filter(Boolean)
+
+  // On a run page, derive the parent task crumb. Prefer the task name passed via
+  // link state (available on first render, no flash); fall back to the cached run.
+  const runJobId = parts[0] === 'sync' && parts[1] === 'runs' ? parts[2] : undefined
+  const { data: run } = useRunDetail(runJobId)
+  const runTaskName = (state as { taskName?: string } | null)?.taskName ?? run?.task_name
 
   if (parts[0] === 'users') {
     const crumbs = [{ label: 'Users', to: '/admin/users' }]
@@ -42,20 +44,20 @@ function useBreadcrumbs() {
     return crumbs
   }
 
-  if (parts[0] === 'teams') {
-    return [{ label: 'Teams', to: '/admin/teams' }]
-  }
-
-  if (parts[0] === 'comms') {
-    return [{ label: 'Comms', to: '/admin/comms' }]
-  }
-
-  if (parts[0] === 'espn') {
-    return [{ label: 'ESPN', to: '/admin/espn' }]
-  }
-
+  if (parts[0] === 'teams') return [{ label: 'Teams', to: '/admin/teams' }]
+  if (parts[0] === 'comms') return [{ label: 'Comms', to: '/admin/comms' }]
+  if (parts[0] === 'espn') return [{ label: 'ESPN', to: '/admin/espn' }]
   if (parts[0] === 'sync') {
-    return [{ label: 'Sync', to: '/admin/sync' }]
+    const crumbs = [{ label: 'Sync', to: '/admin/sync' }]
+    if (parts[1] === 'runs' && parts[2]) {
+      if (runTaskName) {
+        crumbs.push({ label: prettyTaskName(runTaskName), to: `/admin/sync/tasks/${runTaskName}` })
+      }
+      crumbs.push({ label: `Run ${parts[2]}`, to: '' })
+    } else if (parts[1] === 'tasks' && parts[2]) {
+      crumbs.push({ label: prettyTaskName(parts[2]), to: '' })
+    }
+    return crumbs
   }
 
   return [{ label: 'Admin', to: '/admin' }]
@@ -65,79 +67,70 @@ export default function AdminShell() {
   const breadcrumbs = useBreadcrumbs()
   const { pathname } = useLocation()
   const [infoOpen, setInfoOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    if (localStorage.getItem(COLLAPSE_KEY) === '1') return true
+    return window.innerWidth < 640
+  })
   const currentSection = breadcrumbs[0].label.toLowerCase()
 
   useEffect(() => {
     setInfoOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0')
+  }, [collapsed])
+
   return (
-    <div className="min-h-screen">
-      <Header />
-      <main className="pt-24 pb-12 px-4 max-w-4xl mx-auto w-full">
-        <div className="glass-panel rounded-2xl w-full flex min-h-[calc(100vh-9rem)]">
-          <nav className="flex flex-col gap-1 p-3 pt-4 w-40 shrink-0 border-r border-border/40 overflow-y-auto">
-            {sections.map(s => (
-              <NavLink
-                key={s.id}
-                to={`/admin/${s.id}`}
-                className={({ isActive }) =>
-                  `px-3 py-1.5 rounded-full text-sm font-medium transition-colors text-center w-full ${
-                    isActive
-                      ? 'bg-primary/15 text-primary'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)]'
-                  }`
-                }
-              >
-                {s.label}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex items-center gap-6 px-6 py-4 border-b border-border/40 shrink-0">
-              <div className="flex items-center gap-1.5 shrink-0">
-                {breadcrumbs.map((crumb, i) => (
-                  <span key={i} className="flex items-center gap-1.5">
-                    {i > 0 && <ChevronRight className="size-4 text-muted-foreground/40" />}
-                    {crumb.to ? (
-                      <NavLink
-                        to={crumb.to}
-                        className={({ isActive }) =>
-                          `text-2xl font-semibold tracking-tight transition-colors ${
-                            isActive && breadcrumbs.length === 1
-                              ? 'text-foreground'
-                              : breadcrumbs.length > 1 && i < breadcrumbs.length - 1
-                              ? 'text-muted-foreground hover:text-foreground'
-                              : 'text-foreground'
-                          }`
-                        }
-                      >
+    <div className="h-screen overflow-hidden flex flex-col">
+      <AdminTopBar onToggleSidebar={() => setCollapsed(c => !c)} />
+      <div className="flex flex-1 min-h-0 pt-14">
+        <AdminSidebar collapsed={collapsed} />
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <div className="flex items-center gap-6 px-6 py-4 border-b border-border/40 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
+              {breadcrumbs.map((crumb, i) => (
+                <span key={i} className="flex items-center gap-1.5">
+                  {i > 0 && <ChevronRight className="size-4 text-muted-foreground/40" />}
+                  {crumb.to ? (
+                    // Highlight the terminal crumb by position, not isActive — a parent's
+                    // route can still match during navigation, flashing the gradient.
+                    i === breadcrumbs.length - 1 ? (
+                      <NavLink to={crumb.to} className="text-2xl font-semibold tracking-tight text-gradient">
                         {crumb.label}
                       </NavLink>
                     ) : (
-                      <h1 className="text-2xl font-semibold tracking-tight text-foreground">{crumb.label}</h1>
-                    )}
-                  </span>
-                ))}
-              </div>
-              <div className="hatch flex-1 h-8 rounded" />
-              <button
-                onClick={() => setInfoOpen(v => !v)}
-                className={`p-1.5 rounded-full transition-colors shrink-0 ${
-                  infoOpen
-                    ? 'bg-primary/20 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-                }`}
-              >
-                <Info className="size-4" />
-              </button>
+                      <NavLink
+                        to={crumb.to}
+                        className="text-2xl font-semibold tracking-tight text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {crumb.label}
+                      </NavLink>
+                    )
+                  ) : (
+                    <h1 className="text-2xl font-semibold tracking-tight text-gradient">{crumb.label}</h1>
+                  )}
+                </span>
+              ))}
             </div>
-            <div className="p-6">
-              {infoOpen ? <AdminInfoPanel section={currentSection} /> : <Outlet />}
-            </div>
+            <div className="hatch flex-1 h-8 rounded" />
+            <button
+              onClick={() => setInfoOpen(v => !v)}
+              className={`p-1.5 rounded-full transition-colors shrink-0 ${
+                infoOpen
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+              }`}
+            >
+              <Info className="size-4" />
+            </button>
+          </div>
+          <div key={pathname} className="p-6 flex-1 min-h-0 overflow-y-auto animate-view-fade-in">
+            {infoOpen ? <AdminInfoPanel section={currentSection} /> : <Outlet />}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }

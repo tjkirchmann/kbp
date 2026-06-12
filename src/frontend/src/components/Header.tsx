@@ -71,15 +71,18 @@ export default function Header() {
   const isAdmin = data?.is_admin ?? false
 
   return (
-    <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4">
+    <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-6xl px-4">
       <div className="glass-panel rounded-full px-6 h-14 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+        <Link to="/" className="flex items-center gap-3 shrink-0">
           <img
             src={logo256w}
             srcSet={`${logo256w} 1x, ${logo512w} 2x`}
             alt="KBP Logo"
             className="h-[40px] w-auto object-contain"
           />
+          <span className="hidden sm:block text-sm font-light tracking-[0.25em] text-foreground/90 uppercase">
+            Kirchmann Bowl Pool
+          </span>
         </Link>
 
         {/* Nav — desktop */}

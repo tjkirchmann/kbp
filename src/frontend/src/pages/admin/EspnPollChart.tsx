@@ -24,7 +24,7 @@ function CustomTooltip({ active, payload, label }: any) {
       return e.event === 'poll_error' ? `${label} (error)` : label
     })
   return (
-    <div className="glass-panel rounded-lg px-3 py-2.5 text-xs max-w-[220px]">
+    <div className="bg-white/[0.03] border border-border/20 rounded-lg px-3 py-2.5 text-xs max-w-[220px]">
       <p className="font-medium text-foreground mb-1.5">{formatMinute(label)}</p>
       <p className="text-muted-foreground mb-1">{bucket.count} poll{bucket.count !== 1 ? 's' : ''}</p>
       {games.length > 0 && (

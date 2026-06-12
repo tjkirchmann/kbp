@@ -40,7 +40,7 @@ export default function PoolsList() {
           <p className="text-sm">No pools yet. Create one to get started.</p>
         </div>
       ) : (
-        <div className="glass-panel rounded-2xl overflow-hidden">
+        <div className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/40">
@@ -115,7 +115,7 @@ export default function PoolsList() {
 
       {confirmDelete && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="glass-panel rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
+          <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
             <div className="space-y-1.5">
               <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">

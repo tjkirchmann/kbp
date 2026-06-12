@@ -1,12 +1,32 @@
-.PHONY: up down deploy migrate frontend-component backend frontend-logic frontend-organize
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db deploy migrate frontend-component backend frontend-logic frontend-organize
 
 # ── Dev ──────────────────────────────────────────────────────────────────────
 
 up:
-	docker compose up --build
+	docker compose up -d
+
+build:
+	docker compose up -d --build
 
 down:
 	docker compose down
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+
+logs:
+	docker compose logs -f
+
+logs-frontend:
+	docker compose logs -f frontend
+
+logs-backend:
+	docker compose logs -f backend
+
+logs-worker:
+	docker compose logs -f procrastinate_worker
+
+logs-db:
+	docker compose logs -f db
 
 # ── Deploy ───────────────────────────────────────────────────────────────────
 

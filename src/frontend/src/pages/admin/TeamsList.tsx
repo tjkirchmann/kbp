@@ -126,12 +126,12 @@ export default function TeamsList() {
             placeholder="Search teams…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="flex-1 px-3 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+            className="flex-1 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-border/20 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
           />
           <select
             value={confFilter}
             onChange={e => setConfFilter(e.target.value)}
-            className="rounded-lg bg-muted/40 border border-border/40 px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+            className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
           >
             <option value="all">All conferences</option>
             {conferences.map(c => <option key={c} value={c}>{c}</option>)}
@@ -139,7 +139,7 @@ export default function TeamsList() {
           <select
             value={classFilter}
             onChange={e => setClassFilter(e.target.value)}
-            className="rounded-lg bg-muted/40 border border-border/40 px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+            className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
           >
             <option value="all">All classes</option>
             {classifications.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
@@ -161,7 +161,7 @@ export default function TeamsList() {
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4">No teams match the current filters.</p>
       ) : (
-        <div className="glass-panel rounded-2xl overflow-hidden flex flex-col flex-1 min-h-0">
+        <div className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden flex flex-col flex-1 min-h-0">
           {/* Sticky header */}
           <div className="shrink-0 flex items-center border-b border-border/40 text-xs font-medium text-muted-foreground">
             <div className="px-5 py-2.5 flex-[3]">School</div>

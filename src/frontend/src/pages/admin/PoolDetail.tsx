@@ -142,7 +142,7 @@ export default function PoolDetail() {
 
       {confirmDelete && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="glass-panel rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
+          <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
             <div className="space-y-1.5">
               <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -183,7 +183,7 @@ function VirtualGameList({ games }: { games: CfbdGame[] }) {
   return (
     <div
       ref={parentRef}
-      className="overflow-y-auto rounded-xl border border-border/30 bg-[rgba(13,15,19,0.4)]"
+      className="overflow-y-auto rounded-xl bg-white/[0.03] border border-border/20"
       style={{ height: `${Math.min(games.length, 8) * ROW_HEIGHT}px`, scrollbarGutter: 'stable' }}
     >
       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
