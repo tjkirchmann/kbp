@@ -884,3 +884,126 @@ async def suggest_entity_tags(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return await tag_svc.suggest_tags(db, entity_type, entity_id)
+
+
+# --- Document analysis (durable AI pipeline) ----------------------------------
+
+class DocumentRow(BaseModel):
+    id: int
+    status: str
+    filename: str
+    mime: Optional[str] = None
+    size_bytes: int
+    text_chars: Optional[int] = None
+    error: Optional[str] = None
+    attempts: int
+    job_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class DocumentDetail(DocumentRow):
+    text: Optional[str] = None
+    content_hash: str
+    storage_key: str
+
+
+class AiCallRow(BaseModel):
+    id: int
+    status: str
+    document_id: Optional[int] = None
+    model: Optional[str] = None
+    error: Optional[str] = None
+    attempts: int
+    reprompts: int
+    total_tokens: Optional[int] = None
+    job_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AiCallDetail(AiCallRow):
+    request: dict
+    response: Optional[dict] = None
+    raw_output: Optional[str] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+
+
+@router.get("/documents", response_model=list[DocumentRow])
+async def list_documents(
+    db: AsyncSession = Depends(get_db),
+    before_id: Optional[int] = Query(None, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Recent ingested documents, newest first. Pass before_id to page back."""
+    from app.models.document import Document
+
+    stmt = select(Document).order_by(Document.id.desc()).limit(limit)
+    if before_id is not None:
+        stmt = stmt.where(Document.id < before_id)
+    rows = (await db.execute(stmt)).scalars().all()
+    return [DocumentRow.model_validate(r, from_attributes=True) for r in rows]
+
+
+@router.get("/documents/{document_id}", response_model=DocumentDetail)
+async def get_document_detail(document_id: int, db: AsyncSession = Depends(get_db)):
+    from fastapi import HTTPException
+
+    from app.services.documents import get_document
+
+    doc = await get_document(db, document_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return DocumentDetail.model_validate(doc, from_attributes=True)
+
+
+@router.get("/ai/calls", response_model=list[AiCallRow])
+async def list_ai_calls(
+    db: AsyncSession = Depends(get_db),
+    before_id: Optional[int] = Query(None, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """Recent AI calls, newest first. Pass before_id to page back."""
+    from app.models.ai_call import AiCall
+
+    stmt = select(AiCall).order_by(AiCall.id.desc()).limit(limit)
+    if before_id is not None:
+        stmt = stmt.where(AiCall.id < before_id)
+    rows = (await db.execute(stmt)).scalars().all()
+    return [AiCallRow.model_validate(r, from_attributes=True) for r in rows]
+
+
+@router.get("/ai/calls/{call_id}", response_model=AiCallDetail)
+async def get_ai_call_detail(call_id: int, db: AsyncSession = Depends(get_db)):
+    from fastapi import HTTPException
+
+    from app.services.llm.ledger import get_call
+
+    call = await get_call(db, call_id)
+    if call is None:
+        raise HTTPException(status_code=404, detail="AI call not found")
+    return AiCallDetail.model_validate(call, from_attributes=True)
+
+
+@router.post("/ai/calls/{call_id}/retry")
+async def retry_ai_call(call_id: int, db: AsyncSession = Depends(get_db)):
+    """Re-defer a failed AI call, reusing its ledger row."""
+    from fastapi import HTTPException
+
+    from app.services.llm.ledger import get_call
+    from app.tasks.ai_call import run_ai_call
+
+    call = await get_call(db, call_id)
+    if call is None:
+        raise HTTPException(status_code=404, detail="AI call not found")
+    req = call.request or {}
+    job_id = await run_ai_call.defer_async(
+        schema=req.get("schema"),
+        schema_name=req.get("schema_name"),
+        messages_template=req.get("messages_template"),
+        model=req.get("model"),
+        document_id=call.document_id,
+        ai_call_id=call.id,
+    )
+    return {"deferred": True, "job_id": job_id, "ai_call_id": call.id}

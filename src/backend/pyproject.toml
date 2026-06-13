@@ -18,4 +18,7 @@ dependencies = [
     "supervisor==4.2.5",
     "procrastinate==3.8.1",
     "psycopg[binary,pool]==3.2.3",
+    "markitdown[docx,pdf,pptx,xlsx]>=0.1.6",
+    "aioboto3>=15.5.0",
+    "jsonschema>=4.26.0",
 ]
