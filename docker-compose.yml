@@ -57,6 +57,23 @@ services:
     depends_on:
       - db
 
+  discord_bot:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    # Long-lived Discord gateway connection: listens for slash commands / messages
+    # and posts. Exits cleanly when DISCORD_BOT_TOKEN is unset (bot disabled).
+    # Iterate with: docker compose restart discord_bot && docker compose logs -f discord_bot
+    command: python -m app.bot
+    volumes:
+      - ./src/backend:/app
+      - /app/.venv
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/app
+    depends_on:
+      - db
+
   db:
     image: postgres:16
     ports:

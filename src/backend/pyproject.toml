@@ -18,4 +18,5 @@ dependencies = [
     "supervisor==4.2.5",
     "procrastinate==3.8.1",
     "psycopg[binary,pool]==3.2.3",
+    "discord-py==2.6.4",
 ]
