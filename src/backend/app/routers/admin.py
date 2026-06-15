@@ -13,6 +13,9 @@ from app.schemas.user import UserSchema, SetAdminBody
 from app.services.admin_config import (
     get_espn_rate_limit,
     get_discord_webhook_url,
+    get_bot_enabled,
+    get_bot_listen_channels,
+    get_bot_command_channel,
     set_config,
 )
 from app.services.notify_config import get_notify_config, set_notify_config
@@ -25,19 +28,33 @@ router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 class AdminConfigSchema(BaseModel):
     espn_rate_limit_per_minute: int
     discord_webhook_url: str
+    # Discord bot runtime config (token/guild are env-only and not exposed here).
+    discord_bot_enabled: bool
+    discord_bot_listen_channels: str   # comma-separated channel ids
+    discord_bot_command_channel: str   # default reply / notify channel id
 
 
 class AdminConfigUpdate(BaseModel):
     espn_rate_limit_per_minute: Optional[int] = None
     discord_webhook_url: Optional[str] = None
+    discord_bot_enabled: Optional[bool] = None
+    discord_bot_listen_channels: Optional[str] = None
+    discord_bot_command_channel: Optional[str] = None
+
+
+async def _admin_config_payload(db: AsyncSession) -> "AdminConfigSchema":
+    return AdminConfigSchema(
+        espn_rate_limit_per_minute=await get_espn_rate_limit(db),
+        discord_webhook_url=await get_discord_webhook_url(db),
+        discord_bot_enabled=await get_bot_enabled(db),
+        discord_bot_listen_channels=",".join(sorted(await get_bot_listen_channels(db))),
+        discord_bot_command_channel=await get_bot_command_channel(db),
+    )
 
 
 @router.get("/config", response_model=AdminConfigSchema)
 async def get_admin_config(db: AsyncSession = Depends(get_db)):
-    return AdminConfigSchema(
-        espn_rate_limit_per_minute=await get_espn_rate_limit(db),
-        discord_webhook_url=await get_discord_webhook_url(db),
-    )
+    return await _admin_config_payload(db)
 
 
 @router.put("/config", response_model=AdminConfigSchema)
@@ -46,10 +63,13 @@ async def update_admin_config(body: AdminConfigUpdate, db: AsyncSession = Depend
         await set_config(db, "espn_rate_limit_per_minute", str(body.espn_rate_limit_per_minute))
     if body.discord_webhook_url is not None:
         await set_config(db, "discord_webhook_url", body.discord_webhook_url)
-    return AdminConfigSchema(
-        espn_rate_limit_per_minute=await get_espn_rate_limit(db),
-        discord_webhook_url=await get_discord_webhook_url(db),
-    )
+    if body.discord_bot_enabled is not None:
+        await set_config(db, "discord_bot_enabled", "true" if body.discord_bot_enabled else "false")
+    if body.discord_bot_listen_channels is not None:
+        await set_config(db, "discord_bot_listen_channels", body.discord_bot_listen_channels)
+    if body.discord_bot_command_channel is not None:
+        await set_config(db, "discord_bot_command_channel", body.discord_bot_command_channel)
+    return await _admin_config_payload(db)
 
 
 @router.post("/config/test-webhook")
@@ -60,6 +80,24 @@ async def test_discord_webhook(db: AsyncSession = Depends(get_db)):
     if not url:
         raise HTTPException(status_code=400, detail="No Discord webhook URL configured")
     await send_discord_alert(url, "Test message from KBP admin panel.")
+    return {"ok": True}
+
+
+@router.post("/config/test-bot")
+async def test_discord_bot(db: AsyncSession = Depends(get_db)):
+    """Post a test message to the bot's command channel via REST (Bot token auth)."""
+    from fastapi import HTTPException
+    from app.core.config import settings
+    from app.services.discord import send_bot_message
+
+    if not settings.discord_bot_token:
+        raise HTTPException(status_code=400, detail="DISCORD_BOT_TOKEN is not configured")
+    channel_id = await get_bot_command_channel(db)
+    if not channel_id:
+        raise HTTPException(status_code=400, detail="No bot command channel configured")
+    await send_bot_message(
+        settings.discord_bot_token, channel_id, "Test message from KBP admin panel (via bot)."
+    )
     return {"ok": True}
 
 
