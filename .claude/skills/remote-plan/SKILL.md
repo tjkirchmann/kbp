@@ -14,10 +14,11 @@ slug `add-a-healthcheck-endpoint`, title `Add a Healthcheck Endpoint`.
 
 ## Remote access (load-bearing)
 
-Remote Control is enabled by default for this repo via `.claude/settings.json`
-(`enableRemoteControlByDefault: true`), so the session is remotable from the
-moment it starts — no in-session action is required. As Phase A step 1, print
-this reminder so the user knows they can walk away:
+Remote Control auto-starts for this repo via `.claude/settings.json`
+(`remoteControlAtStartup: true` — the real setting; the older
+`enableRemoteControlByDefault` is a no-op and does nothing), so the bridge comes
+up automatically each session — no in-session action is required. As Phase A
+step 1, print this reminder so the user knows they can walk away:
 
 > Remote Control is on by default for this repo — this session is already
 > accessible from claude.ai/code and the mobile Code tab. If it's not connected,
@@ -84,7 +85,26 @@ callable from inside a skill. The settings default does the work.
     ```
     The draft PR updates automatically.
 12. Report: the PR URL, both commit SHAs, and — if a stash was made in Phase A —
-    the restore command (see Note).
+    the restore command (see Note). This report is the **last thing the user
+    sees** — Phase E tears the session down right after it.
+
+## Phase E — Close the session (deterministic, do this last)
+
+The `cc` worktree manager runs each session in its own tmux session named
+`cc-<worktree>`. Once the Phase D report is printed and everything is pushed,
+close that tmux session so the worktree shuts down cleanly instead of lingering.
+
+13. Print the Phase D report **first** — killing the tmux session also kills this
+    Claude process, so nothing after the kill will run or be seen.
+14. Then close the session. Only kill when actually inside a `cc-*` tmux session
+    (so a manual run from the user's own terminal/tmux is left untouched):
+    ```bash
+    if [ -n "$TMUX" ] && tmux display-message -p '#S' | grep -q '^cc-'; then
+      tmux kill-session -t "$(tmux display-message -p '#S')"
+    fi
+    ```
+    If not in a `cc-*` tmux session, skip the kill and just note that the run is
+    complete — there's no session to close.
 
 ## Plan file template (`planning/<feature-slug>.md`)
 
@@ -136,4 +156,7 @@ git checkout <original-branch> && git stash pop
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
 - Keep the plan branch named `remote/<feature-slug>` exactly — it's the
   convention the user relies on.
+- Phase E runs last and only after the final report is printed — never kill the
+  tmux session before the user has the PR URL and SHAs, and only kill a `cc-*`
+  session.
 ```
