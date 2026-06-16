@@ -29,22 +29,21 @@ callable from inside a skill. The settings default does the work.
 ## Phase A — Branch setup (deterministic, do this first)
 
 1. Print the remote-access reminder above.
-2. Capture the current branch: `git rev-parse --abbrev-ref HEAD`. Check for a
-   dirty tree: `git status --porcelain`. If dirty, stash everything including
-   untracked files:
-   ```bash
-   git stash push -u -m "remote-plan auto-stash"
-   ```
-   Record that a stash was made and the original branch name — you'll surface a
-   restore command at the very end.
-3. Get onto clean, up-to-date main:
-   ```bash
-   git checkout main && git pull --ff-only
-   ```
-4. Create the feature branch:
-   ```bash
-   git checkout -b remote/<feature-slug>
-   ```
+2. Check where you are: `git branch --show-current`.
+
+   **Case 1 — already on a `remote/*` branch (the normal case when launched via
+   the `cc` worktree manager).** You're in a dedicated worktree and ready to go.
+   Set `<feature-slug>` = the current branch with the `remote/` prefix removed.
+   **Skip the rest of Phase A** — do not checkout main or create a branch (main
+   is checked out in the base repo and a worktree can't switch to it).
+
+   **Case 2 — on `main` or any other branch (invoked directly, no worktree).**
+   Do the branch setup yourself:
+   - `git status --porcelain`; if dirty, `git stash push -u -m "remote-plan auto-stash"`
+     and record that a stash was made + the original branch name (for the restore
+     note at the end).
+   - `git checkout main && git pull --ff-only`
+   - `git checkout -b remote/<feature-slug>`
 
 ## Phase B — Plan (interactive, gated)
 
