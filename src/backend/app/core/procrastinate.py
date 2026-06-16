@@ -11,5 +11,5 @@ _conninfo = settings.database_url.replace("postgresql+asyncpg://", "postgresql:/
 # tasks, so they get registered without being imported at every call site.
 procrastinate_app = App(
     connector=PsycopgConnector(conninfo=_conninfo),
-    import_paths=["app.tasks.cfbd_sync", "app.tasks.espn_poller"],
+    import_paths=["app.tasks.cfbd_sync", "app.tasks.cfbd_dims", "app.tasks.espn_poller"],
 )
