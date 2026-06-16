@@ -1,3 +1,3 @@
 {
-  "enableRemoteControlByDefault": true
+  "remoteControlAtStartup": true
 }
