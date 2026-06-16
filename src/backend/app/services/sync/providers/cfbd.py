@@ -11,6 +11,17 @@ CFBD_BASE = "https://api.collegefootballdata.com"
 _games_cache: dict[int, tuple[list[dict], float]] = {}
 GAMES_CACHE_TTL = 900  # 15 minutes
 
+# Slowly-changing dimension endpoints: global, no required params, plain GET.
+# Maps the fetch() endpoint key to its CFBD path.
+_DIM_ENDPOINTS = {
+    "teams": "/teams",
+    "conferences": "/conferences",
+    "venues": "/venues",
+    "coaches": "/coaches",
+    "draft_positions": "/draft/positions",
+    "draft_teams": "/draft/teams",
+}
+
 
 class CfbdProvider(SyncProvider):
     name = "cfbd"
@@ -19,9 +30,13 @@ class CfbdProvider(SyncProvider):
         return {"Authorization": f"Bearer {settings.cfbd_api_key}"}
 
     async def fetch(self, endpoint: str, **params: Any) -> Any:
-        if endpoint == "teams":
+        if endpoint in _DIM_ENDPOINTS:
             async with httpx.AsyncClient() as client:
-                resp = await client.get(f"{CFBD_BASE}/teams", headers=self._headers(), timeout=30.0)
+                resp = await client.get(
+                    f"{CFBD_BASE}{_DIM_ENDPOINTS[endpoint]}",
+                    headers=self._headers(),
+                    timeout=30.0,
+                )
                 resp.raise_for_status()
                 return resp.json()
         if endpoint == "games":
