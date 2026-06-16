@@ -82,7 +82,7 @@ export default function CommsPanel() {
             {testLabel(testWebhook.isPending, webhookTest)}
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">Alerts are sent here when ESPN returns a bad or unexpected response.</p>
+        <p className="text-xs text-muted-foreground">Default destination for notifications when a consumer (a task, or the ESPN integration) has no channel selected.</p>
       </div>
 
       {/* Discord Bot */}

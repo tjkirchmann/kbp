@@ -12,9 +12,15 @@ _EVENT_ICON = {
 def _format_message(event: str, payload: dict) -> str:
     """Unpack an arbitrary payload into a human Discord message string.
 
-    Recognized keys are surfaced inline; the rest is ignored so callers can pass
-    any extra context without breaking formatting.
+    A ready-made `text` is delivered verbatim, so non-task callers (e.g. ESPN
+    game alerts) can route their own pre-formatted message through any channel.
+    Otherwise, recognized lifecycle keys are surfaced inline; the rest is ignored
+    so callers can pass any extra context without breaking formatting.
     """
+    text = payload.get("text")
+    if text is not None:
+        return str(text)
+
     icon = _EVENT_ICON.get(event, "ℹ️")  # ℹ️
     task_name = payload.get("task_name", "task")
     header = f"{icon} **{task_name}** — {event}"

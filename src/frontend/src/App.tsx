@@ -10,6 +10,7 @@ import PoolCreate from './pages/admin/PoolCreate'
 import PoolDetail from './pages/admin/PoolDetail'
 import TeamsList from './pages/admin/TeamsList'
 import CommsPanel from './pages/admin/CommsPanel'
+import IntegrationsShell from './pages/admin/IntegrationsShell'
 import EspnPanel from './pages/admin/EspnPanel'
 import SyncPanel from './pages/admin/SyncPanel'
 import RunDetail from './pages/admin/RunDetail'
@@ -28,7 +29,12 @@ export default function App() {
         <Route index element={<Navigate to="comms" replace />} />
         <Route path="general" element={<Navigate to="/admin/comms" replace />} />
         <Route path="comms" element={<CommsPanel />} />
-        <Route path="espn" element={<EspnPanel />} />
+        <Route path="integrations" element={<IntegrationsShell />}>
+          <Route index element={<Navigate to="espn" replace />} />
+          <Route path="espn" element={<EspnPanel />} />
+        </Route>
+        {/* Back-compat: the old top-level ESPN route now lives under Integrations. */}
+        <Route path="espn" element={<Navigate to="/admin/integrations/espn" replace />} />
         <Route path="sync" element={<SyncPanel />} />
         <Route path="sync/runs/:jobId" element={<RunDetail />} />
         <Route path="sync/tasks/:taskName" element={<TaskDetail />} />

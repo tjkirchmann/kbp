@@ -5,6 +5,7 @@ const API = import.meta.env.VITE_API_URL
 
 export interface AdminConfig {
   espn_rate_limit_per_minute: number
+  espn_alert_channel: string   // notification channel name; "" = global webhook
   discord_webhook_url: string
   discord_bot_enabled: boolean
   discord_bot_listen_channels: string   // comma-separated channel ids

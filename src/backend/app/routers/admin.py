@@ -12,6 +12,7 @@ from app.models.event_log import EventLog
 from app.schemas.user import UserSchema, SetAdminBody
 from app.services.admin_config import (
     get_espn_rate_limit,
+    get_espn_alert_channel,
     get_discord_webhook_url,
     get_bot_enabled,
     get_bot_listen_channels,
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 
 class AdminConfigSchema(BaseModel):
     espn_rate_limit_per_minute: int
+    espn_alert_channel: str   # notification_channels.name; "" = global webhook
     discord_webhook_url: str
     # Discord bot runtime config (token/guild are env-only and not exposed here).
     discord_bot_enabled: bool
@@ -36,6 +38,7 @@ class AdminConfigSchema(BaseModel):
 
 class AdminConfigUpdate(BaseModel):
     espn_rate_limit_per_minute: Optional[int] = None
+    espn_alert_channel: Optional[str] = None   # "" clears (→ global webhook)
     discord_webhook_url: Optional[str] = None
     discord_bot_enabled: Optional[bool] = None
     discord_bot_listen_channels: Optional[str] = None
@@ -45,6 +48,7 @@ class AdminConfigUpdate(BaseModel):
 async def _admin_config_payload(db: AsyncSession) -> "AdminConfigSchema":
     return AdminConfigSchema(
         espn_rate_limit_per_minute=await get_espn_rate_limit(db),
+        espn_alert_channel=await get_espn_alert_channel(db),
         discord_webhook_url=await get_discord_webhook_url(db),
         discord_bot_enabled=await get_bot_enabled(db),
         discord_bot_listen_channels=",".join(sorted(await get_bot_listen_channels(db))),
@@ -59,8 +63,18 @@ async def get_admin_config(db: AsyncSession = Depends(get_db)):
 
 @router.put("/config", response_model=AdminConfigSchema)
 async def update_admin_config(body: AdminConfigUpdate, db: AsyncSession = Depends(get_db)):
+    from fastapi import HTTPException
     if body.espn_rate_limit_per_minute is not None:
         await set_config(db, "espn_rate_limit_per_minute", str(body.espn_rate_limit_per_minute))
+    if body.espn_alert_channel is not None:
+        name = body.espn_alert_channel.strip()
+        if name:
+            exists = (await db.execute(
+                select(NotificationChannel.name).where(NotificationChannel.name == name)
+            )).scalar_one_or_none()
+            if exists is None:
+                raise HTTPException(status_code=400, detail=f"Unknown channel {name!r}")
+        await set_config(db, "espn_alert_channel", name)
     if body.discord_webhook_url is not None:
         await set_config(db, "discord_webhook_url", body.discord_webhook_url)
     if body.discord_bot_enabled is not None:

@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { MessageSquare, Activity, RefreshCw, Users, Trophy, Shield } from 'lucide-react'
+import { MessageSquare, Plug, RefreshCw, Users, Trophy, Shield } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const sections: { id: string; label: string; icon: LucideIcon }[] = [
   { id: 'comms', label: 'Comms', icon: MessageSquare },
-  { id: 'espn', label: 'ESPN', icon: Activity },
+  { id: 'integrations', label: 'Integrations', icon: Plug },
   { id: 'sync', label: 'Sync', icon: RefreshCw },
   { id: 'users', label: 'Users', icon: Users },
   { id: 'pools', label: 'Pools', icon: Trophy },

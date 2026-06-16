@@ -75,6 +75,25 @@ async def set_notify_config(db: AsyncSession, task_name: str, **fields) -> None:
     await db.commit()
 
 
+async def resolve_channel(db: AsyncSession, channel_name: str | None) -> tuple[str, dict]:
+    """Resolve a named channel into (strategy, config) for delivery.
+
+    Used by any consumer that delivers through a notification_channels row — task
+    lifecycle notifications and one-off alerts (e.g. ESPN game events) alike. A
+    blank/missing/unknown name falls back to the global Discord webhook.
+    """
+    if channel_name:
+        chan = (
+            await db.execute(
+                select(NotificationChannel).where(NotificationChannel.name == channel_name)
+            )
+        ).scalar_one_or_none()
+        if chan is not None:
+            return chan.strategy, dict(chan.config or {})
+
+    return "discord", {"webhook_url": await get_discord_webhook_url(db)}
+
+
 async def resolve_delivery(db: AsyncSession, cfg: NotifyConfig) -> tuple[str, dict]:
     """Resolve a task's config into (strategy, channel_config) for delivery.
 

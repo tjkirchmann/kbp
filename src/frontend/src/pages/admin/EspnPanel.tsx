@@ -1,25 +1,31 @@
 import { useState, useEffect } from 'react'
 import { useAdminConfig, useUpdateAdminConfig } from '@/services/useAdminConfig'
+import { useChannels } from '@/services/useAdminSync'
 import { useEventLog, useEspnStatus } from '@/services/useEventLog'
 import EspnPollChart from './EspnPollChart'
 
 export default function EspnPanel() {
   const { data: config, isLoading, error } = useAdminConfig()
   const update = useUpdateAdminConfig()
+  const { data: channels = [] } = useChannels()
   const { data: status } = useEspnStatus()
   const { data: pollLog = [] } = useEventLog('espn_poller', 30)
 
   const [rateLimit, setRateLimit] = useState('')
+  const [alertChannel, setAlertChannel] = useState('')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (config) setRateLimit(String(config.espn_rate_limit_per_minute))
+    if (config) {
+      setRateLimit(String(config.espn_rate_limit_per_minute))
+      setAlertChannel(config.espn_alert_channel)
+    }
   }, [config])
 
   async function handleSave() {
     const parsed = parseInt(rateLimit, 10)
     if (isNaN(parsed)) return
-    await update.mutateAsync({ espn_rate_limit_per_minute: parsed })
+    await update.mutateAsync({ espn_rate_limit_per_minute: parsed, espn_alert_channel: alertChannel })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -51,6 +57,24 @@ export default function EspnPanel() {
             {intervalLabel && (
               <span className="ml-1 text-primary">{status!.live_games} live · {intervalLabel}</span>
             )}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-foreground">Game alerts channel</label>
+          <select
+            value={alertChannel}
+            onChange={e => setAlertChannel(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-white/[0.03] border border-border/20 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors w-72"
+          >
+            <option value="">Global webhook (default)</option>
+            {channels.map(c => (
+              <option key={c.name} value={c.name}>{c.name} ({c.strategy})</option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Where game start / halftime / final and poll errors are sent. Pick a
+            <span className="text-foreground"> none </span>channel to silence them.
           </p>
         </div>
 

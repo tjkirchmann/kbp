@@ -46,7 +46,11 @@ function useBreadcrumbs() {
 
   if (parts[0] === 'teams') return [{ label: 'Teams', to: '/admin/teams' }]
   if (parts[0] === 'comms') return [{ label: 'Comms', to: '/admin/comms' }]
-  if (parts[0] === 'espn') return [{ label: 'ESPN', to: '/admin/espn' }]
+  if (parts[0] === 'integrations') {
+    const crumbs = [{ label: 'Integrations', to: '/admin/integrations' }]
+    if (parts[1] === 'espn') crumbs.push({ label: 'ESPN', to: '/admin/integrations/espn' })
+    return crumbs
+  }
   if (parts[0] === 'sync') {
     const crumbs = [{ label: 'Sync', to: '/admin/sync' }]
     if (parts[1] === 'runs' && parts[2]) {
@@ -72,7 +76,12 @@ export default function AdminShell() {
     if (localStorage.getItem(COLLAPSE_KEY) === '1') return true
     return window.innerWidth < 640
   })
-  const currentSection = breadcrumbs[0].label.toLowerCase()
+  // Info panel keys off the active section. Under Integrations the section is the
+  // active sub-tab (e.g. ESPN), so use the leaf crumb there; elsewhere the first
+  // crumb is the section (its leaf can be an entity name, not an info key).
+  const sectionCrumb =
+    breadcrumbs[0].label === 'Integrations' ? breadcrumbs[breadcrumbs.length - 1] : breadcrumbs[0]
+  const currentSection = sectionCrumb.label.toLowerCase()
 
   useEffect(() => {
     setInfoOpen(false)

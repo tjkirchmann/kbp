@@ -3,6 +3,7 @@ import logging
 from app.services.notifications.base import NotificationStrategy
 from app.services.notifications.discord import DiscordStrategy
 from app.services.notifications.discord_bot import DiscordBotStrategy
+from app.services.notifications.none import NoneStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class NotificationService:
         self._strategies: dict[str, NotificationStrategy] = strategies or {
             DiscordStrategy.name: DiscordStrategy(),
             DiscordBotStrategy.name: DiscordBotStrategy(),
+            NoneStrategy.name: NoneStrategy(),
         }
 
     def register(self, strategy: NotificationStrategy) -> None:

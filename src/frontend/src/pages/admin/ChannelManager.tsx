@@ -9,9 +9,13 @@ import {
 } from '@/services/useAdminSync'
 import { useToast } from '@/components/toast/ToastContext'
 
-// Strategies the backend can deliver to. Discord-only today; add entries here
-// as new NotificationStrategy implementations land.
-const STRATEGIES = [{ value: 'discord', label: 'Discord' }]
+// Strategies the backend can deliver to. Add entries here as new
+// NotificationStrategy implementations land. "none" is a black hole — a channel
+// that accepts a payload and drops it, used to silence any consumer.
+const STRATEGIES = [
+  { value: 'discord', label: 'Discord' },
+  { value: 'none', label: 'None (silence)' },
+]
 
 function webhookOf(c: NotificationChannel): string {
   const v = c.config?.webhook_url
@@ -29,10 +33,14 @@ export default function ChannelManager() {
   const [name, setName] = useState('')
   const [webhook, setWebhook] = useState('')
 
+  // A "none" channel has no destination — webhook is irrelevant and stays empty.
+  const needsWebhook = strategy !== 'none'
+
   const add = () => {
-    if (!name.trim() || !webhook.trim()) return
+    if (!name.trim() || (needsWebhook && !webhook.trim())) return
+    const config = needsWebhook ? { webhook_url: webhook.trim() } : {}
     upsert.mutate(
-      { name: name.trim(), strategy, config: { webhook_url: webhook.trim() } },
+      { name: name.trim(), strategy, config },
       {
         onSuccess: () => {
           setName('')
@@ -98,15 +106,17 @@ export default function ChannelManager() {
             placeholder="name"
             className="bg-transparent border border-border/50 rounded-md px-1.5 py-0.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
           />
-          <input
-            value={webhook}
-            onChange={e => setWebhook(e.target.value)}
-            placeholder="discord webhook url"
-            className="bg-transparent border border-border/50 rounded-md px-1.5 py-0.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
-          />
+          {needsWebhook && (
+            <input
+              value={webhook}
+              onChange={e => setWebhook(e.target.value)}
+              placeholder="discord webhook url"
+              className="bg-transparent border border-border/50 rounded-md px-1.5 py-0.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+            />
+          )}
           <button
             onClick={add}
-            disabled={upsert.isPending || !name.trim() || !webhook.trim()}
+            disabled={upsert.isPending || !name.trim() || (needsWebhook && !webhook.trim())}
             className="self-start flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/40 hover:bg-primary/25 transition-colors disabled:opacity-50"
           >
             <Plus className="size-3" /> Add
