@@ -8,6 +8,10 @@ from app.models.cfbd import (
     CfbdCoachSeason,
     CfbdDraftPosition,
     CfbdDraftTeam,
+    CfbdBettingLine,
+    CfbdRanking,
+    CfbdGameTeamStat,
+    CfbdFactCoverage,
 )
 from app.models.pool import Pool, PoolGame, PoolSubmission, PoolSubmissionGameItem, ScoringStrategy
 from app.models.espn import EspnGame
@@ -29,6 +33,10 @@ __all__ = [
     "CfbdCoachSeason",
     "CfbdDraftPosition",
     "CfbdDraftTeam",
+    "CfbdBettingLine",
+    "CfbdRanking",
+    "CfbdGameTeamStat",
+    "CfbdFactCoverage",
     "Pool",
     "PoolGame",
     "PoolSubmission",

@@ -22,6 +22,14 @@ _DIM_ENDPOINTS = {
     "draft_teams": "/draft/teams",
 }
 
+# Per-season fact endpoints: fetched a whole season at a time (year=). cfbd_facts
+# only calls these for seasons it's missing (see app/tasks/cfbd_facts.py).
+_FACT_ENDPOINTS = {
+    "lines": "/lines",
+    "rankings": "/rankings",
+    "game_team_stats": "/games/teams",
+}
+
 
 class CfbdProvider(SyncProvider):
     name = "cfbd"
@@ -64,6 +72,19 @@ class CfbdProvider(SyncProvider):
             if cache_key is not None:
                 _games_cache[cache_key] = (data, now)
             return data
+        if endpoint in _FACT_ENDPOINTS:
+            query = {"year": params["year"]}
+            if params.get("season_type"):
+                query["seasonType"] = params["season_type"]
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    f"{CFBD_BASE}{_FACT_ENDPOINTS[endpoint]}",
+                    params=query,
+                    headers=self._headers(),
+                    timeout=60.0,  # full-season fact payloads can be large
+                )
+                resp.raise_for_status()
+                return resp.json()
         raise ValueError(f"Unknown CFBD endpoint: {endpoint}")
 
 
