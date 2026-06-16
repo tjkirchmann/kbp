@@ -12,6 +12,31 @@ joined by `-`, no punctuation). Derive a short Title Case `<feature-title>` for
 commit messages and headings. Example: `add a healthcheck endpoint` →
 slug `add-a-healthcheck-endpoint`, title `Add a Healthcheck Endpoint`.
 
+## Workflow contract (non-negotiable — read first)
+
+Every `/remote-plan` invocation runs **all phases A → E, in order, to
+completion** — no matter how small, meta, or "obviously just a quick edit" the
+request looks. **Editing files is not the deliverable.** The deliverable is a
+pushed `remote/<feature-slug>` branch with a draft PR and a closed session.
+Tasks like "edit this skill", "tweak a config", or "fix a typo" still run the
+full flow — they are not exceptions.
+
+A run is complete **only when every box below is checked**:
+
+- [ ] On a `remote/<feature-slug>` branch (Phase A)
+- [ ] Plan presented and approved via `ExitPlanMode` (Phase B)
+- [ ] `planning/<feature-slug>.md` committed as `plan: <feature-title>` (Phase C)
+- [ ] Draft PR opened with the plan file as its body (Phase C)
+- [ ] Verification run and green (Phase D)
+- [ ] Implementation committed as `feat: <feature-title>` and pushed (Phase D)
+- [ ] Final report printed, then the `cc-*` tmux session closed (Phase E)
+
+**Self-check before ending any turn:** if you have edited files but not opened a
+PR, you have skipped Phases C–E — **stop and resume at the first unchecked box**;
+do not end the turn. The *only* place you pause for the user is `ExitPlanMode`
+(Phase B). Between that approval and the PR there is **no** stopping point — never
+report "done" after merely editing files.
+
 ## Remote access (load-bearing)
 
 Remote Control auto-starts for this repo via `.claude/settings.json`
@@ -148,9 +173,13 @@ git checkout <original-branch> && git stash pop
 
 ## Rules
 
+- The Workflow contract is binding: run **all** phases A → E every time, with no
+  fast-path for small/meta/config/typo changes. Editing files is never "done".
 - Phase A is deterministic — run it before any planning.
-- The `ExitPlanMode` approval is the only gate. After it, build to completion
-  without asking for further go-aheads.
+- The `ExitPlanMode` approval is the only gate, and it is **required** even for
+  trivial changes — always present a (brief) plan and call `ExitPlanMode` rather
+  than editing directly. After approval, build to completion through the PR and
+  Phase E without asking for further go-aheads.
 - Never push an unverified build (Phase D step 10).
 - End commit messages with the Co-Authored-By trailer:
   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`
