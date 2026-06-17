@@ -15,6 +15,13 @@ import app.models  # noqa: F401 — registers models with Base.metadata
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Ensure the built-in "none" channel exists so any consumer can be silenced
+    # without first hand-creating one. It's protected from deletion (see admin
+    # router); idempotent on every boot.
+    from app.services.notify_config import ensure_none_channel
+    from app.core.database import SessionLocal
+    async with SessionLocal() as db:
+        await ensure_none_channel(db)
     # Open Procrastinate's connection pool so admin endpoints can defer jobs.
     async with procrastinate_app.open_async():
         # Defer tasks flagged run_on_startup in admin_notify_config (queueing_lock

@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     cfbd_api_key: str = ""
     allowed_origins: str = "http://localhost:5173"
-    discord_webhook_url: str = ""
     # Discord bot (gateway listener + poster). Bot is disabled when token is empty.
     discord_bot_token: str = ""
     # Dev: per-guild slash-command sync (instant). Empty → global sync (~1h to propagate).

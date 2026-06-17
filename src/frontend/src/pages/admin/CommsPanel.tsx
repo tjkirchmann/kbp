@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAdminConfig, useUpdateAdminConfig, useTestDiscordWebhook, useTestDiscordBot } from '@/services/useAdminConfig'
+import { useAdminConfig, useUpdateAdminConfig, useTestDiscordBot } from '@/services/useAdminConfig'
 
 const INPUT_CLASS = 'flex-1 px-3 py-2 rounded-lg bg-white/[0.03] border border-border/20 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors'
 const TEST_BTN_CLASS = 'px-3 py-1.5 rounded-full text-sm font-medium bg-muted/20 text-muted-foreground border border-border/40 hover:bg-muted/40 transition-colors disabled:opacity-50 whitespace-nowrap'
@@ -13,20 +13,16 @@ function testLabel(pending: boolean, status: TestState) {
 export default function CommsPanel() {
   const { data: config, isLoading, error } = useAdminConfig()
   const update = useUpdateAdminConfig()
-  const testWebhook = useTestDiscordWebhook()
   const testBot = useTestDiscordBot()
 
-  const [webhookUrl, setWebhookUrl] = useState('')
   const [botEnabled, setBotEnabled] = useState(false)
   const [commandChannel, setCommandChannel] = useState('')
   const [listenChannels, setListenChannels] = useState('')
   const [saved, setSaved] = useState(false)
-  const [webhookTest, setWebhookTest] = useState<TestState>('idle')
   const [botTest, setBotTest] = useState<TestState>('idle')
 
   useEffect(() => {
     if (config) {
-      setWebhookUrl(config.discord_webhook_url)
       setBotEnabled(config.discord_bot_enabled)
       setCommandChannel(config.discord_bot_command_channel)
       setListenChannels(config.discord_bot_listen_channels)
@@ -35,7 +31,6 @@ export default function CommsPanel() {
 
   async function handleSave() {
     await update.mutateAsync({
-      discord_webhook_url: webhookUrl,
       discord_bot_enabled: botEnabled,
       discord_bot_command_channel: commandChannel,
       discord_bot_listen_channels: listenChannels,
@@ -64,29 +59,8 @@ export default function CommsPanel() {
 
   return (
     <div className="flex flex-col gap-8 max-w-lg">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-foreground">Discord Webhook URL</label>
-        <div className="flex gap-2">
-          <input
-            type="url"
-            value={webhookUrl}
-            onChange={e => setWebhookUrl(e.target.value)}
-            placeholder="https://discord.com/api/webhooks/..."
-            className={INPUT_CLASS}
-          />
-          <button
-            onClick={() => runTest(() => testWebhook.mutateAsync(), setWebhookTest)}
-            disabled={testWebhook.isPending || !config?.discord_webhook_url}
-            className={TEST_BTN_CLASS}
-          >
-            {testLabel(testWebhook.isPending, webhookTest)}
-          </button>
-        </div>
-        <p className="text-xs text-muted-foreground">Default destination for notifications when a consumer (a task, or the ESPN integration) has no channel selected.</p>
-      </div>
-
       {/* Discord Bot */}
-      <div className="flex flex-col gap-4 pt-2 border-t border-border/20">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-sm font-medium text-foreground">Discord Bot</span>

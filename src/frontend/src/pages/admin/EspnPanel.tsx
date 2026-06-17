@@ -67,14 +67,14 @@ export default function EspnPanel() {
             onChange={e => setAlertChannel(e.target.value)}
             className="px-3 py-2 rounded-lg bg-white/[0.03] border border-border/20 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors w-72"
           >
-            <option value="">Global webhook (default)</option>
+            <option value="">None — silenced (default)</option>
             {channels.map(c => (
               <option key={c.name} value={c.name}>{c.name} ({c.strategy})</option>
             ))}
           </select>
           <p className="text-xs text-muted-foreground">
-            Where game start / halftime / final and poll errors are sent. Pick a
-            <span className="text-foreground"> none </span>channel to silence them.
+            Where game start / halftime / final and poll errors are sent. Defaults
+            to silenced — pick a channel to deliver them.
           </p>
         </div>
 

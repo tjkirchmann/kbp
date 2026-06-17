@@ -2,11 +2,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.models.admin_config import AdminConfig
-from app.core.config import settings
 
 _ESPN_RATE_LIMIT_KEY = "espn_rate_limit_per_minute"
-_ESPN_ALERT_CHANNEL_KEY = "espn_alert_channel"   # notification_channels.name; "" = global webhook
-_DISCORD_WEBHOOK_KEY = "discord_webhook_url"
+_ESPN_ALERT_CHANNEL_KEY = "espn_alert_channel"   # notification_channels.name; "" = none channel (silence)
 # Discord bot runtime config (token/guild come from env; behavior lives in the DB).
 _BOT_ENABLED_KEY = "discord_bot_enabled"
 _BOT_LISTEN_CHANNELS_KEY = "discord_bot_listen_channels"   # comma-separated channel ids
@@ -35,13 +33,8 @@ async def get_espn_rate_limit(db: AsyncSession) -> int:
 
 
 async def get_espn_alert_channel(db: AsyncSession) -> str:
-    """Named notification channel for ESPN game/poll alerts. "" → global webhook."""
+    """Named notification channel for ESPN game/poll alerts. "" → none (silence)."""
     return (await get_config(db, _ESPN_ALERT_CHANNEL_KEY, default="")).strip()
-
-
-async def get_discord_webhook_url(db: AsyncSession) -> str:
-    # Falls back to settings.discord_webhook_url (env var) if DB row absent
-    return await get_config(db, _DISCORD_WEBHOOK_KEY, default=settings.discord_webhook_url)
 
 
 async def get_bot_enabled(db: AsyncSession) -> bool:

@@ -13,7 +13,6 @@ from app.schemas.user import UserSchema, SetAdminBody
 from app.services.admin_config import (
     get_espn_rate_limit,
     get_espn_alert_channel,
-    get_discord_webhook_url,
     get_bot_enabled,
     get_bot_listen_channels,
     get_bot_command_channel,
@@ -28,8 +27,7 @@ router = APIRouter(prefix="/admin", dependencies=[Depends(require_admin)])
 
 class AdminConfigSchema(BaseModel):
     espn_rate_limit_per_minute: int
-    espn_alert_channel: str   # notification_channels.name; "" = global webhook
-    discord_webhook_url: str
+    espn_alert_channel: str   # notification_channels.name; "" = none channel (silence)
     # Discord bot runtime config (token/guild are env-only and not exposed here).
     discord_bot_enabled: bool
     discord_bot_listen_channels: str   # comma-separated channel ids
@@ -38,8 +36,7 @@ class AdminConfigSchema(BaseModel):
 
 class AdminConfigUpdate(BaseModel):
     espn_rate_limit_per_minute: Optional[int] = None
-    espn_alert_channel: Optional[str] = None   # "" clears (→ global webhook)
-    discord_webhook_url: Optional[str] = None
+    espn_alert_channel: Optional[str] = None   # "" clears (→ none channel, silence)
     discord_bot_enabled: Optional[bool] = None
     discord_bot_listen_channels: Optional[str] = None
     discord_bot_command_channel: Optional[str] = None
@@ -49,7 +46,6 @@ async def _admin_config_payload(db: AsyncSession) -> "AdminConfigSchema":
     return AdminConfigSchema(
         espn_rate_limit_per_minute=await get_espn_rate_limit(db),
         espn_alert_channel=await get_espn_alert_channel(db),
-        discord_webhook_url=await get_discord_webhook_url(db),
         discord_bot_enabled=await get_bot_enabled(db),
         discord_bot_listen_channels=",".join(sorted(await get_bot_listen_channels(db))),
         discord_bot_command_channel=await get_bot_command_channel(db),
@@ -75,8 +71,6 @@ async def update_admin_config(body: AdminConfigUpdate, db: AsyncSession = Depend
             if exists is None:
                 raise HTTPException(status_code=400, detail=f"Unknown channel {name!r}")
         await set_config(db, "espn_alert_channel", name)
-    if body.discord_webhook_url is not None:
-        await set_config(db, "discord_webhook_url", body.discord_webhook_url)
     if body.discord_bot_enabled is not None:
         await set_config(db, "discord_bot_enabled", "true" if body.discord_bot_enabled else "false")
     if body.discord_bot_listen_channels is not None:
@@ -84,17 +78,6 @@ async def update_admin_config(body: AdminConfigUpdate, db: AsyncSession = Depend
     if body.discord_bot_command_channel is not None:
         await set_config(db, "discord_bot_command_channel", body.discord_bot_command_channel)
     return await _admin_config_payload(db)
-
-
-@router.post("/config/test-webhook")
-async def test_discord_webhook(db: AsyncSession = Depends(get_db)):
-    from fastapi import HTTPException
-    from app.services.discord import send_discord_alert
-    url = await get_discord_webhook_url(db)
-    if not url:
-        raise HTTPException(status_code=400, detail="No Discord webhook URL configured")
-    await send_discord_alert(url, "Test message from KBP admin panel.")
-    return {"ok": True}
 
 
 @router.post("/config/test-bot")
@@ -133,7 +116,6 @@ class SyncNotify(BaseModel):
     success: bool
     failure: bool
     strategy: str
-    has_override: bool          # True if a legacy per-task webhook override is set
     channel: Optional[str] = None   # named channel for all this task's events
     run_catchup: bool = False       # fire last missed cron slot on worker restart
     run_on_startup: bool = False    # defer this task once when the app boots
@@ -161,7 +143,6 @@ def _to_sync_notify(cfg) -> "SyncNotify":
     return SyncNotify(
         start=cfg.notify_on_start, success=cfg.notify_on_success,
         failure=cfg.notify_on_failure, strategy=cfg.strategy,
-        has_override=bool(cfg.webhook_url),
         channel=cfg.channel_name, run_catchup=cfg.run_catchup,
         run_on_startup=cfg.run_on_startup,
         startup_stale_seconds=cfg.startup_stale_seconds,
@@ -640,7 +621,6 @@ class NotifyConfigUpdate(BaseModel):
     notify_on_success: Optional[bool] = None
     notify_on_failure: Optional[bool] = None
     strategy: Optional[str] = None
-    webhook_url: Optional[str] = None       # "" clears the legacy per-task override
     channel_name: Optional[str] = None      # "" clears the channel selection
     run_catchup: Optional[bool] = None
     run_on_startup: Optional[bool] = None
@@ -659,9 +639,6 @@ async def update_notify_config(
         raise HTTPException(status_code=404, detail=f"Unknown task {task_name!r}")
 
     fields = body.model_dump(exclude_none=True)
-    # Empty string clears a nullable selection — pass through as None.
-    if body.webhook_url == "":
-        fields["webhook_url"] = None
     # -1 is the sentinel for "Always" (no staleness window) — store null.
     if body.startup_stale_seconds == -1:
         fields["startup_stale_seconds"] = None
@@ -762,6 +739,10 @@ async def upsert_channel(name: str, body: ChannelUpsert, db: AsyncSession = Depe
 @router.delete("/notify/channels/{name}")
 async def delete_channel(name: str, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import delete
+    from fastapi import HTTPException
+    from app.services.notify_config import NONE_CHANNEL_NAME
+    if name == NONE_CHANNEL_NAME:
+        raise HTTPException(status_code=400, detail="The built-in 'none' channel cannot be deleted.")
     await db.execute(delete(NotificationChannel).where(NotificationChannel.name == name))
     await db.commit()
     return {"ok": True}
