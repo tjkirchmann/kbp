@@ -14,9 +14,10 @@ from app.models.cfbd import CfbdGame
 from app.models.espn import EspnGame
 from app.models.event_log import EventLog
 from app.models.pool import PoolGame
-from app.services.admin_config import get_espn_rate_limit, get_discord_webhook_url
-from app.services.discord import send_discord_alert
+from app.services.admin_config import get_espn_rate_limit, get_espn_alert_channel
 from app.services.espn import fetch_espn_boxscore, extract_espn_scores
+from app.services.notifications import notification_service
+from app.services.notify_config import resolve_channel
 from app.tasks.notify_decorator import notify
 
 logger = logging.getLogger(__name__)
@@ -31,18 +32,30 @@ _STALE_PRE_CUTOFF = timedelta(hours=2)
 _EVENT_LOG_RETENTION = "7 days"
 
 
-async def _get_cached_config() -> tuple[int, str]:
+async def _get_cached_rate_limit() -> int:
     global _config_cache, _config_cache_ts
     now = time.monotonic()
     if now - _config_cache_ts < _CONFIG_CACHE_TTL and _config_cache:
-        return _config_cache["rate_limit"], _config_cache["webhook_url"]
+        return _config_cache["rate_limit"]
     async with SessionLocal() as db:
         rate_limit = await get_espn_rate_limit(db)
-    async with SessionLocal() as db:
-        webhook_url = await get_discord_webhook_url(db)
-    _config_cache = {"rate_limit": rate_limit, "webhook_url": webhook_url}
+    _config_cache = {"rate_limit": rate_limit}
     _config_cache_ts = now
-    return rate_limit, webhook_url
+    return rate_limit
+
+
+async def _send_alert(text: str) -> None:
+    """Deliver an ESPN alert through the configured notification channel.
+
+    Resolves the admin-selected channel (or the global webhook fallback) and hands
+    the pre-formatted text to the notification service, which never raises. A
+    channel with strategy="none" silently drops it.
+    """
+    async with SessionLocal() as db:
+        strategy, config = await resolve_channel(db, await get_espn_alert_channel(db))
+    await notification_service.notify(
+        strategy=strategy, config=config, event="message", payload={"text": text}
+    )
 
 
 def _game_label(game: EspnGame) -> str:
@@ -53,7 +66,7 @@ def _game_label(game: EspnGame) -> str:
 
 
 async def _run_poll() -> dict:
-    rate_limit, webhook_url = await _get_cached_config()
+    rate_limit = await _get_cached_rate_limit()
     now = datetime.utcnow()
 
     async with SessionLocal() as db:
@@ -125,7 +138,7 @@ async def _run_poll() -> dict:
             label = _game_label(game)
             msg = f"⚠️ ESPN error ({label}): {exc}"
             logger.error(msg)
-            await send_discord_alert(webhook_url, msg)
+            await _send_alert(msg)
             async with SessionLocal() as db:
                 await log_event(db, "espn_poller", "poll_error", {
                     "espn_event_id": game.espn_event_id,
@@ -155,7 +168,7 @@ async def _run_poll() -> dict:
             notify_msg = f"\U0001f3c1 Final: {label} | {away_score}–{home_score}"
 
         if notify_msg:
-            await send_discord_alert(webhook_url, notify_msg)
+            await _send_alert(notify_msg)
 
         async with SessionLocal() as db:
             game_row = await db.get(EspnGame, game.id)
@@ -221,11 +234,9 @@ async def _run_seed() -> int:
 
 async def _alert_seed_error(exc: Exception) -> None:
     try:
-        async with SessionLocal() as db:
-            wh = await get_discord_webhook_url(db)
-        await send_discord_alert(wh, f"⚠️ ESPN seed error: {exc}")
+        await _send_alert(f"⚠️ ESPN seed error: {exc}")
     except Exception:
-        logger.exception("Failed to send seed error Discord alert")
+        logger.exception("Failed to send seed error alert")
 
 
 @app.task(name="espn_poll", queueing_lock="espn_poll", retry=0)

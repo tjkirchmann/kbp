@@ -32,7 +32,6 @@ export interface SyncNotify {
   success: boolean
   failure: boolean
   strategy: string
-  has_override: boolean
   channel: string | null
   run_catchup: boolean
   run_on_startup: boolean

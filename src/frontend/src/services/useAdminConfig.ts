@@ -5,7 +5,7 @@ const API = import.meta.env.VITE_API_URL
 
 export interface AdminConfig {
   espn_rate_limit_per_minute: number
-  discord_webhook_url: string
+  espn_alert_channel: string   // notification channel name; "" = none channel (silence)
   discord_bot_enabled: boolean
   discord_bot_listen_channels: string   // comma-separated channel ids
   discord_bot_command_channel: string
@@ -27,16 +27,6 @@ export function useAdminConfig() {
     queryFn: async () => {
       const token = await getToken()
       return authFetch(token!, '/admin/config')
-    },
-  })
-}
-
-export function useTestDiscordWebhook() {
-  const { getToken } = useAuth()
-  return useMutation({
-    mutationFn: async () => {
-      const token = await getToken()
-      return authFetch(token!, '/admin/config/test-webhook', { method: 'POST' })
     },
   })
 }

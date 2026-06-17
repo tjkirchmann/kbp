@@ -51,7 +51,7 @@ export default function Capsule({ run, taskName }: { run: SyncRun; taskName?: st
       onMouseLeave={() => setPos(null)}
       className="relative flex-1 min-w-0"
     >
-      <div className={`h-6 w-full rounded-full transition-colors ${statusColor(run.status)}`} />
+      <div className={`h-full w-full transition-colors ${statusColor(run.status)}`} />
       {pos && createPortal(
         <div
           className={`pointer-events-none fixed z-50 -translate-x-1/2 ${pos.below ? '' : '-translate-y-full'}`}

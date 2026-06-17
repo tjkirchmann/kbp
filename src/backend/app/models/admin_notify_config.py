@@ -9,11 +9,10 @@ from app.core.database import Base
 class AdminNotifyConfig(Base):
     """Per-task notification settings for Procrastinate workflows.
 
-    One row per task_name. Absent row → defaults (failure-only, no channel →
-    global Discord webhook, catch-up off). `channel_name` selects a named
-    notification_channels row for all of this task's events; null means use the
-    global Discord webhook from admin_config/env. `webhook_url` is a legacy raw
-    per-task override (kept for back-compat; channel takes precedence).
+    One row per task_name. Absent row → defaults (failure-only, no channel,
+    catch-up off). `channel_name` selects a named notification_channels row for
+    all of this task's events; null falls back to the built-in `none` channel,
+    i.e. silence (no delivery).
     """
 
     __tablename__ = "admin_notify_config"
@@ -23,7 +22,6 @@ class AdminNotifyConfig(Base):
     notify_on_success: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     notify_on_failure: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
     strategy: Mapped[str] = mapped_column(String, nullable=False, server_default="discord")
-    webhook_url: Mapped[str | None] = mapped_column(String, nullable=True)
     # Named channel for all of this task's events (FK -> notification_channels.name).
     channel_name: Mapped[str | None] = mapped_column(
         ForeignKey("notification_channels.name", ondelete="SET NULL"), nullable=True

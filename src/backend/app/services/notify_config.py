@@ -6,7 +6,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.admin_notify_config import AdminNotifyConfig
 from app.models.notification_channel import NotificationChannel
-from app.services.admin_config import get_discord_webhook_url
+
+
+# The built-in black-hole channel. Seeded on startup and protected from deletion.
+# It is both the explicit "silence this consumer" option AND the fallback: any
+# consumer with no channel selected resolves here, so "unconfigured" means "don't
+# deliver" rather than spraying to a global webhook.
+NONE_CHANNEL_NAME = "none"
+
+
+async def ensure_none_channel(db: AsyncSession) -> None:
+    """Idempotently create the built-in none (silence) channel if absent."""
+    stmt = (
+        pg_insert(NotificationChannel)
+        .values(name=NONE_CHANNEL_NAME, strategy="none", config={})
+        .on_conflict_do_nothing(index_elements=["name"])
+    )
+    await db.execute(stmt)
+    await db.commit()
 
 
 @dataclass
@@ -16,8 +33,7 @@ class NotifyConfig:
     notify_on_success: bool = False
     notify_on_failure: bool = True
     strategy: str = "discord"          # legacy; channel.strategy wins when a channel is set
-    webhook_url: str | None = None     # legacy raw override; channel wins when set
-    channel_name: str | None = None    # named channel for all this task's events
+    channel_name: str | None = None    # named channel for all this task's events; null → none (silence)
     run_catchup: bool = False          # fire last missed cron slot on worker restart
     run_on_startup: bool = False       # defer this task once when the app boots
     startup_stale_seconds: int | None = None  # skip startup defer if succeeded within this window
@@ -51,7 +67,6 @@ async def get_notify_config(db: AsyncSession, task_name: str) -> NotifyConfig:
         notify_on_success=row.notify_on_success,
         notify_on_failure=row.notify_on_failure,
         strategy=row.strategy,
-        webhook_url=row.webhook_url,
         channel_name=row.channel_name,
         run_catchup=row.run_catchup,
         run_on_startup=row.run_on_startup,
@@ -75,24 +90,33 @@ async def set_notify_config(db: AsyncSession, task_name: str, **fields) -> None:
     await db.commit()
 
 
+async def resolve_channel(db: AsyncSession, channel_name: str | None) -> tuple[str, dict]:
+    """Resolve a named channel into (strategy, config) for delivery.
+
+    Used by any consumer that delivers through a notification_channels row — task
+    lifecycle notifications and one-off alerts (e.g. ESPN game events) alike.
+
+    A blank/missing/unknown name falls back to the built-in `none` channel, i.e.
+    silence — never a synthesized webhook. If the `none` row itself is somehow
+    absent, return ("none", {}) literally so resolution can never fabricate a
+    discord destination.
+    """
+    name = channel_name or NONE_CHANNEL_NAME
+    chan = (
+        await db.execute(
+            select(NotificationChannel).where(NotificationChannel.name == name)
+        )
+    ).scalar_one_or_none()
+    if chan is not None:
+        return chan.strategy, dict(chan.config or {})
+
+    return "none", {}
+
+
 async def resolve_delivery(db: AsyncSession, cfg: NotifyConfig) -> tuple[str, dict]:
     """Resolve a task's config into (strategy, channel_config) for delivery.
 
-    Precedence:
-      1. Named channel (notification_channels.strategy + config).
-      2. Legacy raw per-task webhook_url override (discord).
-      3. Global Discord webhook from admin_config/env.
+    A task's `channel_name` selects a notification_channels row; null/unknown
+    falls back to the `none` channel (silence) via resolve_channel.
     """
-    if cfg.channel_name:
-        chan = (
-            await db.execute(
-                select(NotificationChannel).where(NotificationChannel.name == cfg.channel_name)
-            )
-        ).scalar_one_or_none()
-        if chan is not None:
-            return chan.strategy, dict(chan.config or {})
-
-    if cfg.webhook_url:
-        return "discord", {"webhook_url": cfg.webhook_url}
-
-    return "discord", {"webhook_url": await get_discord_webhook_url(db)}
+    return await resolve_channel(db, cfg.channel_name)

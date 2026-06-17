@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { ChevronRight, Info } from 'lucide-react'
+import { Outlet, useLocation } from 'react-router-dom'
+import { Info } from 'lucide-react'
 import { useAdminUsers } from '@/services/useAdminUsers'
 import { useAdminPools } from '@/services/useAdminPools'
 import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
 import AdminSidebar from '@/pages/admin/AdminSidebar'
-import AdminTopBar from '@/pages/admin/AdminTopBar'
+import AdminBreadcrumbs from '@/pages/admin/AdminBreadcrumbs'
 import { prettyTaskName } from '@/pages/admin/syncUtils'
 import { useRunDetail } from '@/services/useAdminSync'
 
@@ -46,7 +46,11 @@ function useBreadcrumbs() {
 
   if (parts[0] === 'teams') return [{ label: 'Teams', to: '/admin/teams' }]
   if (parts[0] === 'comms') return [{ label: 'Comms', to: '/admin/comms' }]
-  if (parts[0] === 'espn') return [{ label: 'ESPN', to: '/admin/espn' }]
+  if (parts[0] === 'integrations') {
+    const crumbs = [{ label: 'Integrations', to: '/admin/integrations' }]
+    if (parts[1] === 'espn') crumbs.push({ label: 'ESPN', to: '/admin/integrations/espn' })
+    return crumbs
+  }
   if (parts[0] === 'sync') {
     const crumbs = [{ label: 'Sync', to: '/admin/sync' }]
     if (parts[1] === 'runs' && parts[2]) {
@@ -72,7 +76,12 @@ export default function AdminShell() {
     if (localStorage.getItem(COLLAPSE_KEY) === '1') return true
     return window.innerWidth < 640
   })
-  const currentSection = breadcrumbs[0].label.toLowerCase()
+  // Info panel keys off the active section. Under Integrations the section is the
+  // active sub-tab (e.g. ESPN), so use the leaf crumb there; elsewhere the first
+  // crumb is the section (its leaf can be an entity name, not an info key).
+  const sectionCrumb =
+    breadcrumbs[0].label === 'Integrations' ? breadcrumbs[breadcrumbs.length - 1] : breadcrumbs[0]
+  const currentSection = sectionCrumb.label.toLowerCase()
 
   useEffect(() => {
     setInfoOpen(false)
@@ -84,36 +93,11 @@ export default function AdminShell() {
 
   return (
     <div className="h-screen overflow-hidden flex flex-col">
-      <AdminTopBar onToggleSidebar={() => setCollapsed(c => !c)} />
-      <div className="flex flex-1 min-h-0 pt-14">
-        <AdminSidebar collapsed={collapsed} />
+      <div className="flex flex-1 min-h-0">
+        <AdminSidebar collapsed={collapsed} onToggleSidebar={() => setCollapsed(c => !c)} />
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          <div className="flex items-center gap-6 px-6 py-4 border-b border-border/40 shrink-0">
-            <div className="flex items-center gap-1.5 shrink-0">
-              {breadcrumbs.map((crumb, i) => (
-                <span key={i} className="flex items-center gap-1.5">
-                  {i > 0 && <ChevronRight className="size-4 text-muted-foreground/40" />}
-                  {crumb.to ? (
-                    // Highlight the terminal crumb by position, not isActive — a parent's
-                    // route can still match during navigation, flashing the gradient.
-                    i === breadcrumbs.length - 1 ? (
-                      <NavLink to={crumb.to} className="text-2xl font-semibold tracking-tight text-gradient">
-                        {crumb.label}
-                      </NavLink>
-                    ) : (
-                      <NavLink
-                        to={crumb.to}
-                        className="text-2xl font-semibold tracking-tight text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {crumb.label}
-                      </NavLink>
-                    )
-                  ) : (
-                    <h1 className="text-2xl font-semibold tracking-tight text-gradient">{crumb.label}</h1>
-                  )}
-                </span>
-              ))}
-            </div>
+          {/* Header: flush glass bar with just the diagonal hatch + info toggle. */}
+          <div className="shrink-0 flex h-16 items-center gap-6 px-6 border-b border-border/40 bg-[rgba(16,18,24,0.62)] shadow-xl shadow-black/30 backdrop-blur-xl">
             <div className="hatch flex-1 h-8 rounded" />
             <button
               onClick={() => setInfoOpen(v => !v)}
@@ -126,7 +110,9 @@ export default function AdminShell() {
               <Info className="size-4" />
             </button>
           </div>
-          <div key={pathname} className="p-6 flex-1 min-h-0 overflow-y-auto animate-view-fade-in">
+          {/* Breadcrumbs live on the naked background, below the header. */}
+          <AdminBreadcrumbs crumbs={breadcrumbs} />
+          <div key={pathname} className="px-6 pb-6 flex-1 min-h-0 overflow-y-auto animate-view-fade-in">
             {infoOpen ? <AdminInfoPanel section={currentSection} /> : <Outlet />}
           </div>
         </div>
