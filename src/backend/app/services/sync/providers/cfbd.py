@@ -22,13 +22,19 @@ _DIM_ENDPOINTS = {
     "draft_teams": "/draft/teams",
 }
 
-# Per-season fact endpoints: fetched a whole season at a time (year=). cfbd_facts
+# Per-season fact endpoints fetched a whole season at a time (year=). cfbd_facts
 # only calls these for seasons it's missing (see app/tasks/cfbd_facts.py).
 _FACT_ENDPOINTS = {
     "lines": "/lines",
     "rankings": "/rankings",
+}
+
+# Fact endpoints CFBD won't serve year-only — they require a week filter, so we
+# page week-by-week across both season types and concatenate (see _fetch_by_week).
+_FACT_WEEKLY_ENDPOINTS = {
     "game_team_stats": "/games/teams",
 }
+_MAX_WEEK = 25  # safety cap; the loop stops earlier on the first empty week
 
 
 class CfbdProvider(SyncProvider):
@@ -85,7 +91,36 @@ class CfbdProvider(SyncProvider):
                 )
                 resp.raise_for_status()
                 return resp.json()
+        if endpoint in _FACT_WEEKLY_ENDPOINTS:
+            return await self._fetch_by_week(
+                _FACT_WEEKLY_ENDPOINTS[endpoint], params["year"]
+            )
         raise ValueError(f"Unknown CFBD endpoint: {endpoint}")
+
+    async def _fetch_by_week(self, path: str, year: int) -> list[dict]:
+        """Page a week-keyed fact endpoint across regular + postseason for a year.
+
+        CFBD rejects these endpoints year-only (400), so we walk weeks per season
+        type and stop each at the first empty week. Returns one flat list; each
+        item keeps its own season/seasonType/week so downstream syncers don't care
+        the data was paged.
+        """
+        out: list[dict] = []
+        async with httpx.AsyncClient() as client:
+            for season_type in ("regular", "postseason"):
+                for week in range(1, _MAX_WEEK + 1):
+                    resp = await client.get(
+                        f"{CFBD_BASE}{path}",
+                        params={"year": year, "seasonType": season_type, "week": week},
+                        headers=self._headers(),
+                        timeout=60.0,
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    if not data:  # first empty week ends this season type
+                        break
+                    out.extend(data)
+        return out
 
 
 cfbd_provider = CfbdProvider()
