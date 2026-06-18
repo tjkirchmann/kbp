@@ -125,7 +125,7 @@ class SyncNotify(BaseModel):
 
 # Tasks that are only ever deferred explicitly (never on a schedule). Their cron
 # is always null and must not be presented as an editable/pausable schedule.
-_RUN_ONLY_TASKS = {"espn_seed"}
+_RUN_ONLY_TASKS = {"espn_seed", "cfbd_plays"}
 
 
 class SyncJobStatus(BaseModel):

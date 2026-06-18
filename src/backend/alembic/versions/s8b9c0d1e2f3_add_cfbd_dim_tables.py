@@ -7,8 +7,12 @@ schedule source), and retires the standalone cfbd_teams task by nulling its cron
 its historical runs remain queryable.
 
 Revision ID: s8b9c0d1e2f3
-Revises: q6f7a8b9c0d1
+Revises: s8b9c0d1e2f4
 Create Date: 2026-06-16 00:00:00.000000
+
+Note: now chained after s8b9c0d1e2f4 (drop_global_webhook), which previously
+shared this revision id. Linearizing the two resolves the duplicate-revision /
+multi-head break; this migration keeps its id so t9c0d1e2f3a4 still chains off it.
 
 """
 from typing import Sequence, Union
@@ -17,7 +21,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = 's8b9c0d1e2f3'
-down_revision: Union[str, None] = 'q6f7a8b9c0d1'
+down_revision: Union[str, None] = 's8b9c0d1e2f4'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
