@@ -19,7 +19,7 @@ kbp/
 ├── kbp-context.md             ← product context, features, deferred decisions
 ├── PROJECT_CHARTER.md         ← original technical scaffold spec
 ├── Makefile                   ← dev commands (make up, make migrate, etc.)
-├── docker-compose.yml         ← 3 services: frontend, backend, db
+├── docker-compose.yml         ← frontend, backend, db, workers (procrastinate + temporal), discord_bot, temporal server/ui
 ├── .env / .env.example        ← secrets (never commit .env)
 │
 ├── src/
@@ -157,3 +157,26 @@ make data-modeling        # adding tables, columns, or relationships
 - **`lucide-react` is in `package.json`** but was installed manually in the running container — it will be present after the next `make up` rebuild.
 - **No dark mode** (intentionally). Don't add `dark:` variants. The design is light-only.
 - **Logo**: Temporary KBP amber badge in `src/pages/Home.tsx`. Will be extracted to `src/components/Logo.tsx` when real pages are built. Owner will supply final logo asset.
+
+---
+
+## Temporal (durable workflows)
+
+Self-hosted Temporal runs alongside the app for durable, multi-step workflows.
+It's **separate from Procrastinate** — Procrastinate (`app/tasks/`) still owns the
+cron/sync jobs; Temporal (`app/temporal/`) is the home for new durable workflows.
+
+- **Compose services**: `temporal` (`auto-setup`), `temporal-ui` (`localhost:8080`),
+  `temporal-admin-tools` (the `temporal`/`tctl` CLI), and `temporal_worker` (Python
+  worker). The server reuses the existing `db` Postgres in its own `temporal` /
+  `temporal_visibility` databases — one stack, one Postgres. That shared-DB coupling
+  is a deliberate dev-only tradeoff; the migration target is managed **Temporal
+  Cloud**, so it never reaches prod.
+- **The one seam that matters**: `app/core/temporal.py::get_temporal_client()`.
+  Everything (worker, starters, future routes) connects through it. Local self-host
+  vs. Temporal Cloud is purely env-driven (`TEMPORAL_API_KEY` + address/namespace) —
+  **migrating to Cloud is an env-var change, no code edits**. See `.env.example`.
+- **Try it**: `make up`, then `make temporal-run` → kicks off the sample
+  `GreetingWorkflow` and prints the result; view the execution at `localhost:8080`.
+- **Add a workflow**: write it in `app/temporal/workflows.py` (push I/O into
+  `activities.py`), then register both in `app/temporal/worker.py`.

@@ -13,6 +13,15 @@ class Settings(BaseSettings):
     # Dev: per-guild slash-command sync (instant). Empty → global sync (~1h to propagate).
     discord_guild_id: str = ""
 
+    # Temporal. Local self-host defaults; for Temporal Cloud set temporal_api_key
+    # (+ leave temporal_tls implied) and point temporal_address/namespace at the
+    # Cloud endpoint — no code changes needed (see app/core/temporal.py).
+    temporal_address: str = "temporal:7233"
+    temporal_namespace: str = "default"
+    temporal_task_queue: str = "kbp-default"
+    temporal_tls: bool = False
+    temporal_api_key: str = ""
+
     class Config:
         env_file = ".env"
 
