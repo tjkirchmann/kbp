@@ -9,6 +9,7 @@ import {
   useUpdateBracket,
   useUpdateMultipliers,
   useRemovePoolGame,
+  useDeletePool,
   type CfbdGame,
   type PoolGameDetail,
 } from '@/services/useAdminPools'
@@ -93,6 +94,7 @@ export default function PoolCreate() {
   const updateBracket = useUpdateBracket()
   const updateMultipliers = useUpdateMultipliers()
   const removePoolGame = useRemovePoolGame()
+  const deletePool = useDeletePool()
   const { data: teams = [] } = useAdminTeams()
 
   const [step, setStep] = useState<Step>('step1')
@@ -102,7 +104,7 @@ export default function PoolCreate() {
   const [newPoolYear, setNewPoolYear] = useState<number | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [step2Tab, setStep2Tab] = useState<'finder' | 'selected'>('finder')
-  const [finderSeasonType, setFinderSeasonType] = useState('postseason')
+  const [finderSeasonType, setFinderSeasonType] = useState('all')
   const [finderClass, setFinderClass] = useState('fbs')
   const [finderWeek, setFinderWeek] = useState('all')
   const [selectedSeasonType, setSelectedSeasonType] = useState('all')
@@ -183,19 +185,29 @@ export default function PoolCreate() {
     setStep('step3')
   }
 
-  async function handleBracketNext() {
+  // Persist the current bracket assignments. Returns false (and sets an error)
+  // when the bracket is invalid so callers can block the transition.
+  async function persistBracket(): Promise<boolean> {
     const err = validateBracket(slotToGame)
-    if (err) { setBracketError(err); return }
+    if (err) { setBracketError(err); return false }
     setBracketError(null)
-
-    if (newPoolId && Object.keys(slotToGame).length > 0) {
+    if (newPoolId) {
       const assignments = Object.entries(slotToGame).map(([slot, pgId]) => ({
         pool_game_id: pgId,
         playoff_slot: slot,
       }))
       await updateBracket.mutateAsync({ poolId: newPoolId, assignments })
     }
-    setStep('step4')
+    return true
+  }
+
+  async function handleBracketNext() {
+    if (await persistBracket()) setStep('step4')
+  }
+
+  // Step 3 "Back" — persist before leaving so assignments aren't lost going back.
+  async function handleBracketBack() {
+    if (bracketMode === 'skip' || await persistBracket()) setStep('step2')
   }
 
   function handleSkipBracket() {
@@ -220,13 +232,31 @@ export default function PoolCreate() {
     }
   }
 
-  async function handleFinish() {
+  async function persistMultipliers() {
     if (!newPoolId) return
     const nonDefault = Object.entries(multipliers)
       .filter(([, v]) => v > 1)
       .map(([k, v]) => ({ pool_game_id: Number(k), multiplier: v }))
     if (nonDefault.length > 0) {
       await updateMultipliers.mutateAsync({ poolId: newPoolId, multipliers: nonDefault })
+    }
+  }
+
+  // Step 4 -> step 2 ("Add games" / Back), persisting multipliers first.
+  async function handleBackToStep2FromReview() {
+    await persistMultipliers()
+    setStep('step2')
+  }
+
+  async function handleFinish() {
+    await persistMultipliers()
+    navigate('/admin/pools')
+  }
+
+  // Cancel rolls back the pool created at step 1 (no-op if not yet created).
+  async function handleCancel() {
+    if (newPoolId) {
+      try { await deletePool.mutateAsync(newPoolId) } catch { /* best-effort rollback */ }
     }
     navigate('/admin/pools')
   }
@@ -277,7 +307,7 @@ export default function PoolCreate() {
             {createPool.isPending && <Loader2 className="size-4 animate-spin" />}
             Next: Select Games
           </button>
-          <button onClick={() => navigate('/admin/pools')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
             Cancel
           </button>
         </div>
@@ -412,7 +442,7 @@ export default function PoolCreate() {
             {addGames.isPending && <Loader2 className="size-4 animate-spin" />}
             Next: Configure Bracket
           </button>
-          <button onClick={() => navigate('/admin/pools')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
             Cancel
           </button>
         </div>
@@ -542,8 +572,9 @@ export default function PoolCreate() {
             Next: Review &amp; Multipliers
           </button>
           <button
-            onClick={() => setStep('step2')}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={handleBracketBack}
+            disabled={updateBracket.isPending}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >
             Back
           </button>
@@ -565,8 +596,9 @@ export default function PoolCreate() {
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">Step 4 of 4 — Review &amp; assign multipliers · {poolGames.length} games</p>
         <button
-          onClick={() => setStep('step2')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
+          onClick={handleBackToStep2FromReview}
+          disabled={updateMultipliers.isPending}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-medium hover:bg-primary/25 transition-colors disabled:opacity-50"
         >
           <Plus className="size-4" />
           Add games
@@ -652,7 +684,7 @@ export default function PoolCreate() {
           {updateMultipliers.isPending && <Loader2 className="size-4 animate-spin" />}
           Create Pool
         </button>
-        <button onClick={() => navigate('/admin/pools')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
           Cancel
         </button>
       </div>
