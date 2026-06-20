@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     temporal_task_queue: str = "kbp-default"
     temporal_tls: bool = False
     temporal_api_key: str = ""
+    # Cron (5-field, UTC) for the CFBD facts Temporal Schedule. Default: daily at
+    # 08:00 UTC. See app/temporal/cfbd_facts/schedule.py.
+    temporal_cfbd_facts_cron: str = "0 8 * * *"
 
     class Config:
         env_file = ".env"

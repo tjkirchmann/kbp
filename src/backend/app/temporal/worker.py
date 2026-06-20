@@ -17,6 +17,16 @@ from temporalio.worker import Worker
 from app.core.config import settings
 from app.core.temporal import get_temporal_client
 from app.temporal.activities import compose_greeting
+from app.temporal.cfbd_facts.activities import (
+    get_facts_config,
+    load_fact_coverage,
+    sync_fact_season,
+)
+from app.temporal.cfbd_facts.schedule import ensure_cfbd_facts_schedule
+from app.temporal.cfbd_facts.workflows import (
+    CfbdEndpointWorkflow,
+    CfbdFactsWorkflow,
+)
 from app.temporal.workflows import GreetingWorkflow
 
 logging.basicConfig(level=logging.INFO)
@@ -48,11 +58,21 @@ async def main() -> None:
         settings.temporal_namespace,
         settings.temporal_task_queue,
     )
+
+    # Declare the daily CFBD facts schedule in code (idempotent create-or-update),
+    # so it's self-registering on boot the way the Procrastinate crons were.
+    await ensure_cfbd_facts_schedule(client)
+
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[GreetingWorkflow],
-        activities=[compose_greeting],
+        workflows=[GreetingWorkflow, CfbdFactsWorkflow, CfbdEndpointWorkflow],
+        activities=[
+            compose_greeting,
+            get_facts_config,
+            load_fact_coverage,
+            sync_fact_season,
+        ],
     )
     await worker.run()
 

@@ -1,16 +1,19 @@
-"""CFBD fact-table ingestion on Procrastinate — one smart daily task.
+"""CFBD fact-table transforms + per-season ingest — orchestration-free.
 
-Materializes CFBD *fact* tables (event/measurement data that changes over time),
-as opposed to the slowly-changing *dimension* tables handled by cfbd_dims.
+This module holds the *pure* materialization logic for CFBD fact tables: the
+per-endpoint syncers that turn a season's CFBD payload into upserted rows, plus
+`sync_one_season`, which fetches one ``(endpoint, year)``, upserts it, records
+coverage, and commits. It is deliberately free of any scheduler: the Temporal
+workflow in ``app/temporal/cfbd_facts`` drives it (one activity call per season),
+and it could be driven by anything else just as easily.
 
-Smart sync — only hits the API for data we're missing
------------------------------------------------------
+Smart sync — only hit the API for data we're missing
+----------------------------------------------------
 Fact data for a *finished* season is immutable, so we fetch each season once,
 mark it complete in cfbd_fact_coverage, then never call the API for it again.
-Only the in-progress (current calendar year) season is re-pulled daily; the
-first run backfills every season from settings.cfbd_facts_start_year, and the
-task then converges to one call per endpoint per day. Coverage is recorded only
-after a successful upsert (committed per season), so an interrupted backfill
+Only the in-progress (current calendar year) season is re-pulled; the first run
+backfills every season from settings.cfbd_facts_start_year. Coverage is recorded
+only after a successful upsert (committed per season), so an interrupted backfill
 self-heals on the next run.
 
 Pattern (per entity) mirrors cfbd_dims/cfbd_sync: record a content-hash snapshot
@@ -40,9 +43,6 @@ CFBD fact-table coverage roadmap (✅ done · ⬜ planned)
   /recruiting/groups      season × team × group    cfbd_recruiting_groups ✅
   /player/returning       season × team            cfbd_returning_production ✅
   /plays, /plays/stats    play                     cfbd_plays, cfbd_play_stats  ✅ (cfbd_plays, manual/cron-less)
-  /game/box/advanced      game (per gameId)        cfbd_game_box_advanced  ⬜ (deferred: one call per game)
-  /stats/game/advanced,/havoc  game × team         cfbd_team_game_adv      ⬜ (deferred: per-gameId fan-out)
-  /ppa/*, /wepa/*, /metrics/wp*  varies            cfbd_ppa_*, …           ⬜ (deferred)
 """
 import logging
 from datetime import datetime
@@ -50,9 +50,6 @@ from typing import Any, Awaitable, Callable
 
 from sqlalchemy import select
 
-from app.core.config import settings
-from app.core.database import TaskSessionLocal as SessionLocal
-from app.core.procrastinate import procrastinate_app as app
 from app.models.cfbd import (
     CfbdBettingLine,
     CfbdCalendar,
@@ -77,7 +74,6 @@ from app.models.cfbd import (
     CfbdTeamSeasonStat,
     CfbdTeamTalent,
 )
-from app.tasks.notify_decorator import notify
 from app.services.sync.providers.cfbd import cfbd_provider
 from app.services.sync.snapshots import record_snapshot
 from app.services.sync.upsert import batch_upsert
@@ -246,11 +242,6 @@ async def _sync_team_stats(db, games: list[dict], year: int) -> tuple[int, int]:
 # a key we record a content-hash snapshot per item; when None (the high-cardinality
 # EAV endpoints) snapshotting is skipped to keep the snapshot table bounded.
 # ---------------------------------------------------------------------------
-def _f(v) -> Any:
-    """Pass-through; CFBD already returns native JSON numbers/strings/bools."""
-    return v
-
-
 def _flatten(prefix: str, obj: dict, out: dict) -> None:
     """Flatten a nested dict into dotted keys (e.g. {'offense': {'ppa': 1}} ->
     {'offense.ppa': 1}), so evolving nested stat blocks land as EAV rows."""
@@ -297,10 +288,6 @@ def _make_generic(
         return len(values), changed
 
     return _syncer
-
-
-def _g(d: Any, key: str) -> Any:
-    return (d or {}).get(key)
 
 
 # --- /calendar → cfbd_calendar ----------------------------------------------
@@ -712,8 +699,12 @@ _SYNCERS: dict[str, Callable[[Any, list[dict], int], Awaitable[tuple[int, int]]]
     ),
 }
 
+# Stable, ordered list of fact endpoints the workflow fans out over. Tuple so the
+# Temporal workflow can treat it as an immutable, deterministic constant.
+FACT_ENDPOINTS: tuple[str, ...] = tuple(_SYNCERS.keys())
 
-async def _load_coverage(db) -> dict[tuple[str, int], bool]:
+
+async def load_coverage(db) -> dict[tuple[str, int], bool]:
     """{(endpoint, season_year): complete} for the fact endpoints."""
     result = await db.execute(
         select(
@@ -725,57 +716,35 @@ async def _load_coverage(db) -> dict[tuple[str, int], bool]:
     return {(ep, yr): done for ep, yr, done in result.all()}
 
 
-@app.task(name="cfbd_facts", queueing_lock="cfbd_facts", retry=3)
-@notify(task_name="cfbd_facts")
-async def sync_cfbd_facts(timestamp: int | None = None) -> dict[str, Any]:
-    """Smart daily materialization of CFBD fact tables (lines, rankings, team
-    game stats). Backfills missing seasons; re-pulls only the current season."""
-    current = datetime.utcnow().year
-    start = settings.cfbd_facts_start_year
-    result: dict[str, Any] = {}
+async def sync_one_season(
+    db, endpoint: str, year: int, current_year: int
+) -> tuple[int, int]:
+    """Fetch, upsert, and record coverage for a single ``(endpoint, year)``.
 
-    async with SessionLocal() as db:
-        coverage = await _load_coverage(db)
-        for endpoint, syncer in _SYNCERS.items():
-            ep: dict[str, Any] = {
-                "synced": [], "skipped": [], "errors": [], "processed": 0, "changed": 0,
-            }
-            for year in range(start, current + 1):
-                if coverage.get((endpoint, year)):  # finished season already ingested
-                    ep["skipped"].append(year)
-                    continue
-                # Isolate per-(endpoint, year) failures (e.g. a premium endpoint
-                # 403): log and move on without marking the season complete, so it
-                # self-heals on the next run instead of failing every other table.
-                try:
-                    items = await cfbd_provider.fetch(endpoint, year=year)
-                    processed, changed = await syncer(db, items or [], year)
+    Self-contained unit of work: fetch the whole season from CFBD → run the
+    endpoint's syncer (snapshot + batch upsert) → freeze coverage → commit. A
+    finished season (``year < current_year``) is marked ``complete=True`` so it
+    is never re-fetched; the in-progress season stays incomplete and is re-pulled.
 
-                    # complete=True freezes a finished season so we never re-fetch it.
-                    await batch_upsert(
-                        db, CfbdFactCoverage,
-                        [{
-                            "endpoint": endpoint,
-                            "season_year": year,
-                            "complete": year < current,
-                            "row_count": processed,
-                            "last_synced_at": datetime.utcnow(),
-                        }],
-                        1,
-                        index_elements=("endpoint", "season_year"),
-                    )
-                    # Commit per season so backfill progress persists and self-heals.
-                    await db.commit()
-                except Exception:
-                    await db.rollback()
-                    logger.exception("cfbd_facts %s %s failed", endpoint, year)
-                    ep["errors"].append(year)
-                    continue
+    Commits on success; the caller is responsible for rolling back on error so an
+    interrupted backfill self-heals on the next run. Returns ``(processed, changed)``.
+    """
+    syncer = _SYNCERS[endpoint]
+    items = await cfbd_provider.fetch(endpoint, year=year)
+    processed, changed = await syncer(db, items or [], year)
 
-                ep["synced"].append(year)
-                ep["processed"] += processed
-                ep["changed"] += changed
-            result[endpoint] = ep
-
-    logger.info("cfbd_facts sync: %s", result)
-    return result
+    # complete=True freezes a finished season so we never re-fetch it.
+    await batch_upsert(
+        db, CfbdFactCoverage,
+        [{
+            "endpoint": endpoint,
+            "season_year": year,
+            "complete": year < current_year,
+            "row_count": processed,
+            "last_synced_at": datetime.utcnow(),
+        }],
+        1,
+        index_elements=("endpoint", "season_year"),
+    )
+    await db.commit()
+    return processed, changed
