@@ -5,7 +5,7 @@ batch-upsert into the entity table. The schedule (DB-driven cron) keeps it fresh
 the admin panel can also defer a one-off run (see app/routers/admin.py).
 
 Games is a fact table (scores change), synced frequently. The slowly-changing
-dimension tables — including teams — live in app/tasks/cfbd_dims.py.
+dimension tables — including teams — live in app/temporal/cfbd_dims/ (Temporal).
 """
 import logging
 from datetime import datetime

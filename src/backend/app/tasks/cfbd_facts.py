@@ -1,7 +1,8 @@
 """CFBD fact-table ingestion on Procrastinate — one smart daily task.
 
 Materializes CFBD *fact* tables (event/measurement data that changes over time),
-as opposed to the slowly-changing *dimension* tables handled by cfbd_dims.
+as opposed to the slowly-changing *dimension* tables handled by the
+CfbdDimsWorkflow Temporal workflow (app/temporal/cfbd_dims/).
 
 Smart sync — only hits the API for data we're missing
 -----------------------------------------------------
@@ -13,7 +14,8 @@ task then converges to one call per endpoint per day. Coverage is recorded only
 after a successful upsert (committed per season), so an interrupted backfill
 self-heals on the next run.
 
-Pattern (per entity) mirrors cfbd_dims/cfbd_sync: record a content-hash snapshot
+Pattern (per entity) mirrors cfbd_sync and the cfbd-dims Temporal workflow:
+record a content-hash snapshot
 (app/services/sync/snapshots.py) → batch-upsert keyed on the table's PK
 (app/services/sync/upsert.py). Idempotent: periodic + manual + retry runs all
 converge with no duplicate rows.

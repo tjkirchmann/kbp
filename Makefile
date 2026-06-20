@@ -1,4 +1,4 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run deploy migrate frontend-component backend frontend-logic frontend-organize
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run temporal-cfbd-dims deploy migrate frontend-component backend frontend-logic frontend-organize
 
 # ── Dev ──────────────────────────────────────────────────────────────────────
 
@@ -40,6 +40,11 @@ logs-temporal-worker:
 #        make temporal-run NAME=Ty
 temporal-run:
 	docker compose run --rm temporal_worker python -m app.temporal.starter $(NAME)
+
+# Trigger an immediate run of the nightly CFBD-dims workflow (the 'Run now').
+# Ensures the schedule exists, then fires one off-schedule execution.
+temporal-cfbd-dims:
+	docker compose run --rm temporal_worker python -m app.temporal.cfbd_dims.schedule
 
 # ── Deploy ───────────────────────────────────────────────────────────────────
 

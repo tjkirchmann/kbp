@@ -140,5 +140,28 @@ separate activities.
 6. Fallback if docker is unavailable: import-check the modules and dry-run
    `CfbdDimsWorkflow` against mocked activities to prove orchestration/aggregation.
 
+## Implementation notes / deviations
+- **Alembic cleanup migration deferred (blocked, pre-existing).** The plan called
+  for a migration to `DELETE FROM admin_notify_config WHERE task_name='cfbd_dims'`.
+  While building, `alembic heads` revealed a **pre-existing** broken tree: the
+  revision id `w2f3a4b5c6d7` is declared by **two** different files
+  (`w2f3a4b5c6d7_add_cfbd_games_week.py` and
+  `w2f3a4b5c6d7_add_submission_submitted_at.py`), and `v1e2f3a4b5c6` has three
+  children → **multiple heads**. `alembic` warns "Revision … present more than
+  once" and `alembic upgrade head` cannot run. This predates and is unrelated to
+  this change. Adding a clean, runnable migration is impossible until the
+  duplicate id + multiple heads are reconciled, and doing that safely is out of
+  scope (those revisions may already be stamped in deployed DBs).
+  - The leftover `cfbd_dims` row is **functionally harmless** — the admin Sync
+    panel is registry-driven, so with `cfbd_dims` removed from `import_paths` it
+    shows no card. Its only effect is a recurring "Cron set for unknown task
+    cfbd_dims; skipping" log line from the Procrastinate worker's cron resync.
+  - **To silence it immediately** (one-off, no migration needed):
+    `DELETE FROM admin_notify_config WHERE task_name = 'cfbd_dims';`
+  - **Recommend a separate fix** for the duplicate-revision/multi-head Alembic
+    defect (e.g. rename one colliding revision + `alembic merge` the heads), after
+    which this row deletion can ride along as a normal migration.
+
 ## Open questions
-- None — control-plane and rewrite scope confirmed with the user.
+- How to reconcile the pre-existing Alembic multiple-heads / duplicate-revision
+  state (separate from this feature).
