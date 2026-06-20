@@ -1,4 +1,4 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db deploy migrate frontend-component backend frontend-logic frontend-organize
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run deploy migrate frontend-component backend frontend-logic frontend-organize
 
 # ── Dev ──────────────────────────────────────────────────────────────────────
 
@@ -27,6 +27,19 @@ logs-worker:
 
 logs-db:
 	docker compose logs -f db
+
+logs-temporal:
+	docker compose logs -f temporal
+
+logs-temporal-worker:
+	docker compose logs -f temporal_worker
+
+# ── Temporal ─────────────────────────────────────────────────────────────────
+# Kick off the sample workflow end-to-end. UI: http://localhost:8080
+# Usage: make temporal-run        (greets "KBP")
+#        make temporal-run NAME=Ty
+temporal-run:
+	docker compose run --rm temporal_worker python -m app.temporal.starter $(NAME)
 
 # ── Deploy ───────────────────────────────────────────────────────────────────
 

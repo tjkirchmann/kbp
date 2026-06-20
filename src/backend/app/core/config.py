@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     s3_public_endpoint_url: str = ""   # browser-facing presigning; empty → real AWS
     library_max_upload_bytes: int = 1_073_741_824  # 1 GB
 
+    # Temporal. Local self-host defaults; for Temporal Cloud set temporal_api_key
+    # (+ leave temporal_tls implied) and point temporal_address/namespace at the
+    # Cloud endpoint — no code changes needed (see app/core/temporal.py).
+    temporal_address: str = "temporal:7233"
+    temporal_namespace: str = "default"
+    temporal_task_queue: str = "kbp-default"
+    temporal_tls: bool = False
+    temporal_api_key: str = ""
+
     class Config:
         env_file = ".env"
 
