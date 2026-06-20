@@ -63,6 +63,7 @@ class PoolSubmission(Base):
     on_behalf_of_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     on_behalf_of_email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_locked: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
 
     pool: Mapped["Pool"] = relationship(back_populates="submissions")

@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PoolCreate(BaseModel):
@@ -159,7 +159,7 @@ class PoolGameWithTeamsSchema(PoolGameSchema):
 
 class GamePickUpsert(BaseModel):
     picked_winner: str
-    picked_margin: int
+    picked_margin: int = Field(ge=1)
 
 
 class GamePickSchema(BaseModel):
@@ -174,6 +174,8 @@ class MySubmissionSchema(BaseModel):
     id: int
     on_behalf_of_name: str
     created_at: datetime
+    is_locked: bool
+    submitted_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
 

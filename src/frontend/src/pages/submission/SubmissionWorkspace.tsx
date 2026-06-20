@@ -6,8 +6,9 @@ import StepRail, { type Step } from './StepRail'
 import PasswordStep from './PasswordStep'
 import EntryMetaStep from './EntryMetaStep'
 import GamesStep from './GamesStep'
+import ReviewStep from './ReviewStep'
 
-type StepId = 'password' | 'entry' | 'games'
+type StepId = 'password' | 'entry' | 'games' | 'review'
 
 export default function SubmissionWorkspace() {
   const { poolId: poolIdStr } = useParams()
@@ -53,18 +54,25 @@ export default function SubmissionWorkspace() {
     { id: 'games' as const, label: 'Pick Games' },
   ]
 
-  const pickedGameIds = new Set(existingPicks.map(p => p.pool_game_id))
+  const pickByGameId = new Map(existingPicks.map(p => [p.pool_game_id, p]))
 
-  const gameItems = poolGames.map((g, i) => ({
-    id: g.id,
-    index: i,
-    label: g.bowl_name
-      ? g.bowl_name
-      : g.neutral_site
-      ? `${g.away_team} vs ${g.home_team}`
-      : `${g.away_team} at ${g.home_team}`,
-    picked: pickedGameIds.has(g.id),
-  }))
+  const gameItems = poolGames.map((g, i) => {
+    const pick = pickByGameId.get(g.id)
+    const pickedLogo = pick
+      ? (pick.picked_winner === g.away_team ? g.away_team_meta : g.home_team_meta)?.logos?.[0] ?? null
+      : null
+    return {
+      id: g.id,
+      index: i,
+      label: g.bowl_name
+        ? g.bowl_name
+        : g.neutral_site
+        ? `${g.away_team} vs ${g.home_team}`
+        : `${g.away_team} at ${g.home_team}`,
+      picked: pick !== undefined,
+      pickedLogo,
+    }
+  })
 
   function advance(from: StepId, next: StepId) {
     setCompletedSteps(prev => new Set([...prev, from]))
@@ -104,12 +112,17 @@ export default function SubmissionWorkspace() {
           currentStep={activeStep}
           completedSteps={completedSteps as Set<string>}
           onStepClick={id => setCurrentStep(id as StepId)}
-          games={activeStep === 'games' ? gameItems : undefined}
+          games={activeStep === 'games' || activeStep === 'review' ? gameItems : undefined}
           activeGameId={activeStep === 'games' ? (poolGames[currentGameIndex]?.id ?? null) : null}
           onGameClick={id => {
             const idx = poolGames.findIndex(g => g.id === id)
-            if (idx >= 0) setCurrentGameIndex(idx)
+            if (idx >= 0) {
+              setCurrentGameIndex(idx)
+              setCurrentStep('games')
+            }
           }}
+          showReview={submissionId !== null}
+          onReviewClick={() => setCurrentStep('review')}
         />
         <div
           className="flex-1 glass-panel rounded-2xl p-6 overflow-hidden"
@@ -127,6 +140,14 @@ export default function SubmissionWorkspace() {
               submissionId={submissionId}
               currentIndex={currentGameIndex}
               onIndexChange={setCurrentGameIndex}
+              onDone={() => setCurrentStep('review')}
+            />
+          )}
+          {activeStep === 'review' && submissionId && (
+            <ReviewStep
+              poolId={pool.id}
+              submissionId={submissionId}
+              entryName={entryName ?? ''}
             />
           )}
         </div>
