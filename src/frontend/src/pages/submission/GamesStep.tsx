@@ -7,6 +7,7 @@ interface Props {
   submissionId: number
   currentIndex: number
   onIndexChange: (i: number) => void
+  onDone: () => void
 }
 
 interface Pick { winner: string; margin: number }
@@ -70,7 +71,7 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
 
   function handleMarginInput(e: React.ChangeEvent<HTMLInputElement>) {
     const val = parseInt(e.target.value, 10)
-    if (!isNaN(val) && val >= 0) onMarginChange(val)
+    if (!isNaN(val)) onMarginChange(Math.max(1, val))
   }
 
   return (
@@ -105,20 +106,20 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
           <div className="flex flex-col items-center gap-1" onClick={e => e.stopPropagation()}>
             <input
               type="number"
-              min={0}
-              value={pick?.margin ?? 0}
+              min={1}
+              value={pick?.margin ?? 1}
               onChange={handleMarginInput}
               className="w-12 text-center bg-white/10 border border-white/20 rounded text-white text-sm py-0.5 focus:outline-none focus:border-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               onClick={e => e.stopPropagation()}
             />
-            <div className="flex gap-1.5">
-              {[1, 3, 7].map(n => (
+            <div className="flex gap-1">
+              {[-7, -3, -1, 1, 3, 7].map(n => (
                 <button
                   key={n}
-                  onClick={e => { e.stopPropagation(); onMarginChange((pick?.margin ?? 0) + n) }}
-                  className="px-2 py-0.5 rounded-full bg-white/15 text-white text-xs font-medium hover:bg-white/30 transition-colors"
+                  onClick={e => { e.stopPropagation(); onMarginChange(Math.max(1, (pick?.margin ?? 1) + n)) }}
+                  className="px-1.5 py-0.5 rounded-full bg-white/15 text-white text-xs font-medium hover:bg-white/30 transition-colors tabular-nums"
                 >
-                  +{n}
+                  {n > 0 ? `+${n}` : n}
                 </button>
               ))}
             </div>
@@ -139,7 +140,7 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
   )
 }
 
-export default function GamesStep({ poolId, submissionId, currentIndex, onIndexChange }: Props) {
+export default function GamesStep({ poolId, submissionId, currentIndex, onIndexChange, onDone }: Props) {
   const { data: games = [] } = usePoolGames(poolId)
   const { data: existingPicks = [] } = useSubmissionPicks(submissionId)
   const savePick = useSavePick(submissionId)
@@ -180,16 +181,10 @@ export default function GamesStep({ poolId, submissionId, currentIndex, onIndexC
   }
 
   function handleSelect(team: string) {
-    if (currentPick?.winner === team) {
-      setPicks(prev => {
-        const next = { ...prev }
-        delete next[game.id]
-        return next
-      })
-    } else {
-      const margin = currentPick?.margin ?? 0
-      setPick(team, margin)
-    }
+    // Picks cannot be cleared — clicking the selected team is a no-op.
+    // Switching to the other team keeps the existing margin.
+    if (currentPick?.winner === team) return
+    setPick(team, currentPick?.margin ?? 1)
   }
 
   function handleMarginChange(margin: number) {
@@ -246,12 +241,11 @@ export default function GamesStep({ poolId, submissionId, currentIndex, onIndexC
         </div>
 
         <button
-          onClick={() => onIndexChange(currentIndex + 1)}
-          disabled={isLast}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-default"
+          onClick={() => (isLast ? onDone() : onIndexChange(currentIndex + 1))}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          {isLast ? 'Done' : 'Next'}
-          {!isLast && <ChevronRight className="size-4" />}
+          {isLast ? 'Review' : 'Next'}
+          <ChevronRight className="size-4" />
         </button>
       </div>
     </div>

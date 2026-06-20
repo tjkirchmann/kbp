@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -188,7 +190,9 @@ async def upsert_pick(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    await _get_owned_submission(submission_id, user, db)
+    sub = await _get_owned_submission(submission_id, user, db)
+    if sub.is_locked:
+        raise HTTPException(status_code=403, detail="Submission is locked")
     stmt = (
         pg_insert(PoolSubmissionGameItem)
         .values(
@@ -206,3 +210,38 @@ async def upsert_pick(
     result = await db.execute(stmt)
     await db.commit()
     return result.scalars().one()
+
+
+@router.post("/{submission_id}/submit", response_model=MySubmissionSchema)
+async def submit_entry(
+    submission_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    sub = await _get_owned_submission(submission_id, user, db)
+
+    games_result = await db.execute(
+        select(PoolGame.id).where(
+            PoolGame.pool_id == sub.pool_id, PoolGame.deleted_at.is_(None)
+        )
+    )
+    game_ids = set(games_result.scalars().all())
+
+    picks_result = await db.execute(
+        select(PoolSubmissionGameItem.pool_game_id).where(
+            PoolSubmissionGameItem.submission_id == submission_id,
+            PoolSubmissionGameItem.deleted_at.is_(None),
+        )
+    )
+    picked_ids = set(picks_result.scalars().all())
+
+    if game_ids - picked_ids:
+        raise HTTPException(
+            status_code=400, detail="All games must be picked before submitting"
+        )
+
+    sub.is_locked = True
+    sub.submitted_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(sub)
+    return sub

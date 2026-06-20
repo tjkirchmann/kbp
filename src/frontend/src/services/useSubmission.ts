@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
 
 const API = import.meta.env.VITE_API_URL
@@ -55,6 +55,8 @@ export interface MySubmission {
   id: number
   on_behalf_of_name: string  // '' = self-submission
   created_at: string
+  is_locked: boolean
+  submitted_at: string | null
 }
 
 async function apiFetch(token: string | null, path: string, init?: RequestInit) {
@@ -132,6 +134,7 @@ export function useMySubmissions(poolId: number | null) {
 
 export function useSavePick(submissionId: number) {
   const { getToken } = useAuth()
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ poolGameId, pickedWinner, pickedMargin }: { poolGameId: number; pickedWinner: string; pickedMargin: number }) => {
       const token = await getToken()
@@ -139,6 +142,26 @@ export function useSavePick(submissionId: number) {
         method: 'PUT',
         body: JSON.stringify({ picked_winner: pickedWinner, picked_margin: pickedMargin }),
       }) as Promise<GamePick>
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['submission', submissionId, 'picks'] })
+    },
+  })
+}
+
+export function useSubmitEntry(submissionId: number) {
+  const { getToken } = useAuth()
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const token = await getToken()
+      return apiFetch(token, `/submission/${submissionId}/submit`, {
+        method: 'POST',
+      }) as Promise<MySubmission>
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['submission', submissionId, 'picks'] })
+      queryClient.invalidateQueries({ queryKey: ['submission', 'pools'] })
     },
   })
 }

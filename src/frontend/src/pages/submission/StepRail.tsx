@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react'
+import { Check, Flag } from 'lucide-react'
 
 export interface Step {
   id: string
@@ -10,6 +10,7 @@ interface GameItem {
   id: number
   label: string
   picked: boolean
+  pickedLogo?: string | null
 }
 
 interface Props {
@@ -20,10 +21,12 @@ interface Props {
   games?: GameItem[]
   activeGameId?: number | null
   onGameClick?: (id: number) => void
+  showReview?: boolean
+  onReviewClick?: () => void
 }
 
-export default function StepRail({ steps, currentStep, completedSteps, onStepClick, games, activeGameId, onGameClick }: Props) {
-  const showGames = currentStep === 'games' && games && games.length > 0
+export default function StepRail({ steps, currentStep, completedSteps, onStepClick, games, activeGameId, onGameClick, showReview, onReviewClick }: Props) {
+  const showGames = (currentStep === 'games' || currentStep === 'review') && games && games.length > 0
 
   const entryStep = steps.find(s => s.id === 'entry')
 
@@ -81,7 +84,7 @@ export default function StepRail({ steps, currentStep, completedSteps, onStepCli
 
           {/* Games starting at #2 */}
           {games!.map((game, i) => {
-            const isActive = game.id === activeGameId
+            const isActive = currentStep === 'games' && game.id === activeGameId
 
             return (
               <button
@@ -94,20 +97,51 @@ export default function StepRail({ steps, currentStep, completedSteps, onStepCli
                 }`}
               >
                 <span
-                  className={`size-5 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold border ${
+                  className={`size-5 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold border overflow-hidden ${
                     game.picked
-                      ? 'bg-primary border-primary text-white'
+                      ? 'bg-white/5 border-primary'
                       : isActive
                       ? 'border-primary/60 text-primary bg-primary/10'
                       : 'border-border/40 text-muted-foreground/40'
                   }`}
                 >
-                  {game.picked ? <Check className="size-3" strokeWidth={3} /> : i + 2}
+                  {game.picked ? (
+                    game.pickedLogo ? (
+                      <img src={game.pickedLogo} alt="" className="size-4 object-contain" draggable={false} />
+                    ) : (
+                      <Check className="size-3" strokeWidth={3} />
+                    )
+                  ) : (
+                    i + 2
+                  )}
                 </span>
                 <span className="truncate">{game.label}</span>
               </button>
             )
           })}
+
+          {/* Final item: Review & Submit */}
+          {showReview && (
+            <button
+              onClick={onReviewClick}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors w-full ${
+                currentStep === 'review'
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)]'
+              }`}
+            >
+              <span
+                className={`size-5 rounded-full flex items-center justify-center shrink-0 border ${
+                  currentStep === 'review'
+                    ? 'border-primary/60 text-primary bg-primary/10'
+                    : 'border-border/40 text-muted-foreground/40'
+                }`}
+              >
+                <Flag className="size-3" strokeWidth={2.5} />
+              </span>
+              <span className="truncate">Review &amp; Submit</span>
+            </button>
+          )}
         </>
       )}
     </nav>
