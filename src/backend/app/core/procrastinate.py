@@ -15,6 +15,7 @@ procrastinate_app = App(
         "app.tasks.cfbd_sync",
         "app.tasks.cfbd_dims",
         "app.tasks.cfbd_facts",
+        "app.tasks.cfbd_plays",
         "app.tasks.espn_poller",
     ],
 )

@@ -27,12 +27,43 @@ _DIM_ENDPOINTS = {
 _FACT_ENDPOINTS = {
     "lines": "/lines",
     "rankings": "/rankings",
+    "calendar": "/calendar",
+    "records": "/records",
+    "sp_ratings": "/ratings/sp",
+    "srs_ratings": "/ratings/srs",
+    "elo_ratings": "/ratings/elo",
+    "fpi_ratings": "/ratings/fpi",
+    "team_season_stats": "/stats/season",
+    "team_season_adv_stats": "/stats/season/advanced",
+    "player_season_stats": "/stats/player/season",
+    "talent": "/talent",
+    "recruiting_teams": "/recruiting/teams",
+    "recruiting_players": "/recruiting/players",
+    "returning_production": "/player/returning",
+}
+
+# Year-range fact endpoints — same as above but parameterized by startYear/endYear
+# rather than a single year=. We pass startYear=endYear=year for one-season pulls.
+_FACT_YEAR_RANGE_ENDPOINTS = {
+    "recruiting_groups": "/recruiting/groups",
+}
+
+# Fact endpoints fetched a season at a time but paged across both season types
+# (year + seasonType, no week required) and concatenated (see _fetch_by_season_type).
+_FACT_SEASONTYPE_ENDPOINTS = {
+    "drives": "/drives",
+    "game_media": "/games/media",
 }
 
 # Fact endpoints CFBD won't serve year-only — they require a week filter, so we
 # page week-by-week across both season types and concatenate (see _fetch_by_week).
 _FACT_WEEKLY_ENDPOINTS = {
     "game_team_stats": "/games/teams",
+    "game_player_stats": "/games/players",
+    "game_weather": "/games/weather",
+    # High-volume play-by-play — only the cron-less cfbd_plays task fetches these.
+    "plays": "/plays",
+    "play_stats": "/plays/stats",
 }
 _MAX_WEEK = 25  # safety cap; the loop stops earlier on the first empty week
 
@@ -91,11 +122,49 @@ class CfbdProvider(SyncProvider):
                 )
                 resp.raise_for_status()
                 return resp.json()
+        if endpoint in _FACT_YEAR_RANGE_ENDPOINTS:
+            year = params["year"]
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    f"{CFBD_BASE}{_FACT_YEAR_RANGE_ENDPOINTS[endpoint]}",
+                    params={"startYear": year, "endYear": year},
+                    headers=self._headers(),
+                    timeout=60.0,
+                )
+                resp.raise_for_status()
+                return resp.json()
+        if endpoint in _FACT_SEASONTYPE_ENDPOINTS:
+            return await self._fetch_by_season_type(
+                _FACT_SEASONTYPE_ENDPOINTS[endpoint], params["year"]
+            )
         if endpoint in _FACT_WEEKLY_ENDPOINTS:
             return await self._fetch_by_week(
                 _FACT_WEEKLY_ENDPOINTS[endpoint], params["year"]
             )
         raise ValueError(f"Unknown CFBD endpoint: {endpoint}")
+
+    async def _fetch_by_season_type(self, path: str, year: int) -> list[dict]:
+        """Fetch a year-scoped endpoint once per season type and concatenate.
+
+        For endpoints that accept year + seasonType (no week required), one call
+        per season type covers the whole year — far fewer calls than week paging
+        while still capturing postseason (bowl) data the regular-season default
+        would miss.
+        """
+        out: list[dict] = []
+        async with httpx.AsyncClient() as client:
+            for season_type in ("regular", "postseason"):
+                resp = await client.get(
+                    f"{CFBD_BASE}{path}",
+                    params={"year": year, "seasonType": season_type},
+                    headers=self._headers(),
+                    timeout=60.0,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                if data:
+                    out.extend(data)
+        return out
 
     async def _fetch_by_week(self, path: str, year: int) -> list[dict]:
         """Page a week-keyed fact endpoint across regular + postseason for a year.

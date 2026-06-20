@@ -229,3 +229,389 @@ class CfbdFactCoverage(Base):
     complete: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     row_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# ===========================================================================
+# Remaining CFBD fact tables (roadmap completion). All are season-scoped and
+# synced by cfbd_facts (daily) except plays/play_stats, which are high-volume
+# and synced by the separate, cron-less cfbd_plays task (manual run only).
+# EAV/long shape (one row per stat) is used wherever CFBD's stat set is
+# open-ended, mirroring CfbdGameTeamStat above.
+# ===========================================================================
+
+
+# --- FACT: season calendar (/calendar) --------------------------------------
+class CfbdCalendar(Base):
+    """One row per (season, season_type, week) defining the week's date window."""
+
+    __tablename__ = "cfbd_calendar"
+
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    season_type: Mapped[str] = mapped_column(String, primary_key=True)
+    week: Mapped[int] = mapped_column(Integer, primary_key=True)
+    start_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    end_date: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    first_game_start: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_game_start: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: team records (/records) ------------------------------------------
+class CfbdTeamRecord(Base):
+    """One season win/loss record per team, split by venue/conference."""
+
+    __tablename__ = "cfbd_team_records"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    division: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    expected_wins: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    total_games: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    total_wins: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    total_losses: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    total_ties: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    conference_games: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    conference_wins: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    conference_losses: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    conference_ties: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    home_games: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    home_wins: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    home_losses: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    home_ties: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    away_games: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    away_wins: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    away_losses: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    away_ties: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: SP+ ratings (/ratings/sp) ----------------------------------------
+class CfbdSpRating(Base):
+    __tablename__ = "cfbd_sp_ratings"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    ranking: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    second_order_wins: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    sos: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    offense_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    offense_ranking: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    defense_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    defense_ranking: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    special_teams_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: SRS ratings (/ratings/srs) ---------------------------------------
+class CfbdSrsRating(Base):
+    __tablename__ = "cfbd_srs_ratings"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    division: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    ranking: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: Elo ratings (/ratings/elo) ---------------------------------------
+class CfbdEloRating(Base):
+    __tablename__ = "cfbd_elo_ratings"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    elo: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: FPI ratings (/ratings/fpi) ---------------------------------------
+class CfbdFpiRating(Base):
+    __tablename__ = "cfbd_fpi_ratings"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    fpi: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    efficiency_overall: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    efficiency_offense: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    efficiency_defense: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    efficiency_special_teams: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: team season stats (/stats/season) — EAV --------------------------
+class CfbdTeamSeasonStat(Base):
+    """One stat value per team per season (long shape; open-ended categories)."""
+
+    __tablename__ = "cfbd_team_season_stats"
+
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    stat_name: Mapped[str] = mapped_column(String, primary_key=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    stat_value: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: advanced team season stats (/stats/season/advanced) — EAV --------
+class CfbdTeamSeasonAdvStat(Base):
+    """Flattened advanced metrics; nested offense/defense dicts become dotted
+    stat keys (e.g. offense.ppa) to absorb CFBD's deeply-nested, evolving shape."""
+
+    __tablename__ = "cfbd_team_season_adv_stats"
+
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    stat: Mapped[str] = mapped_column(String, primary_key=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    value: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: player season stats (/stats/player/season) — EAV -----------------
+class CfbdPlayerSeasonStat(Base):
+    """One stat value per player per season per category/type (long shape)."""
+
+    __tablename__ = "cfbd_player_season_stats"
+
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[str] = mapped_column(String, primary_key=True)
+    category: Mapped[str] = mapped_column(String, primary_key=True)
+    stat_type: Mapped[str] = mapped_column(String, primary_key=True)
+    player: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    team: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    stat: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: team talent composite (/talent) ----------------------------------
+class CfbdTeamTalent(Base):
+    __tablename__ = "cfbd_team_talent"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    school: Mapped[str] = mapped_column(String, primary_key=True)
+    talent: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: team recruiting rankings (/recruiting/teams) ---------------------
+class CfbdRecruitingTeam(Base):
+    __tablename__ = "cfbd_recruiting_teams"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    rank: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    points: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: recruit players (/recruiting/players) ----------------------------
+class CfbdRecruitingPlayer(Base):
+    __tablename__ = "cfbd_recruiting_players"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    athlete_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    recruit_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    ranking: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    school: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    committed_to: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    position: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    height: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    stars: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    state_province: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: position-group recruiting (/recruiting/groups) -------------------
+class CfbdRecruitingGroup(Base):
+    __tablename__ = "cfbd_recruiting_groups"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    position_group: Mapped[str] = mapped_column(String, primary_key=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    average_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    total_rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    commits: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    average_stars: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: returning production (/player/returning) -------------------------
+class CfbdReturningProduction(Base):
+    __tablename__ = "cfbd_returning_production"
+
+    season: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team: Mapped[str] = mapped_column(String, primary_key=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    total_ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    total_passing_ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    total_rushing_ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    total_receiving_ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    percent_ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    percent_passing_ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    percent_rushing_ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    percent_receiving_ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    usage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    passing_usage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    rushing_usage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    receiving_usage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: game media/broadcast (/games/media) ------------------------------
+class CfbdGameMedia(Base):
+    """One broadcast row per game per media type/outlet."""
+
+    __tablename__ = "cfbd_game_media"
+
+    game_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    media_type: Mapped[str] = mapped_column(String, primary_key=True)
+    outlet: Mapped[str] = mapped_column(String, primary_key=True)
+    season: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    week: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    season_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    start_time: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_start_time_tbd: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    home_team: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    away_team: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: game weather (/games/weather) ------------------------------------
+class CfbdGameWeather(Base):
+    __tablename__ = "cfbd_game_weather"
+
+    game_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    season: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    week: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    season_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    start_time: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    game_indoors: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    home_team: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    away_team: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    venue_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    venue: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    temperature: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    dew_point: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    humidity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    precipitation: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    snowfall: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    wind_direction: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    wind_speed: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    pressure: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    weather_condition_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    weather_condition: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: player box-score stats (/games/players) — EAV --------------------
+class CfbdGamePlayerStat(Base):
+    """One stat value per player per game per category/type (long shape)."""
+
+    __tablename__ = "cfbd_game_player_stats"
+
+    game_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    player_id: Mapped[str] = mapped_column(String, primary_key=True)
+    category: Mapped[str] = mapped_column(String, primary_key=True)
+    stat_type: Mapped[str] = mapped_column(String, primary_key=True)
+    player: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    team: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    home_away: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    stat: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: drives (/drives) -------------------------------------------------
+class CfbdDrive(Base):
+    __tablename__ = "cfbd_drives"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    game_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    offense: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    offense_conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    defense: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    defense_conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    drive_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    scoring: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    start_period: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    start_yardline: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    start_yards_to_goal: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    end_period: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    end_yardline: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    end_yards_to_goal: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    plays: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    yards: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    drive_result: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    is_home_offense: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# ===========================================================================
+# High-volume play-by-play — synced ONLY by the cron-less cfbd_plays task.
+# ===========================================================================
+
+
+# --- FACT: plays (/plays) ---------------------------------------------------
+class CfbdPlay(Base):
+    __tablename__ = "cfbd_plays"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    game_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    drive_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    season: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    week: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    season_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    offense: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    offense_conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    defense: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    defense_conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    home: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    away: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    offense_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    defense_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    period: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    yard_line: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    yards_to_goal: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    down: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    distance: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    scoring: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    yards_gained: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    play_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    play_text: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    ppa: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+# --- FACT: play stats (/plays/stats) — EAV ----------------------------------
+class CfbdPlayStat(Base):
+    """One stat value per play per athlete per stat type (long shape)."""
+
+    __tablename__ = "cfbd_play_stats"
+
+    play_id: Mapped[str] = mapped_column(String, primary_key=True)
+    athlete_id: Mapped[str] = mapped_column(String, primary_key=True)
+    stat_type: Mapped[str] = mapped_column(String, primary_key=True)
+    game_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    season: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    week: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    team: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    conference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    opponent: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    athlete_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    stat: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    last_synced_at: Mapped[datetime] = mapped_column(nullable=False)
