@@ -13,6 +13,7 @@ import CommsPanel from './pages/admin/CommsPanel'
 import IntegrationsShell from './pages/admin/IntegrationsShell'
 import EspnPanel from './pages/admin/EspnPanel'
 import SyncPanel from './pages/admin/SyncPanel'
+import LibraryPanel from './pages/admin/LibraryPanel'
 import RunDetail from './pages/admin/RunDetail'
 import TaskDetail from './pages/admin/TaskDetail'
 import SubmissionShell from './pages/submission/SubmissionShell'
@@ -36,6 +37,7 @@ export default function App() {
         {/* Back-compat: the old top-level ESPN route now lives under Integrations. */}
         <Route path="espn" element={<Navigate to="/admin/integrations/espn" replace />} />
         <Route path="sync" element={<SyncPanel />} />
+        <Route path="library" element={<LibraryPanel />} />
         <Route path="sync/runs/:jobId" element={<RunDetail />} />
         <Route path="sync/tasks/:taskName" element={<TaskDetail />} />
         <Route path="users" element={<UsersList />} />

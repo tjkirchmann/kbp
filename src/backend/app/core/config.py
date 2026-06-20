@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     discord_bot_token: str = ""
     # Dev: per-guild slash-command sync (instant). Empty → global sync (~1h to propagate).
     discord_guild_id: str = ""
+    # S3 file library. Endpoints are empty in prod (→ real AWS); set to MinIO locally.
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    s3_region: str = "us-east-1"
+    s3_bucket_name: str = ""
+    s3_endpoint_url: str = ""          # server-side ops (head/delete); empty → real AWS
+    s3_public_endpoint_url: str = ""   # browser-facing presigning; empty → real AWS
+    library_max_upload_bytes: int = 1_073_741_824  # 1 GB
 
     class Config:
         env_file = ".env"

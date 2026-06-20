@@ -7,6 +7,7 @@ import {
   Users,
   Trophy,
   Shield,
+  FolderOpen,
   ChevronDown,
   Activity,
   LogOut,
@@ -36,6 +37,7 @@ const groups: Group[] = [
         children: [{ id: 'espn', label: 'ESPN', icon: Activity }],
       },
       { id: 'sync', label: 'Sync', icon: RefreshCw },
+      { id: 'library', label: 'Library', icon: FolderOpen },
     ],
   },
   {

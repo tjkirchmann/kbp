@@ -34,6 +34,11 @@ OPENAI_API_KEY=sk-...
 CFBD_API_KEY=...
 DISCORD_BOT_TOKEN=          # optional; leave unset to keep the bot dormant
 DISCORD_GUILD_ID=           # optional; set for instant per-guild slash-command sync
+AWS_ACCESS_KEY_ID=          # file library (S3) — see "S3 File Library" below
+AWS_SECRET_ACCESS_KEY=
+S3_REGION=us-east-1
+S3_BUCKET_NAME=your-bucket
+# Leave S3_ENDPOINT_URL / S3_PUBLIC_ENDPOINT_URL UNSET in prod → boto3 uses real AWS.
 ```
 
 **`frontend` service (build-time):**
@@ -87,3 +92,44 @@ Test posting with `POST /admin/config/test-bot` once a command channel is set.
 
 ### 5. Route task notifications through the bot (optional)
 Create a `notification_channels` row with `strategy="discord_bot"` and `config={"channel_id": "<id>"}`, then point a task's `admin_notify_config.channel_name` at it. Task lifecycle notifications will then post via the bot instead of a webhook.
+
+## S3 File Library
+
+The admin **Library** tab uploads files directly to S3 via presigned POST and tracks them in the `library_files` table. Local dev uses MinIO (auto-provisioned by `docker compose`, console at http://localhost:9001, login `minioadmin`/`minioadmin`) — no AWS account needed. The steps below are for **production** only.
+
+### 1. Create the bucket
+- Create an S3 bucket in your region.
+- **Block Public Access = ON** (all four settings). Nothing in the bucket is public; the app serves files via short-lived presigned GET URLs.
+
+### 2. CORS (required — the browser uploads/downloads directly)
+Set this CORS config on the bucket, replacing the origin with your frontend URL:
+```json
+[
+  {
+    "AllowedOrigins": ["https://your-frontend.up.railway.app"],
+    "AllowedMethods": ["GET", "POST", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3000
+  }
+]
+```
+
+### 3. Least-privilege IAM user
+Create a dedicated IAM user with programmatic access and this policy (scoped to the library prefix):
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET/library/*"
+    }
+  ]
+}
+```
+(`HeadObject` is covered by `s3:GetObject`.)
+
+### 4. Wire up env
+Put the IAM user's keys, region, and bucket into the `backend` service env (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_REGION`, `S3_BUCKET_NAME`). Leave `S3_ENDPOINT_URL` and `S3_PUBLIC_ENDPOINT_URL` **unset** so boto3 talks to real AWS.
