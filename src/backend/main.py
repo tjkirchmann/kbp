@@ -9,6 +9,7 @@ from app.routers.admin import router as admin_router
 from app.routers.pools import router as pools_router
 from app.routers.submissions import router as submissions_router
 from app.routers.teams import router as teams_router
+from app.routers.library import router as library_router
 import app.models  # noqa: F401 — registers models with Base.metadata
 
 @asynccontextmanager
@@ -44,6 +45,7 @@ app.include_router(admin_router)
 app.include_router(pools_router)
 app.include_router(submissions_router)
 app.include_router(teams_router)
+app.include_router(library_router)
 
 @app.get("/health")
 async def health():

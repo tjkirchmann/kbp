@@ -42,6 +42,7 @@ from app.models.sync import SyncSnapshot
 from app.models.rate_limit import EspnRateToken
 from app.models.event_log import EventLog
 from app.models.entity_tag import EntityTag
+from app.models.library_file import LibraryFile
 
 __all__ = [
     "User",
@@ -90,4 +91,5 @@ __all__ = [
     "EspnRateToken",
     "EventLog",
     "EntityTag",
+    "LibraryFile",
 ]

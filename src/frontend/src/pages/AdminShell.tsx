@@ -45,6 +45,7 @@ function useBreadcrumbs() {
   }
 
   if (parts[0] === 'teams') return [{ label: 'Teams', to: '/admin/teams' }]
+  if (parts[0] === 'library') return [{ label: 'Library', to: '/admin/library' }]
   if (parts[0] === 'comms') return [{ label: 'Comms', to: '/admin/comms' }]
   if (parts[0] === 'integrations') {
     const crumbs = [{ label: 'Integrations', to: '/admin/integrations' }]
