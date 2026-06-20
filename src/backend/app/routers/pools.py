@@ -13,76 +13,31 @@ from app.schemas.pool import (
     PoolGameAdd, PoolGameSchema, CfbdGameSchema,
     PoolGamesBracketUpdate, PoolGamesMultiplierUpdate,
 )
-from app.services.cfbd import fetch_games
 
 router = APIRouter(prefix="/admin/pools", dependencies=[Depends(require_admin)])
 
 
-def _cfbd_api_to_row(g: dict, year: int) -> dict:
-    raw_date = g.get("startDate", "")
-    try:
-        start_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00")).replace(tzinfo=None)
-    except (ValueError, AttributeError):
-        start_date = datetime.utcnow()
-    return {
-        "id": g["id"],
-        "home_team": g.get("homeTeam", ""),
-        "away_team": g.get("awayTeam", ""),
-        "start_date": start_date,
-        "start_time_tbd": g.get("startTimeTBD", False),
-        "bowl_name": g.get("notes") or None,
-        "season_type": g.get("seasonType", "regular"),
-        "season_year": year,
-        "home_classification": g.get("homeClassification") or None,
-        "away_classification": g.get("awayClassification") or None,
-        "home_conference": g.get("homeConference") or None,
-        "away_conference": g.get("awayConference") or None,
-        "conference_game": g.get("conferenceGame", False),
-        "neutral_site": g.get("neutralSite", False),
-        "completed": bool(g.get("completed", False)),
-        "home_score": g.get("homePoints"),
-        "away_score": g.get("awayPoints"),
-        "last_synced_at": datetime.utcnow(),
-    }
-
-
-def _cfbd_api_to_schema(g: dict) -> CfbdGameSchema:
+def _cfbd_row_to_schema(g: CfbdGame) -> CfbdGameSchema:
+    # CfbdGameSchema.start_date is a str; the model column is a datetime.
     return CfbdGameSchema(
-        id=g["id"],
-        home_team=g.get("homeTeam", ""),
-        away_team=g.get("awayTeam", ""),
-        start_date=g.get("startDate", ""),
-        start_time_tbd=g.get("startTimeTBD", False),
-        bowl_name=g.get("notes") or None,
-        season_type=g.get("seasonType", "regular"),
-        home_classification=g.get("homeClassification") or None,
-        away_classification=g.get("awayClassification") or None,
-        home_conference=g.get("homeConference") or None,
-        away_conference=g.get("awayConference") or None,
-        conference_game=g.get("conferenceGame", False),
-        neutral_site=g.get("neutralSite", False),
-        completed=bool(g.get("completed", False)),
-        home_score=g.get("homePoints"),
-        away_score=g.get("awayPoints"),
+        id=g.id,
+        home_team=g.home_team,
+        away_team=g.away_team,
+        start_date=g.start_date.isoformat() if g.start_date else "",
+        start_time_tbd=g.start_time_tbd,
+        week=g.week,
+        bowl_name=g.bowl_name,
+        season_type=g.season_type,
+        home_classification=g.home_classification,
+        away_classification=g.away_classification,
+        home_conference=g.home_conference,
+        away_conference=g.away_conference,
+        conference_game=g.conference_game,
+        neutral_site=g.neutral_site,
+        completed=g.completed,
+        home_score=g.home_score,
+        away_score=g.away_score,
     )
-
-
-_UPSERT_COLS = 18  # number of columns in cfbd_games
-_BATCH_SIZE = 32767 // _UPSERT_COLS  # max rows per upsert to stay under asyncpg's 32767 param limit
-
-
-async def _upsert_cfbd_games(db: AsyncSession, rows: list[dict]) -> None:
-    if not rows:
-        return
-    update_keys = [c for c in rows[0] if c != "id"]
-    for i in range(0, len(rows), _BATCH_SIZE):
-        batch = rows[i:i + _BATCH_SIZE]
-        stmt = pg_insert(CfbdGame).values(batch)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["id"],
-            set_={c: stmt.excluded[c] for c in update_keys},
-        )
-        await db.execute(stmt)
 
 
 @router.get("", response_model=list[PoolSchema])
@@ -114,15 +69,15 @@ async def create_pool(body: PoolCreate, db: AsyncSession = Depends(get_db)):
 
 @router.get("/cfbd-games/{year}", response_model=list[CfbdGameSchema])
 async def get_cfbd_games(year: int, db: AsyncSession = Depends(get_db)):
-    try:
-        games = await fetch_games(year)
-    except Exception:
-        raise HTTPException(status_code=502, detail="Failed to fetch games from CFBD")
-
-    await _upsert_cfbd_games(db, [_cfbd_api_to_row(g, year) for g in games])
-    await db.commit()
-
-    return [_cfbd_api_to_schema(g) for g in games]
+    # Serve the whole season from the landed cfbd_games table (populated by the
+    # sync workflow); the frontend filters by stage/week/classification. No live
+    # CFBD calls from the app.
+    result = await db.execute(
+        select(CfbdGame)
+        .where(CfbdGame.season_year == year)
+        .order_by(CfbdGame.start_date)
+    )
+    return [_cfbd_row_to_schema(g) for g in result.scalars().all()]
 
 
 @router.get("/{pool_id}", response_model=PoolDetailSchema)
@@ -192,18 +147,15 @@ async def add_pool_games(pool_id: int, body: PoolGameAdd, db: AsyncSession = Dep
     if not pool:
         raise HTTPException(status_code=404, detail="Pool not found")
 
-    try:
-        all_games = await fetch_games(pool.season_year)
-    except Exception:
-        raise HTTPException(status_code=502, detail="Failed to fetch games from CFBD")
+    # Validate requested ids against the landed cfbd_games table (no live CFBD).
+    existing = set(
+        (await db.execute(
+            select(CfbdGame.id).where(CfbdGame.id.in_(body.cfbd_game_ids))
+        )).scalars().all()
+    )
+    valid_ids = [cid for cid in body.cfbd_game_ids if cid in existing]
 
-    game_map = {g["id"]: g for g in all_games}
-    valid_ids = [cid for cid in body.cfbd_game_ids if cid in game_map]
-
-    # 1. Upsert cfbd_games rows
-    await _upsert_cfbd_games(db, [_cfbd_api_to_row(game_map[cid], pool.season_year) for cid in valid_ids])
-
-    # 2. Insert pool_games linkage (skip duplicates)
+    # Insert pool_games linkage (skip duplicates)
     for i, cfbd_id in enumerate(valid_ids):
         link_stmt = (
             pg_insert(PoolGame)
@@ -214,7 +166,7 @@ async def add_pool_games(pool_id: int, body: PoolGameAdd, db: AsyncSession = Dep
 
     await db.commit()
 
-    # 3. Return inserted rows with game data
+    # Return inserted rows with game data
     result = await db.execute(
         select(PoolGame)
         .options(joinedload(PoolGame.cfbd_game))
@@ -227,6 +179,23 @@ async def add_pool_games(pool_id: int, body: PoolGameAdd, db: AsyncSession = Dep
     )
     created = list(result.scalars().all())
     return [PoolGameSchema.model_validate(pg) for pg in created]
+
+
+@router.delete("/{pool_id}/games/{pool_game_id}")
+async def remove_pool_game(pool_id: int, pool_game_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PoolGame).where(
+            PoolGame.id == pool_game_id,
+            PoolGame.pool_id == pool_id,
+            PoolGame.deleted_at.is_(None),
+        )
+    )
+    pool_game = result.scalar_one_or_none()
+    if not pool_game:
+        raise HTTPException(status_code=404, detail="Pool game not found")
+    pool_game.deleted_at = datetime.utcnow()
+    await db.commit()
+    return {"ok": True}
 
 
 VALID_PLAYOFF_SLOTS = {

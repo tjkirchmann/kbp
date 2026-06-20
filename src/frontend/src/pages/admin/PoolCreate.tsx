@@ -1,16 +1,19 @@
 import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Loader2, Minus, Plus } from 'lucide-react'
+import { Loader2, Minus, Plus, Check, Trash2, ListChecks, CircleSlash } from 'lucide-react'
 import {
   useCreatePool,
   useCfbdGames,
   useAddPoolGames,
   useUpdateBracket,
   useUpdateMultipliers,
+  useRemovePoolGame,
+  useDeletePool,
   type CfbdGame,
   type PoolGameDetail,
 } from '@/services/useAdminPools'
+import { useAdminTeams } from '@/services/useAdminTeams'
 
 type Step = 'step1' | 'step2' | 'step3' | 'step4'
 
@@ -90,6 +93,9 @@ export default function PoolCreate() {
   const addGames = useAddPoolGames()
   const updateBracket = useUpdateBracket()
   const updateMultipliers = useUpdateMultipliers()
+  const removePoolGame = useRemovePoolGame()
+  const deletePool = useDeletePool()
+  const { data: teams = [] } = useAdminTeams()
 
   const [step, setStep] = useState<Step>('step1')
   const [name, setName] = useState('')
@@ -98,10 +104,13 @@ export default function PoolCreate() {
   const [newPoolYear, setNewPoolYear] = useState<number | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [step2Tab, setStep2Tab] = useState<'finder' | 'selected'>('finder')
-  const [finderSeasonType, setFinderSeasonType] = useState('postseason')
-  const [finderClass, setFinderClass] = useState('all')
+  const [finderSeasonType, setFinderSeasonType] = useState('all')
+  const [finderClass, setFinderClass] = useState('fbs')
+  const [finderWeek, setFinderWeek] = useState('all')
   const [selectedSeasonType, setSelectedSeasonType] = useState('all')
   const [selectedClass, setSelectedClass] = useState('all')
+  const [selectedWeek, setSelectedWeek] = useState('all')
+  const [bracketMode, setBracketMode] = useState<'assign' | 'skip'>('skip')
 
   // State populated after step 2 — used by steps 3 & 4
   const [poolGames, setPoolGames] = useState<PoolGameDetail[]>([])
@@ -127,18 +136,32 @@ export default function PoolCreate() {
     return [...vals].sort()
   }, [cfbdGames])
 
+  const weekOptions = useMemo(() => {
+    const vals = [...new Set(cfbdGames.map(g => g.week).filter((w): w is number => w != null))]
+    return vals.sort((a, b) => a - b)
+  }, [cfbdGames])
+
+  // school → team flavor (logos/colors) for the step-4 review table
+  const teamMeta = useMemo(() => {
+    const m = new Map<string, { logo: string | null; color: string | null }>()
+    teams.forEach(t => m.set(t.school, { logo: t.logos?.[0] ?? null, color: t.color }))
+    return m
+  }, [teams])
+
   const finderGames = useMemo(() => cfbdGames.filter(g => {
     if (finderSeasonType !== 'all' && g.season_type !== finderSeasonType) return false
     if (finderClass !== 'all' && g.home_classification !== finderClass && g.away_classification !== finderClass) return false
+    if (finderWeek !== 'all' && String(g.week) !== finderWeek) return false
     return true
-  }), [cfbdGames, finderSeasonType, finderClass])
+  }), [cfbdGames, finderSeasonType, finderClass, finderWeek])
 
   const selectedGames = useMemo(() => cfbdGames.filter(g => {
     if (!selected.has(g.id)) return false
     if (selectedSeasonType !== 'all' && g.season_type !== selectedSeasonType) return false
     if (selectedClass !== 'all' && g.home_classification !== selectedClass && g.away_classification !== selectedClass) return false
+    if (selectedWeek !== 'all' && String(g.week) !== selectedWeek) return false
     return true
-  }), [cfbdGames, selected, selectedSeasonType, selectedClass])
+  }), [cfbdGames, selected, selectedSeasonType, selectedClass, selectedWeek])
 
   async function handleCreatePool() {
     const pool = await createPool.mutateAsync({ name: name.trim(), season_year: seasonYear })
@@ -151,34 +174,89 @@ export default function PoolCreate() {
     if (!newPoolId || selected.size === 0) return
     const games = await addGames.mutateAsync({ poolId: newPoolId, cfbdGameIds: [...selected] })
     setPoolGames(games)
-    const initMultipliers: Record<number, number> = {}
-    games.forEach(pg => { initMultipliers[pg.id] = 1 })
-    setMultipliers(initMultipliers)
+    // Preserve any multipliers already set; default new games to 1x
+    setMultipliers(prev => {
+      const next: Record<number, number> = {}
+      games.forEach(pg => { next[pg.id] = prev[pg.id] ?? 1 })
+      return next
+    })
+    // Default the bracket step to "skip" unless there are postseason games
+    setBracketMode(games.some(pg => pg.season_type === 'postseason') ? 'assign' : 'skip')
     setStep('step3')
   }
 
-  async function handleBracketNext() {
+  // Persist the current bracket assignments. Returns false (and sets an error)
+  // when the bracket is invalid so callers can block the transition.
+  async function persistBracket(): Promise<boolean> {
     const err = validateBracket(slotToGame)
-    if (err) { setBracketError(err); return }
+    if (err) { setBracketError(err); return false }
     setBracketError(null)
-
-    if (newPoolId && Object.keys(slotToGame).length > 0) {
+    if (newPoolId) {
       const assignments = Object.entries(slotToGame).map(([slot, pgId]) => ({
         pool_game_id: pgId,
         playoff_slot: slot,
       }))
       await updateBracket.mutateAsync({ poolId: newPoolId, assignments })
     }
+    return true
+  }
+
+  async function handleBracketNext() {
+    if (await persistBracket()) setStep('step4')
+  }
+
+  // Step 3 "Back" — persist before leaving so assignments aren't lost going back.
+  async function handleBracketBack() {
+    if (bracketMode === 'skip' || await persistBracket()) setStep('step2')
+  }
+
+  function handleSkipBracket() {
+    setBracketError(null)
+    setSlotToGame({})
     setStep('step4')
   }
 
-  async function handleFinish() {
+  async function handleRemovePoolGame(pgId: number) {
+    if (!newPoolId) return
+    await removePoolGame.mutateAsync({ poolId: newPoolId, poolGameId: pgId })
+    const game = poolGames.find(pg => pg.id === pgId)
+    setPoolGames(prev => prev.filter(pg => pg.id !== pgId))
+    setMultipliers(prev => { const n = { ...prev }; delete n[pgId]; return n })
+    setSlotToGame(prev => {
+      const n = { ...prev }
+      for (const [slot, id] of Object.entries(n)) if (id === pgId) delete n[slot]
+      return n
+    })
+    if (game) {
+      setSelected(prev => { const n = new Set(prev); n.delete(game.cfbd_game_id); return n })
+    }
+  }
+
+  async function persistMultipliers() {
     if (!newPoolId) return
     const nonDefault = Object.entries(multipliers)
       .filter(([, v]) => v > 1)
       .map(([k, v]) => ({ pool_game_id: Number(k), multiplier: v }))
     if (nonDefault.length > 0) {
       await updateMultipliers.mutateAsync({ poolId: newPoolId, multipliers: nonDefault })
+    }
+  }
+
+  // Step 4 -> step 2 ("Add games" / Back), persisting multipliers first.
+  async function handleBackToStep2FromReview() {
+    await persistMultipliers()
+    setStep('step2')
+  }
+
+  async function handleFinish() {
+    await persistMultipliers()
+    navigate('/admin/pools')
+  }
+
+  // Cancel rolls back the pool created at step 1 (no-op if not yet created).
+  async function handleCancel() {
+    if (newPoolId) {
+      try { await deletePool.mutateAsync(newPoolId) } catch { /* best-effort rollback */ }
     }
     navigate('/admin/pools')
   }
@@ -229,7 +307,7 @@ export default function PoolCreate() {
             {createPool.isPending && <Loader2 className="size-4 animate-spin" />}
             Next: Select Games
           </button>
-          <button onClick={() => navigate('/admin/pools')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
             Cancel
           </button>
         </div>
@@ -245,6 +323,8 @@ export default function PoolCreate() {
     const setActiveSeasonType = isFinder ? setFinderSeasonType : setSelectedSeasonType
     const activeClass = isFinder ? finderClass : selectedClass
     const setActiveClass = isFinder ? setFinderClass : setSelectedClass
+    const activeWeek = isFinder ? finderWeek : selectedWeek
+    const setActiveWeek = isFinder ? setFinderWeek : setSelectedWeek
     const activeGames = isFinder ? finderGames : selectedGames
 
     return (
@@ -269,7 +349,7 @@ export default function PoolCreate() {
         {!gamesLoading && cfbdGames.length > 0 && (
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-foreground">Season</label>
+              <label className="text-xs text-muted-foreground">Season Stage</label>
               <select
                 value={activeSeasonType}
                 onChange={e => setActiveSeasonType(e.target.value)}
@@ -278,6 +358,19 @@ export default function PoolCreate() {
                 <option value="all">All</option>
                 {seasonTypeOptions.map(v => (
                   <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted-foreground">Week</label>
+              <select
+                value={activeWeek}
+                onChange={e => setActiveWeek(e.target.value)}
+                className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="all">All</option>
+                {weekOptions.map(v => (
+                  <option key={v} value={String(v)}>Week {v}</option>
                 ))}
               </select>
             </div>
@@ -349,7 +442,7 @@ export default function PoolCreate() {
             {addGames.isPending && <Loader2 className="size-4 animate-spin" />}
             Next: Configure Bracket
           </button>
-          <button onClick={() => navigate('/admin/pools')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
             Cancel
           </button>
         </div>
@@ -391,12 +484,40 @@ export default function PoolCreate() {
       { round: 'championship', slots: BRACKET_SLOTS.filter(s => s.round === 'championship') },
     ]
 
+    const hasPostseason = poolGames.some(pg => pg.season_type === 'postseason')
+
     return (
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">Step 3 of 4 — Playoff bracket <span className="text-xs">(optional)</span></p>
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={() => { setBracketError(null); setBracketMode('assign') }}
+            className={`text-left rounded-xl border px-4 py-3 transition-colors ${bracketMode === 'assign' ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border/20 bg-white/[0.03] hover:bg-white/[0.05]'}`}
+          >
+            <div className="flex items-center gap-2">
+              <ListChecks className={`size-4 ${bracketMode === 'assign' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className="text-sm font-medium text-foreground">Assign playoff bracket</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Map selected games onto CFP bracket slots.</p>
+          </button>
+          <button
+            onClick={() => { setBracketError(null); setSlotToGame({}); setBracketMode('skip') }}
+            className={`text-left rounded-xl border px-4 py-3 transition-colors ${bracketMode === 'skip' ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border/20 bg-white/[0.03] hover:bg-white/[0.05]'}`}
+          >
+            <div className="flex items-center gap-2">
+              <CircleSlash className={`size-4 ${bracketMode === 'skip' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span className="text-sm font-medium text-foreground">Skip playoff assignments</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {hasPostseason ? 'No bracket — score all games the same way.' : 'No postseason games in this pool.'}
+            </p>
+          </button>
+        </div>
+
+        {bracketMode === 'assign' && (
         <div className="space-y-6">
           {roundGroups.map(({ round, slots }) => (
             <div key={round} className="space-y-2">
@@ -435,6 +556,7 @@ export default function PoolCreate() {
             </div>
           ))}
         </div>
+        )}
 
         {bracketError && (
           <p className="text-sm text-destructive">{bracketError}</p>
@@ -442,18 +564,19 @@ export default function PoolCreate() {
 
         <div className="flex items-center gap-3 pt-2">
           <button
-            onClick={handleBracketNext}
+            onClick={bracketMode === 'assign' ? handleBracketNext : handleSkipBracket}
             disabled={updateBracket.isPending}
             className="btn-primary px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {updateBracket.isPending && <Loader2 className="size-4 animate-spin" />}
-            Next: Multipliers
+            Next: Review &amp; Multipliers
           </button>
           <button
-            onClick={() => setStep('step4')}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={handleBracketBack}
+            disabled={updateBracket.isPending}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
           >
-            Skip
+            Back
           </button>
         </div>
       </div>
@@ -469,64 +592,117 @@ export default function PoolCreate() {
   }
 
   return (
-    <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">Step 4 of 4 — Multipliers</p>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {poolGames.map(pg => {
-          const matchup = pg.neutral_site
-            ? `${pg.away_team} vs ${pg.home_team}`
-            : `${pg.away_team} at ${pg.home_team}`
-          const title = pg.bowl_name ? `${pg.bowl_name}, ${matchup}` : matchup
-          const slotKey = gameIdToSlotKey[pg.id]
-          const slot = slotKey ? SLOT_BY_KEY[slotKey] : null
-          const mult = multipliers[pg.id] ?? 1
-
-          return (
-            <div key={pg.id} className="rounded-lg bg-white/[0.03] border border-border/20 px-4 py-3 flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium text-foreground leading-snug truncate">{title}</p>
-                {slot && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0 ${ROUND_COLORS[slot.round]}`}>
-                    {ROUND_LABELS[slot.round]}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center justify-end gap-2 mt-1">
-                <button
-                  onClick={() => setMultipliers(prev => ({ ...prev, [pg.id]: Math.max(1, (prev[pg.id] ?? 1) - 1) }))}
-                  disabled={mult <= 1}
-                  className="size-7 flex items-center justify-center rounded-md border border-border bg-muted hover:bg-muted/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Minus className="size-3" />
-                </button>
-                <span className="text-sm font-semibold text-foreground w-8 text-center">{mult}x</span>
-                <button
-                  onClick={() => setMultipliers(prev => ({ ...prev, [pg.id]: (prev[pg.id] ?? 1) + 1 }))}
-                  className="size-7 flex items-center justify-center rounded-md border border-border bg-muted hover:bg-muted/60 transition-colors"
-                >
-                  <Plus className="size-3" />
-                </button>
-              </div>
-            </div>
-          )
-        })}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">Step 4 of 4 — Review &amp; assign multipliers · {poolGames.length} games</p>
+        <button
+          onClick={handleBackToStep2FromReview}
+          disabled={updateMultipliers.isPending}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-medium hover:bg-primary/25 transition-colors disabled:opacity-50"
+        >
+          <Plus className="size-4" />
+          Add games
+        </button>
       </div>
+
+      {poolGames.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-8">No games in this pool. Use “Add games” to pick some.</p>
+      ) : (
+        <div className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden">
+          <div className="flex items-center border-b border-border/40 text-xs font-medium text-muted-foreground">
+            <div className="px-5 py-2.5 flex-[3]">Matchup</div>
+            <div className="px-5 py-2.5 flex-[2]">Date</div>
+            <div className="px-5 py-2.5 flex-[1.5]">Playoff</div>
+            <div className="px-5 py-2.5 flex-[1.5] text-center">Multiplier</div>
+            <div className="px-5 py-2.5 flex-[0.5]" />
+          </div>
+          {poolGames.map(pg => {
+            const slotKey = gameIdToSlotKey[pg.id]
+            const slot = slotKey ? SLOT_BY_KEY[slotKey] : null
+            const mult = multipliers[pg.id] ?? 1
+            const dateTime = formatGameTime(pg.start_date, pg.start_time_tbd)
+            const sep = pg.neutral_site ? 'vs' : 'at'
+
+            return (
+              <div key={pg.id} className="flex items-center border-t border-border/20 hover:bg-[rgba(26,30,42,0.4)] transition-colors">
+                <div className="px-5 py-2.5 flex-[3] min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <TeamBadge name={pg.away_team} meta={teamMeta.get(pg.away_team)} />
+                    <span className="text-xs text-muted-foreground shrink-0">{sep}</span>
+                    <TeamBadge name={pg.home_team} meta={teamMeta.get(pg.home_team)} />
+                  </div>
+                  {pg.bowl_name && <span className="text-xs text-muted-foreground truncate block mt-0.5">{pg.bowl_name}</span>}
+                </div>
+                <div className="px-5 py-2.5 flex-[2] text-xs text-muted-foreground">
+                  {dateTime || '—'}{pg.week != null ? ` · Wk ${pg.week}` : ''}
+                </div>
+                <div className="px-5 py-2.5 flex-[1.5]">
+                  {slot
+                    ? <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${ROUND_COLORS[slot.round]}`}>{ROUND_LABELS[slot.round]}</span>
+                    : <span className="text-xs text-muted-foreground">—</span>}
+                </div>
+                <div className="px-5 py-2.5 flex-[1.5]">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => setMultipliers(prev => ({ ...prev, [pg.id]: Math.max(1, (prev[pg.id] ?? 1) - 1) }))}
+                      disabled={mult <= 1}
+                      className="size-7 flex items-center justify-center rounded-md border border-border bg-muted hover:bg-muted/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Minus className="size-3" />
+                    </button>
+                    <span className="text-sm font-semibold text-foreground w-8 text-center">{mult}x</span>
+                    <button
+                      onClick={() => setMultipliers(prev => ({ ...prev, [pg.id]: (prev[pg.id] ?? 1) + 1 }))}
+                      className="size-7 flex items-center justify-center rounded-md border border-border bg-muted hover:bg-muted/60 transition-colors"
+                    >
+                      <Plus className="size-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="px-5 py-2.5 flex-[0.5] flex justify-end">
+                  <button
+                    onClick={() => handleRemovePoolGame(pg.id)}
+                    disabled={removePoolGame.isPending}
+                    title="Remove game"
+                    className="size-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 transition-colors"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 pt-2">
         <button
           onClick={handleFinish}
-          disabled={updateMultipliers.isPending}
+          disabled={updateMultipliers.isPending || poolGames.length === 0}
           className="btn-primary px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {updateMultipliers.isPending && <Loader2 className="size-4 animate-spin" />}
           Create Pool
         </button>
-        <button onClick={() => navigate('/admin/pools')} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
           Cancel
         </button>
       </div>
     </div>
+  )
+}
+
+// ─── Team badge (Step 4 table) ──────────────────────────────────────────────────
+
+function TeamBadge({ name, meta }: { name: string; meta?: { logo: string | null; color: string | null } }) {
+  const logo = meta?.logo ?? null
+  return (
+    <span className="flex items-center gap-1.5 min-w-0">
+      {logo
+        ? <img src={logo} alt={name} className="size-4 object-contain shrink-0" />
+        : <span className="size-4 rounded bg-muted/40 shrink-0" />}
+      <span className="text-sm font-medium text-foreground truncate">{name}</span>
+    </span>
   )
 }
 
@@ -612,7 +788,13 @@ function GameRow({ game, checked, onToggle }: { game: CfbdGame; checked: boolean
 
   return (
     <label className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer h-full">
-      <input type="checkbox" checked={checked} onChange={onToggle} className="rounded border-border accent-primary size-4 shrink-0" />
+      <input type="checkbox" checked={checked} onChange={onToggle} className="sr-only peer" />
+      <span
+        aria-hidden
+        className={`size-4 shrink-0 rounded-[5px] border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary' : 'bg-white/[0.03] border-border'}`}
+      >
+        {checked && <Check className="size-3 text-primary-foreground" strokeWidth={3} />}
+      </span>
       <div className={STATUS_DOT[status]} title={status === 'final' ? 'Final' : status === 'live' ? 'In Progress' : 'Upcoming'} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">

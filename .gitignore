@@ -11,6 +11,7 @@ inspiration/
 # Vite build info
 src/frontend/tsconfig.app.tsbuildinfo
 src/frontend/tsconfig.node.tsbuildinfo
+src/frontend/vite.config.ts.timestamp-*.mjs
 
 # Swap files
 *.swp

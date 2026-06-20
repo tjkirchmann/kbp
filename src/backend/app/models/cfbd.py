@@ -23,6 +23,7 @@ class CfbdGame(Base):
     away_team: Mapped[str] = mapped_column(String, nullable=False)
     start_date: Mapped[datetime] = mapped_column(nullable=False)
     start_time_tbd: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    week: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     bowl_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     season_type: Mapped[str] = mapped_column(String, nullable=False, server_default="regular")
     season_year: Mapped[int] = mapped_column(Integer, nullable=False)
