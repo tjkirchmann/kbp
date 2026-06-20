@@ -241,7 +241,7 @@ async def submit_entry(
         )
 
     sub.is_locked = True
-    sub.submitted_at = datetime.now(timezone.utc)
+    sub.submitted_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await db.commit()
     await db.refresh(sub)
     return sub
