@@ -28,6 +28,7 @@ class PoolGameSchema(BaseModel):
     away_team: str
     start_date: datetime
     start_time_tbd: bool = False
+    week: int | None = None
     bowl_name: str | None = None
     season_type: str = 'postseason'
     home_classification: str | None = None
@@ -55,6 +56,7 @@ class PoolGameSchema(BaseModel):
             away_team=cg.away_team,
             start_date=cg.start_date,
             start_time_tbd=cg.start_time_tbd,
+            week=cg.week,
             bowl_name=cg.bowl_name,
             season_type=cg.season_type,
             home_classification=cg.home_classification,
@@ -75,6 +77,7 @@ class CfbdGameSchema(BaseModel):
     away_team: str
     start_date: str
     start_time_tbd: bool
+    week: int | None = None
     bowl_name: str | None
     season_type: str
     home_classification: str | None

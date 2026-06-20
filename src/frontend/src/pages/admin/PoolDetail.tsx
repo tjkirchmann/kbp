@@ -14,6 +14,7 @@ function gameDetailToCfbd(g: PoolGameDetail): CfbdGame {
     away_team: g.away_team,
     start_date: g.start_date,
     start_time_tbd: g.start_time_tbd,
+    week: g.week,
     bowl_name: g.bowl_name,
     season_type: g.season_type,
     home_classification: g.home_classification,

@@ -19,6 +19,7 @@ export interface CfbdGame {
   away_team: string
   start_date: string
   start_time_tbd: boolean
+  week: number | null
   bowl_name: string | null
   season_type: string
   home_classification: string | null
@@ -89,6 +90,7 @@ export interface PoolGameDetail {
   away_team: string
   start_date: string
   start_time_tbd: boolean
+  week: number | null
   bowl_name: string | null
   season_type: string
   home_classification: string | null
@@ -161,6 +163,21 @@ export function useAddPoolGames() {
       }) as Promise<PoolGameDetail[]>
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'pools'] }),
+  })
+}
+
+export function useRemovePoolGame() {
+  const { getToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ poolId, poolGameId }: { poolId: number; poolGameId: number }) => {
+      const token = await getToken()
+      return authFetch(token!, `/admin/pools/${poolId}/games/${poolGameId}`, { method: 'DELETE' })
+    },
+    onSuccess: (_data, { poolId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'pools'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'pools', poolId] })
+    },
   })
 }
 

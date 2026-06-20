@@ -30,6 +30,7 @@ def _cfbd_api_to_row(g: dict, year: int) -> dict:
         "away_team": g.get("awayTeam", ""),
         "start_date": start_date,
         "start_time_tbd": g.get("startTimeTBD", False),
+        "week": g.get("week"),
         "bowl_name": g.get("notes") or None,
         "season_type": g.get("seasonType", "regular"),
         "season_year": year,
@@ -53,6 +54,7 @@ def _cfbd_api_to_schema(g: dict) -> CfbdGameSchema:
         away_team=g.get("awayTeam", ""),
         start_date=g.get("startDate", ""),
         start_time_tbd=g.get("startTimeTBD", False),
+        week=g.get("week"),
         bowl_name=g.get("notes") or None,
         season_type=g.get("seasonType", "regular"),
         home_classification=g.get("homeClassification") or None,
@@ -67,7 +69,7 @@ def _cfbd_api_to_schema(g: dict) -> CfbdGameSchema:
     )
 
 
-_UPSERT_COLS = 18  # number of columns in cfbd_games
+_UPSERT_COLS = 19  # number of columns in cfbd_games
 _BATCH_SIZE = 32767 // _UPSERT_COLS  # max rows per upsert to stay under asyncpg's 32767 param limit
 
 
@@ -227,6 +229,23 @@ async def add_pool_games(pool_id: int, body: PoolGameAdd, db: AsyncSession = Dep
     )
     created = list(result.scalars().all())
     return [PoolGameSchema.model_validate(pg) for pg in created]
+
+
+@router.delete("/{pool_id}/games/{pool_game_id}")
+async def remove_pool_game(pool_id: int, pool_game_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PoolGame).where(
+            PoolGame.id == pool_game_id,
+            PoolGame.pool_id == pool_id,
+            PoolGame.deleted_at.is_(None),
+        )
+    )
+    pool_game = result.scalar_one_or_none()
+    if not pool_game:
+        raise HTTPException(status_code=404, detail="Pool game not found")
+    pool_game.deleted_at = datetime.utcnow()
+    await db.commit()
+    return {"ok": True}
 
 
 VALID_PLAYOFF_SLOTS = {
