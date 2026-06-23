@@ -16,7 +16,7 @@ from app.core.database import Base
 from app.models.cfbd import CfbdGame
 
 
-class ScoringStrategy(str, enum.Enum):
+class ScoringStrategy(enum.StrEnum):
     tbd = "tbd"
 
 

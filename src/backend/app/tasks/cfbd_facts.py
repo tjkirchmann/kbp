@@ -820,8 +820,9 @@ _SYNCERS: dict[str, Callable[[Any, list[dict], int], Awaitable[tuple[int, int]]]
         model=CfbdCalendar,
         index_elements=("season", "season_type", "week"),
         expand=_expand_calendar,
-        entity_id=lambda it,
-        yr: f"{it.get('season') or yr}:{it.get('seasonType') or 'regular'}:{it.get('week')}",
+        entity_id=lambda it, yr: (
+            f"{it.get('season') or yr}:{it.get('seasonType') or 'regular'}:{it.get('week')}"
+        ),
     ),
     "records": _make_generic(
         entity_type="cfbd_team_record",
@@ -919,8 +920,9 @@ _SYNCERS: dict[str, Callable[[Any, list[dict], int], Awaitable[tuple[int, int]]]
         model=CfbdGameMedia,
         index_elements=("game_id", "media_type", "outlet"),
         expand=_expand_game_media,
-        entity_id=lambda it,
-        yr: f"{it.get('id')}:{it.get('mediaType')}:{it.get('outlet')}",
+        entity_id=lambda it, yr: (
+            f"{it.get('id')}:{it.get('mediaType')}:{it.get('outlet')}"
+        ),
     ),
     "game_weather": _make_generic(
         entity_type="cfbd_game_weather",
