@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import time
 from typing import Any
 
@@ -6,7 +8,34 @@ import httpx
 from app.core.config import settings
 from app.services.sync.providers.base import SyncProvider
 
+logger = logging.getLogger(__name__)
+
 CFBD_BASE = "https://api.collegefootballdata.com"
+
+# 429-aware retry for CFBD GETs. Under the cfbd_facts fan-out (endpoint
+# concurrency × week/season paging) CFBD intermittently throttles; a raw 429
+# would abort a whole season's paged pull and burn a Temporal activity attempt.
+# Honor Retry-After when present, otherwise exponential backoff.
+_RATE_LIMIT_MAX_RETRIES = 4
+_RATE_LIMIT_BASE_DELAY = 2.0  # seconds
+
+
+async def _get_with_retry(client: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+    for attempt in range(_RATE_LIMIT_MAX_RETRIES + 1):
+        resp = await client.get(url, **kwargs)
+        if resp.status_code != 429 or attempt == _RATE_LIMIT_MAX_RETRIES:
+            resp.raise_for_status()
+            return resp
+        retry_after = resp.headers.get("Retry-After")
+        try:
+            delay = float(retry_after) if retry_after else _RATE_LIMIT_BASE_DELAY * (2**attempt)
+        except ValueError:
+            delay = _RATE_LIMIT_BASE_DELAY * (2**attempt)
+        logger.warning("CFBD 429 on %s; retry %d/%d in %.1fs", url, attempt + 1,
+                       _RATE_LIMIT_MAX_RETRIES, delay)
+        await asyncio.sleep(delay)
+    # Unreachable: the loop either returns or raises on the final attempt.
+    raise RuntimeError("unreachable")
 
 _games_cache: dict[int, tuple[list[dict], float]] = {}
 GAMES_CACHE_TTL = 900  # 15 minutes
@@ -114,24 +143,24 @@ class CfbdProvider(SyncProvider):
             if params.get("season_type"):
                 query["seasonType"] = params["season_type"]
             async with httpx.AsyncClient() as client:
-                resp = await client.get(
+                resp = await _get_with_retry(
+                    client,
                     f"{CFBD_BASE}{_FACT_ENDPOINTS[endpoint]}",
                     params=query,
                     headers=self._headers(),
                     timeout=60.0,  # full-season fact payloads can be large
                 )
-                resp.raise_for_status()
                 return resp.json()
         if endpoint in _FACT_YEAR_RANGE_ENDPOINTS:
             year = params["year"]
             async with httpx.AsyncClient() as client:
-                resp = await client.get(
+                resp = await _get_with_retry(
+                    client,
                     f"{CFBD_BASE}{_FACT_YEAR_RANGE_ENDPOINTS[endpoint]}",
                     params={"startYear": year, "endYear": year},
                     headers=self._headers(),
                     timeout=60.0,
                 )
-                resp.raise_for_status()
                 return resp.json()
         if endpoint in _FACT_SEASONTYPE_ENDPOINTS:
             return await self._fetch_by_season_type(
@@ -154,13 +183,13 @@ class CfbdProvider(SyncProvider):
         out: list[dict] = []
         async with httpx.AsyncClient() as client:
             for season_type in ("regular", "postseason"):
-                resp = await client.get(
+                resp = await _get_with_retry(
+                    client,
                     f"{CFBD_BASE}{path}",
                     params={"year": year, "seasonType": season_type},
                     headers=self._headers(),
                     timeout=60.0,
                 )
-                resp.raise_for_status()
                 data = resp.json()
                 if data:
                     out.extend(data)
@@ -178,13 +207,13 @@ class CfbdProvider(SyncProvider):
         async with httpx.AsyncClient() as client:
             for season_type in ("regular", "postseason"):
                 for week in range(1, _MAX_WEEK + 1):
-                    resp = await client.get(
+                    resp = await _get_with_retry(
+                        client,
                         f"{CFBD_BASE}{path}",
                         params={"year": year, "seasonType": season_type, "week": week},
                         headers=self._headers(),
                         timeout=60.0,
                     )
-                    resp.raise_for_status()
                     data = resp.json()
                     if not data:  # first empty week ends this season type
                         break

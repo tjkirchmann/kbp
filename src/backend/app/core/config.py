@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = ""  # server-side ops (head/delete); empty → real AWS
     s3_public_endpoint_url: str = ""  # browser-facing presigning; empty → real AWS
     library_max_upload_bytes: int = 1_073_741_824  # 1 GB
+    # SQLAlchemy statement echo. Off by default — when on, every statement (incl.
+    # each of the millions of CFBD fact upserts) is logged, which is a real
+    # throughput drag. Flip to true only for local SQL debugging.
+    sql_echo: bool = False
 
     # Temporal. Local self-host defaults; for Temporal Cloud set temporal_api_key
     # (+ leave temporal_tls implied) and point temporal_address/namespace at the
@@ -30,6 +34,9 @@ class Settings(BaseSettings):
     temporal_task_queue: str = "kbp-default"
     temporal_tls: bool = False
     temporal_api_key: str = ""
+    # Cron (5-field, UTC) for the CFBD facts Temporal Schedule. Default: daily at
+    # 08:00 UTC. See app/temporal/cfbd_facts/schedule.py.
+    temporal_cfbd_facts_cron: str = "0 8 * * *"
 
     class Config:
         env_file = ".env"
