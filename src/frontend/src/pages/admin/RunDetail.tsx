@@ -19,19 +19,27 @@ export default function RunDetail() {
     return (
       <div className="text-sm text-muted-foreground py-8">
         Run not found.{' '}
-        <button onClick={() => navigate('/admin/sync')} className="text-primary hover:underline">Back to Sync</button>
+        <button onClick={() => navigate('/admin/sync')} className="text-primary hover:underline">
+          Back to Sync
+        </button>
       </div>
     )
   }
 
   const fields: [string, React.ReactNode][] = [
-    ['Task', <Link to={`/admin/sync/tasks/${run.task_name}`} className="text-primary hover:underline">{prettyTaskName(run.task_name)}</Link>],
-    ['Status', (
+    [
+      'Task',
+      <Link to={`/admin/sync/tasks/${run.task_name}`} className="text-primary hover:underline">
+        {prettyTaskName(run.task_name)}
+      </Link>,
+    ],
+    [
+      'Status',
       <span className="inline-flex items-center gap-1.5">
         <span className={`size-2 rounded-full ${statusDotColor(run.status)}`} />
         {statusLabel(run.status)}
-      </span>
-    )],
+      </span>,
+    ],
     ['Queue', run.queue_name],
     ['Priority', run.priority],
     ['Attempts', run.attempts],
@@ -46,7 +54,11 @@ export default function RunDetail() {
   return (
     <div className="flex flex-col gap-4 max-w-2xl">
       <div className="rounded-xl overflow-hidden bg-white/[0.03] border border-border/20">
-        {fields.map(([label, value]) => <Field key={label} label={label}>{value}</Field>)}
+        {fields.map(([label, value]) => (
+          <Field key={label} label={label}>
+            {value}
+          </Field>
+        ))}
       </div>
 
       {TERMINAL_FAIL.includes(run.status) && (

@@ -16,7 +16,8 @@ interface Props {
 }
 
 function teamLogo(game: PoolGame, winner: string): string | null {
-  const meta: TeamMeta | null = winner === game.away_team ? game.away_team_meta : game.home_team_meta
+  const meta: TeamMeta | null =
+    winner === game.away_team ? game.away_team_meta : game.home_team_meta
   return meta?.logos?.[0] ?? null
 }
 
@@ -33,11 +34,11 @@ export default function ReviewStep({ poolId, submissionId, entryName }: Props) {
   const { data: mySubmissions = [] } = useMySubmissions(poolId)
   const submit = useSubmitEntry(submissionId)
 
-  const submission = mySubmissions.find(s => s.id === submissionId)
+  const submission = mySubmissions.find((s) => s.id === submissionId)
   const isSubmitted = submission?.is_locked || submit.isSuccess
 
-  const pickByGame = new Map(picks.map(p => [p.pool_game_id, p]))
-  const missingCount = games.filter(g => !pickByGame.has(g.id)).length
+  const pickByGame = new Map(picks.map((p) => [p.pool_game_id, p]))
+  const missingCount = games.filter((g) => !pickByGame.has(g.id)).length
   const allPicked = games.length > 0 && missingCount === 0
 
   if (isSubmitted) {
@@ -47,7 +48,8 @@ export default function ReviewStep({ poolId, submissionId, entryName }: Props) {
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-foreground">Entry submitted</h2>
           <p className="text-sm text-muted-foreground">
-            {entryName ? `${entryName}'s picks are locked in.` : 'Your picks are locked in.'} Good luck!
+            {entryName ? `${entryName}'s picks are locked in.` : 'Your picks are locked in.'} Good
+            luck!
           </p>
         </div>
         <button
@@ -70,7 +72,7 @@ export default function ReviewStep({ poolId, submissionId, entryName }: Props) {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1">
-        {games.map(game => {
+        {games.map((game) => {
           const pick = pickByGame.get(game.id)
           const logo = pick ? teamLogo(game, pick.picked_winner) : null
           return (
@@ -83,10 +85,19 @@ export default function ReviewStep({ poolId, submissionId, entryName }: Props) {
                 {pick ? (
                   <div className="flex items-center gap-2 mt-0.5">
                     {logo ? (
-                      <img src={logo} alt="" className="size-5 object-contain shrink-0" draggable={false} />
+                      <img
+                        src={logo}
+                        alt=""
+                        className="size-5 object-contain shrink-0"
+                        draggable={false}
+                      />
                     ) : null}
-                    <span className="text-sm font-medium text-foreground truncate">{pick.picked_winner}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">by {pick.picked_margin}</span>
+                    <span className="text-sm font-medium text-foreground truncate">
+                      {pick.picked_winner}
+                    </span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      by {pick.picked_margin}
+                    </span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 mt-0.5 text-amber-400">
@@ -103,11 +114,14 @@ export default function ReviewStep({ poolId, submissionId, entryName }: Props) {
       <div className="shrink-0 space-y-2">
         {!allPicked && (
           <p className="text-xs text-amber-400 text-center">
-            {missingCount} game{missingCount === 1 ? '' : 's'} still need a pick before you can submit.
+            {missingCount} game{missingCount === 1 ? '' : 's'} still need a pick before you can
+            submit.
           </p>
         )}
         {submit.isError && (
-          <p className="text-xs text-destructive text-center">Something went wrong. Please try again.</p>
+          <p className="text-xs text-destructive text-center">
+            Something went wrong. Please try again.
+          </p>
         )}
         <button
           onClick={() => submit.mutate()}

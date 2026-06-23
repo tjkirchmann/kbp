@@ -20,6 +20,10 @@ def extract_espn_scores(payload: dict) -> dict:
         "status_detail": status_type.get("detail"),
         "period": comp["status"].get("period"),
         "clock": comp["status"].get("displayClock"),
-        "home_score": int(competitors["home"]["score"]) if competitors.get("home") and competitors["home"].get("score") is not None else None,
-        "away_score": int(competitors["away"]["score"]) if competitors.get("away") and competitors["away"].get("score") is not None else None,
+        "home_score": int(competitors["home"]["score"])
+        if competitors.get("home") and competitors["home"].get("score") is not None
+        else None,
+        "away_score": int(competitors["away"]["score"])
+        if competitors.get("away") and competitors["away"].get("score") is not None
+        else None,
     }

@@ -27,7 +27,9 @@ class NotificationService:
     def register(self, strategy: NotificationStrategy) -> None:
         self._strategies[strategy.name] = strategy
 
-    async def notify(self, *, strategy: str, config: dict, event: str, payload: dict) -> None:
+    async def notify(
+        self, *, strategy: str, config: dict, event: str, payload: dict
+    ) -> None:
         impl = self._strategies.get(strategy)
         if impl is None:
             logger.warning("Unknown notification strategy %r; skipping", strategy)
@@ -35,7 +37,9 @@ class NotificationService:
         try:
             await impl.send(config=config, event=event, payload=payload)
         except Exception:
-            logger.exception("Notification delivery failed (strategy=%s event=%s)", strategy, event)
+            logger.exception(
+                "Notification delivery failed (strategy=%s event=%s)", strategy, event
+            )
 
 
 notification_service = NotificationService()

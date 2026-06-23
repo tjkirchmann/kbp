@@ -5,16 +5,20 @@ const API = import.meta.env.VITE_API_URL
 
 export interface AdminConfig {
   espn_rate_limit_per_minute: number
-  espn_alert_channel: string   // notification channel name; "" = none channel (silence)
+  espn_alert_channel: string // notification channel name; "" = none channel (silence)
   discord_bot_enabled: boolean
-  discord_bot_listen_channels: string   // comma-separated channel ids
+  discord_bot_listen_channels: string // comma-separated channel ids
   discord_bot_command_channel: string
 }
 
 async function authFetch(token: string, path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...init?.headers },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
   })
   if (!res.ok) throw new Error(`${res.status}`)
   return res.json()

@@ -98,6 +98,25 @@ Backend API + docs: `http://localhost:8000/docs`
 
 ---
 
+## Linting & pre-commit
+
+Linting/formatting is orchestrated by [pre-commit](https://pre-commit.com) via
+`.pre-commit-config.yaml` at the repo root:
+
+- **Backend** — [Ruff](https://docs.astral.sh/ruff/) lints and formats `src/backend`
+  (config in `src/backend/pyproject.toml`).
+- **Frontend** — ESLint + Prettier lint and format `src/frontend`
+  (`eslint.config.js`, `.prettierrc.json`; run as `npm run lint` / `npm run format`).
+
+```bash
+make install-hooks  # one-time: install the git pre-commit hook (needs uv)
+make lint           # lint + format the whole repo (pre-commit run --all-files)
+```
+
+Frontend tooling requires `npm install` in `src/frontend` first.
+
+---
+
 ## Key conventions
 
 ### Frontend

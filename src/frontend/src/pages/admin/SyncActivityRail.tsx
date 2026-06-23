@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  useRecentRuns, useUpcomingRuns, useRecentLiveness, useUpcomingLiveness,
-  RECENT_KEY, UPCOMING_KEY, UPCOMING_WINDOW_MS,
+  useRecentRuns,
+  useUpcomingRuns,
+  useRecentLiveness,
+  useUpcomingLiveness,
+  RECENT_KEY,
+  UPCOMING_KEY,
+  UPCOMING_WINDOW_MS,
 } from '@/services/useAdminSync'
 import type { GlobalRun, UpcomingRun } from '@/services/useAdminSync'
 import { RecentRow, UpcomingRow } from './SyncActivityRows'
@@ -23,7 +28,10 @@ export default function SyncActivityRail() {
   const seen = new Set<number>()
   const pastRuns: GlobalRun[] = []
   for (const r of recent.data?.pages.flat() ?? []) {
-    if (!seen.has(r.id)) { seen.add(r.id); pastRuns.push(r) }
+    if (!seen.has(r.id)) {
+      seen.add(r.id)
+      pastRuns.push(r)
+    }
   }
   // Dedupe future by composite key: the 60s upcoming refresh rewrites page 0, so a
   // fire can briefly exist on both page 0 and a later page — duplicate React keys
@@ -36,7 +44,10 @@ export default function SyncActivityRail() {
   for (const r of upcoming.data?.pages.flat() ?? []) {
     if (new Date(r.next_run_at).getTime() > futureCutoff) continue
     const k = `${r.task_name}:${r.next_run_at}`
-    if (!seenFuture.has(k)) { seenFuture.add(k); futureRuns.push(r) }
+    if (!seenFuture.has(k)) {
+      seenFuture.add(k)
+      futureRuns.push(r)
+    }
   }
 
   const scrollRef = useRef<HTMLElement>(null)
@@ -54,26 +65,34 @@ export default function SyncActivityRail() {
   // Scroll up (toward future) -> load more upcoming. 300px margin so scrollTop is never
   // 0 at insert time, keeping native scroll anchoring active for the prepend.
   useEffect(() => {
-    const root = scrollRef.current, el = topSentinelRef.current
+    const root = scrollRef.current,
+      el = topSentinelRef.current
     if (!root || !el) return
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && upcoming.hasNextPage && !upcoming.isFetchingNextPage) {
-        upcoming.fetchNextPage()
-      }
-    }, { root, rootMargin: '300px 0px 0px 0px' })
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting && upcoming.hasNextPage && !upcoming.isFetchingNextPage) {
+          upcoming.fetchNextPage()
+        }
+      },
+      { root, rootMargin: '300px 0px 0px 0px' },
+    )
     io.observe(el)
     return () => io.disconnect()
   }, [upcoming.hasNextPage, upcoming.isFetchingNextPage, upcoming.fetchNextPage])
 
   // Scroll down (toward past) -> load more recent. Appends below the fold; no anchoring needed.
   useEffect(() => {
-    const root = scrollRef.current, el = bottomSentinelRef.current
+    const root = scrollRef.current,
+      el = bottomSentinelRef.current
     if (!root || !el) return
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && recent.hasNextPage && !recent.isFetchingNextPage) {
-        recent.fetchNextPage()
-      }
-    }, { root, rootMargin: '0px 0px 200px 0px' })
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting && recent.hasNextPage && !recent.isFetchingNextPage) {
+          recent.fetchNextPage()
+        }
+      },
+      { root, rootMargin: '0px 0px 200px 0px' },
+    )
     io.observe(el)
     return () => io.disconnect()
   }, [recent.hasNextPage, recent.isFetchingNextPage, recent.fetchNextPage])
@@ -83,7 +102,8 @@ export default function SyncActivityRail() {
   const ready = recent.isSuccess && upcoming.isSuccess
   const didCenter = useRef(false)
   const center = useCallback(() => {
-    const root = scrollRef.current, marker = nowRef.current
+    const root = scrollRef.current,
+      marker = nowRef.current
     if (root && marker) root.scrollTop = Math.max(0, marker.offsetTop - 56)
   }, [])
   useLayoutEffect(() => {
@@ -94,10 +114,12 @@ export default function SyncActivityRail() {
 
   // Double-click -> drop extra pages and re-center on now.
   const handleReset = useCallback(() => {
-    qc.setQueryData<InfiniteData<GlobalRun>>(RECENT_KEY, d =>
-      d ? { pages: d.pages.slice(0, 1), pageParams: d.pageParams.slice(0, 1) } : d)
-    qc.setQueryData<InfiniteData<UpcomingRun>>(UPCOMING_KEY, d =>
-      d ? { pages: d.pages.slice(0, 1), pageParams: d.pageParams.slice(0, 1) } : d)
+    qc.setQueryData<InfiniteData<GlobalRun>>(RECENT_KEY, (d) =>
+      d ? { pages: d.pages.slice(0, 1), pageParams: d.pageParams.slice(0, 1) } : d,
+    )
+    qc.setQueryData<InfiniteData<UpcomingRun>>(UPCOMING_KEY, (d) =>
+      d ? { pages: d.pages.slice(0, 1), pageParams: d.pageParams.slice(0, 1) } : d,
+    )
     requestAnimationFrame(center)
   }, [qc, center])
 
@@ -113,14 +135,21 @@ export default function SyncActivityRail() {
       {futureRuns.length === 0 ? null : (
         <div className="divide-y divide-border/30">
           {[...futureRuns].reverse().map((run, i, arr) => (
-            <UpcomingRow key={`u:${run.task_name}:${run.next_run_at}`} run={run} now={tickNow} index={arr.length - i} />
+            <UpcomingRow
+              key={`u:${run.task_name}:${run.next_run_at}`}
+              run={run}
+              now={tickNow}
+              index={arr.length - i}
+            />
           ))}
         </div>
       )}
 
       {/* The now divider — also the scroll-anchor pivot. Never unmounts. */}
       <div ref={nowRef} aria-hidden className="flex items-center gap-2 my-2.5 shrink-0">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">now</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          now
+        </span>
         <span className="flex-1 h-px bg-border/40" />
       </div>
 
@@ -129,7 +158,9 @@ export default function SyncActivityRail() {
         <p className="text-xs text-muted-foreground/60 py-1.5">No runs yet.</p>
       ) : (
         <div className="divide-y divide-border/30">
-          {pastRuns.map((run, i) => <RecentRow key={`r:${run.id}`} run={run} now={tickNow} index={i + 1} />)}
+          {pastRuns.map((run, i) => (
+            <RecentRow key={`r:${run.id}`} run={run} now={tickNow} index={i + 1} />
+          ))}
         </div>
       )}
 

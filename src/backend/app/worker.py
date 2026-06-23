@@ -10,10 +10,12 @@ DB (admin_notify_config.cron), not in code. This entrypoint:
 
 Run as: python -m app.worker
 """
+
 import asyncio
 import logging
 
-from app.core.database import TaskSessionLocal as SessionLocal, _task_engine
+from app.core.database import TaskSessionLocal as SessionLocal
+from app.core.database import _task_engine
 from app.core.periodic_sync import CRON_CHANNEL, resync
 from app.core.procrastinate import procrastinate_app as app
 
@@ -51,7 +53,7 @@ async def _listen_loop() -> None:
                 queue: asyncio.Queue[None] = asyncio.Queue()
 
                 def _on_notify(*_args) -> None:
-                    queue.put_nowait(None)
+                    queue.put_nowait(None)  # noqa: B023 — queue is used within this iteration only
 
                 await asyncpg_conn.add_listener(CRON_CHANNEL, _on_notify)
                 logger.info("Listening on %s", CRON_CHANNEL)

@@ -3,7 +3,13 @@ import Capsule from './RunHistoryCapsule'
 
 const SLOTS = 50
 
-export default function RunHistoryStrip({ runs, taskName }: { runs: SyncRun[]; taskName?: string }) {
+export default function RunHistoryStrip({
+  runs,
+  taskName,
+}: {
+  runs: SyncRun[]
+  taskName?: string
+}) {
   // API gives newest-first; show oldest -> newest (most recent on the right),
   // left-padded with empty slots when there are fewer than 50 runs.
   const ordered = [...runs].reverse()
@@ -17,7 +23,7 @@ export default function RunHistoryStrip({ runs, taskName }: { runs: SyncRun[]; t
       {Array.from({ length: padding }).map((_, i) => (
         <div key={`pad-${i}`} className="flex-1 min-w-0 bg-white/[0.04]" />
       ))}
-      {ordered.map(run => (
+      {ordered.map((run) => (
         <Capsule key={run.id} run={run} taskName={taskName} />
       ))}
     </div>

@@ -1,14 +1,19 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.admin_config import AdminConfig
 
 _ESPN_RATE_LIMIT_KEY = "espn_rate_limit_per_minute"
-_ESPN_ALERT_CHANNEL_KEY = "espn_alert_channel"   # notification_channels.name; "" = none channel (silence)
+_ESPN_ALERT_CHANNEL_KEY = (
+    "espn_alert_channel"  # notification_channels.name; "" = none channel (silence)
+)
 # Discord bot runtime config (token/guild come from env; behavior lives in the DB).
 _BOT_ENABLED_KEY = "discord_bot_enabled"
-_BOT_LISTEN_CHANNELS_KEY = "discord_bot_listen_channels"   # comma-separated channel ids
-_BOT_COMMAND_CHANNEL_KEY = "discord_bot_command_channel"   # default reply / notify channel id
+_BOT_LISTEN_CHANNELS_KEY = "discord_bot_listen_channels"  # comma-separated channel ids
+_BOT_COMMAND_CHANNEL_KEY = (
+    "discord_bot_command_channel"  # default reply / notify channel id
+)
 
 
 async def get_config(db: AsyncSession, key: str, default: str = "") -> str:
@@ -19,7 +24,9 @@ async def get_config(db: AsyncSession, key: str, default: str = "") -> str:
 
 async def set_config(db: AsyncSession, key: str, value: str) -> None:
     stmt = pg_insert(AdminConfig).values(key=key, value=value)
-    stmt = stmt.on_conflict_do_update(index_elements=["key"], set_={"value": stmt.excluded.value})
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["key"], set_={"value": stmt.excluded.value}
+    )
     await db.execute(stmt)
     await db.commit()
 
@@ -39,7 +46,9 @@ async def get_espn_alert_channel(db: AsyncSession) -> str:
 
 async def get_bot_enabled(db: AsyncSession) -> bool:
     """Whether the bot should process inbound events. Default off until configured."""
-    return (await get_config(db, _BOT_ENABLED_KEY, default="false")).strip().lower() == "true"
+    return (
+        await get_config(db, _BOT_ENABLED_KEY, default="false")
+    ).strip().lower() == "true"
 
 
 async def get_bot_listen_channels(db: AsyncSession) -> set[str]:

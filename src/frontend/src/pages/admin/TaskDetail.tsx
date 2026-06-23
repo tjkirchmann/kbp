@@ -24,7 +24,9 @@ export default function TaskDetail() {
     return (
       <div className="text-sm text-muted-foreground py-8">
         Task not found.{' '}
-        <button onClick={() => navigate('/admin/sync')} className="text-primary hover:underline">Back to Sync</button>
+        <button onClick={() => navigate('/admin/sync')} className="text-primary hover:underline">
+          Back to Sync
+        </button>
       </div>
     )
   }
@@ -48,13 +50,15 @@ export default function TaskDetail() {
             <TagBar entityType="sync_task" entityId={task.task_name} />
             <div className="flex items-center gap-4 text-[11px] shrink-0">
               <span className="text-muted-foreground">
-                Last run <span className="text-foreground/90">{relativeTime(task.last_run_at)}</span>
+                Last run{' '}
+                <span className="text-foreground/90">{relativeTime(task.last_run_at)}</span>
               </span>
               {task.cron && (
                 <>
                   <span className="h-2.5 w-px bg-border/50" />
                   <span className="text-muted-foreground">
-                    Next run <span className="text-foreground/90">{relativeTime(task.next_run_at)}</span>
+                    Next run{' '}
+                    <span className="text-foreground/90">{relativeTime(task.next_run_at)}</span>
                   </span>
                 </>
               )}
@@ -78,7 +82,10 @@ export default function TaskDetail() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-2">
-          <Stat label="Success rate" value={stats.success_rate != null ? `${Math.round(stats.success_rate * 100)}%` : '—'} />
+          <Stat
+            label="Success rate"
+            value={stats.success_rate != null ? `${Math.round(stats.success_rate * 100)}%` : '—'}
+          />
           <Stat label="Avg duration" value={formatDuration(stats.avg_duration_seconds)} />
           <Stat label="p95 duration" value={formatDuration(stats.p95_duration_seconds)} />
           <Stat label="Total" value={String(stats.total)} />
@@ -91,7 +98,7 @@ export default function TaskDetail() {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground">Run analytics</h3>
             <div className="flex items-center gap-1 text-[10px]">
-              {RUN_WINDOWS.map(w => (
+              {RUN_WINDOWS.map((w) => (
                 <button
                   key={w}
                   onClick={() => setChartWindow(w)}

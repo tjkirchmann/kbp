@@ -8,6 +8,7 @@ Run as: python -m app.temporal.worker
 Registering new work: add the workflow class to `workflows=` and the activity
 function to `activities=` below.
 """
+
 import asyncio
 import logging
 

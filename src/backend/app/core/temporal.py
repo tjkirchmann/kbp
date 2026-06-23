@@ -10,6 +10,7 @@ TEMPORAL_API_KEY + the Cloud address/namespace), not a code change.
                                    namespace="<ns>.<acct>",
                                    api_key=..., tls=True)
 """
+
 from temporalio.client import Client
 
 from app.core.config import settings

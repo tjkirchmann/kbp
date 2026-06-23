@@ -5,6 +5,7 @@ imported through `workflow.unsafe.imports_passed_through()` (the standard patter
 to avoid the sandbox re-importing/instrumenting them. Use this file as the template
 for new workflows: keep logic deterministic and push all I/O into activities.
 """
+
 from datetime import timedelta
 
 from temporalio import workflow

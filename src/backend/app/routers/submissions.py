@@ -1,20 +1,26 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from passlib.context import CryptContext
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models import User
 from app.models.cfbd import CfbdTeam
 from app.models.pool import Pool, PoolGame, PoolSubmission, PoolSubmissionGameItem
 from app.schemas.pool import (
-    PublicPoolSchema, PoolGameWithTeamsSchema, TeamMetaSchema,
-    SubmissionCreate, PasswordVerify, GamePickUpsert, GamePickSchema,
+    GamePickSchema,
+    GamePickUpsert,
     MySubmissionSchema,
+    PasswordVerify,
+    PoolGameWithTeamsSchema,
+    PublicPoolSchema,
+    SubmissionCreate,
+    TeamMetaSchema,
 )
 
 router = APIRouter(prefix="/submission")
@@ -48,7 +54,11 @@ async def list_open_pools(db: AsyncSession = Depends(get_db)):
 @router.get("/pools/{pool_id}/games", response_model=list[PoolGameWithTeamsSchema])
 async def get_pool_games(pool_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(Pool).where(Pool.id == pool_id, Pool.deleted_at.is_(None), Pool.submissions_open.is_(True))
+        select(Pool).where(
+            Pool.id == pool_id,
+            Pool.deleted_at.is_(None),
+            Pool.submissions_open.is_(True),
+        )
     )
     pool = result.scalar_one_or_none()
     if not pool:
@@ -62,8 +72,12 @@ async def get_pool_games(pool_id: int, db: AsyncSession = Depends(get_db)):
     )
     games = list(games_result.scalars().all())
 
-    team_names = {g.cfbd_game.home_team for g in games} | {g.cfbd_game.away_team for g in games}
-    teams_result = await db.execute(select(CfbdTeam).where(CfbdTeam.school.in_(team_names)))
+    team_names = {g.cfbd_game.home_team for g in games} | {
+        g.cfbd_game.away_team for g in games
+    }
+    teams_result = await db.execute(
+        select(CfbdTeam).where(CfbdTeam.school.in_(team_names))
+    )
     team_map: dict[str, CfbdTeam] = {t.school: t for t in teams_result.scalars()}
 
     out = []
@@ -100,7 +114,9 @@ async def verify_password(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Pool).where(Pool.id == pool_id, Pool.deleted_at.is_(None)))
+    result = await db.execute(
+        select(Pool).where(Pool.id == pool_id, Pool.deleted_at.is_(None))
+    )
     pool = result.scalar_one_or_none()
     if not pool:
         raise HTTPException(status_code=404, detail="Pool not found")
@@ -118,20 +134,24 @@ async def enter_pool(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Pool).where(Pool.id == pool_id, Pool.deleted_at.is_(None)))
+    result = await db.execute(
+        select(Pool).where(Pool.id == pool_id, Pool.deleted_at.is_(None))
+    )
     pool = result.scalar_one_or_none()
     if not pool:
         raise HTTPException(status_code=404, detail="Pool not found")
     if not pool.submissions_open:
-        raise HTTPException(status_code=403, detail="Submissions are closed for this pool")
+        raise HTTPException(
+            status_code=403, detail="Submissions are closed for this pool"
+        )
 
     # Self-submission: return existing if one already exists
-    if body.on_behalf_of_name == '':
+    if body.on_behalf_of_name == "":
         existing_result = await db.execute(
             select(PoolSubmission).where(
                 PoolSubmission.pool_id == pool_id,
                 PoolSubmission.submitted_by_user_id == user.id,
-                PoolSubmission.on_behalf_of_name == '',
+                PoolSubmission.on_behalf_of_name == "",
                 PoolSubmission.deleted_at.is_(None),
             )
         )
@@ -152,7 +172,9 @@ async def enter_pool(
     return {"submission_id": submission.id}
 
 
-async def _get_owned_submission(submission_id: int, user: User, db: AsyncSession) -> PoolSubmission:
+async def _get_owned_submission(
+    submission_id: int, user: User, db: AsyncSession
+) -> PoolSubmission:
     result = await db.execute(
         select(PoolSubmission).where(
             PoolSubmission.id == submission_id,
@@ -203,7 +225,10 @@ async def upsert_pick(
         )
         .on_conflict_do_update(
             constraint="uq_submission_game_items_sub_game",
-            set_={"picked_winner": body.picked_winner, "picked_margin": body.picked_margin},
+            set_={
+                "picked_winner": body.picked_winner,
+                "picked_margin": body.picked_margin,
+            },
         )
         .returning(PoolSubmissionGameItem)
     )
@@ -241,7 +266,7 @@ async def submit_entry(
         )
 
     sub.is_locked = True
-    sub.submitted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    sub.submitted_at = datetime.now(UTC).replace(tzinfo=None)
     await db.commit()
     await db.refresh(sub)
     return sub

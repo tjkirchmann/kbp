@@ -8,6 +8,7 @@ NOTE: reading message.content requires the privileged Message Content intent
 (set in client._build_intents AND toggled in the Developer Portal). Without it,
 message.content is empty even though this handler still fires.
 """
+
 import logging
 
 import discord
@@ -38,8 +39,12 @@ class ListenerCog(commands.Cog):
     async def _handle(self, message: discord.Message) -> None:
         """Act on an allowlisted inbound message. Replies as a baseline; extend
         to store messages or relay them into the app."""
-        logger.info("Inbound message in %s from %s: %r",
-                    message.channel.id, message.author, message.content)
+        logger.info(
+            "Inbound message in %s from %s: %r",
+            message.channel.id,
+            message.author,
+            message.content,
+        )
         try:
             await message.channel.send(f"Received: {message.content}")
         except Exception:

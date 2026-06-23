@@ -39,10 +39,13 @@ function PurgeConfirm({ file, onClose }: { file: LibraryFile; onClose: () => voi
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-md rounded-2xl border border-border/40 bg-popover p-6 shadow-2xl"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
           <h3 className="text-base font-semibold text-foreground">Purge file permanently?</h3>
@@ -51,8 +54,8 @@ function PurgeConfirm({ file, onClose }: { file: LibraryFile; onClose: () => voi
           </button>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          <span className="text-foreground font-medium break-all">{file.original_name}</span> will be
-          removed from storage and the database. This cannot be undone.
+          <span className="text-foreground font-medium break-all">{file.original_name}</span> will
+          be removed from storage and the database. This cannot be undone.
         </p>
         <div className="mt-6 flex justify-end gap-2">
           <button
@@ -104,12 +107,21 @@ export default function LibraryPanel() {
     <div className="flex flex-col gap-4">
       {/* Dropzone */}
       <div
-        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setDragOver(true)
+        }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
+        onDrop={(e) => {
+          e.preventDefault()
+          setDragOver(false)
+          handleFiles(e.dataTransfer.files)
+        }}
         onClick={() => inputRef.current?.click()}
         className={`flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed py-10 cursor-pointer transition-colors ${
-          dragOver ? 'border-primary/60 bg-primary/5' : 'border-border/40 hover:border-border bg-white/[0.02]'
+          dragOver
+            ? 'border-primary/60 bg-primary/5'
+            : 'border-border/40 hover:border-border bg-white/[0.02]'
         }`}
       >
         {upload.isPending ? (
@@ -125,7 +137,10 @@ export default function LibraryPanel() {
           type="file"
           multiple
           className="hidden"
-          onChange={e => { handleFiles(e.currentTarget.files); e.currentTarget.value = '' }}
+          onChange={(e) => {
+            handleFiles(e.currentTarget.files)
+            e.currentTarget.value = ''
+          }}
         />
       </div>
 
@@ -134,7 +149,7 @@ export default function LibraryPanel() {
         <input
           type="checkbox"
           checked={includeDeleted}
-          onChange={e => setIncludeDeleted(e.currentTarget.checked)}
+          onChange={(e) => setIncludeDeleted(e.currentTarget.checked)}
           className="accent-primary"
         />
         Show deleted
@@ -156,7 +171,12 @@ export default function LibraryPanel() {
                 <th className="px-5 py-2.5 text-left text-muted-foreground font-medium">Type</th>
                 <th className="px-5 py-2.5 text-left text-muted-foreground font-medium">Size</th>
                 <th className="px-5 py-2.5 text-left text-muted-foreground font-medium">Created</th>
-                <th className="px-5 py-2.5 text-muted-foreground font-medium" style={{ width: '1%' }}>Actions</th>
+                <th
+                  className="px-5 py-2.5 text-muted-foreground font-medium"
+                  style={{ width: '1%' }}
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -167,10 +187,14 @@ export default function LibraryPanel() {
                     key={f.id}
                     className={`${i !== 0 ? 'border-t border-border/20' : ''} ${deleted ? 'opacity-50' : ''} hover:bg-[rgba(26,30,42,0.4)] transition-colors`}
                   >
-                    <td className="px-5 py-2 font-medium text-foreground break-all">{f.original_name}</td>
+                    <td className="px-5 py-2 font-medium text-foreground break-all">
+                      {f.original_name}
+                    </td>
                     <td className="px-5 py-2 text-muted-foreground">{f.content_type ?? '—'}</td>
                     <td className="px-5 py-2 text-muted-foreground">{formatSize(f.size_bytes)}</td>
-                    <td className="px-5 py-2 text-muted-foreground">{new Date(f.created_at).toLocaleString()}</td>
+                    <td className="px-5 py-2 text-muted-foreground">
+                      {new Date(f.created_at).toLocaleString()}
+                    </td>
                     <td className="px-5 py-2" style={{ width: '1%', whiteSpace: 'nowrap' }}>
                       <div className="flex items-center gap-2">
                         <button

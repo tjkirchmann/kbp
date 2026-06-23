@@ -11,7 +11,11 @@ type Mode = 'self' | 'other'
 type OtherTab = 'create' | 'edit'
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
 }
 
 export default function EntryMetaStep({ poolId, onComplete }: Props) {
@@ -25,8 +29,8 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
   const enter = useEnterPool(poolId)
   const { data: mySubmissions = [] } = useMySubmissions(poolId)
 
-  const selfSubmission = mySubmissions.find(s => s.on_behalf_of_name === '')
-  const otherSubmissions = mySubmissions.filter(s => s.on_behalf_of_name !== '')
+  const selfSubmission = mySubmissions.find((s) => s.on_behalf_of_name === '')
+  const otherSubmissions = mySubmissions.filter((s) => s.on_behalf_of_name !== '')
 
   useEffect(() => {
     setSelectedId(null)
@@ -42,7 +46,7 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
 
     // Resuming an existing submission
     if (selectedId !== null) {
-      const sub = mySubmissions.find(s => s.id === selectedId)
+      const sub = mySubmissions.find((s) => s.id === selectedId)
       onComplete(selectedId, sub?.on_behalf_of_name || 'Me')
       return
     }
@@ -58,7 +62,7 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
     try {
       const { submission_id } = await enter.mutateAsync({
         on_behalf_of_name: mode === 'other' ? name.trim() : '',
-        on_behalf_of_email: mode === 'other' ? (email.trim() || null) : null,
+        on_behalf_of_email: mode === 'other' ? email.trim() || null : null,
       })
       onComplete(submission_id, mode === 'other' ? name.trim() : 'Me')
     } catch {
@@ -67,7 +71,7 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
   }
 
   const canSubmit =
-    (mode === 'self') ||
+    mode === 'self' ||
     (mode === 'other' && otherTab === 'edit' && selectedId !== null) ||
     (mode === 'other' && otherTab === 'create' && name.trim().length > 0)
 
@@ -119,7 +123,9 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
             /* Non-selectable info row */
             <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-border/40 bg-[rgba(13,15,19,0.4)] text-sm">
               <span className="font-medium text-foreground">My Entry</span>
-              <span className="text-xs text-muted-foreground">{formatDate(selfSubmission.created_at)}</span>
+              <span className="text-xs text-muted-foreground">
+                {formatDate(selfSubmission.created_at)}
+              </span>
             </div>
           ) : null}
         </div>
@@ -132,7 +138,10 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
           <div className="flex border-b border-border">
             <button
               type="button"
-              onClick={() => { setOtherTab('create'); setSelectedId(null) }}
+              onClick={() => {
+                setOtherTab('create')
+                setSelectedId(null)
+              }}
               className={`flex-1 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
                 otherTab === 'create'
                   ? 'text-foreground border-primary'
@@ -149,8 +158,8 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
                 otherTab === 'edit'
                   ? 'text-foreground border-primary'
                   : otherSubmissions.length === 0
-                  ? 'text-muted-foreground/30 border-transparent cursor-default'
-                  : 'text-muted-foreground border-transparent hover:text-foreground'
+                    ? 'text-muted-foreground/30 border-transparent cursor-default'
+                    : 'text-muted-foreground border-transparent hover:text-foreground'
               }`}
             >
               Edit Existing
@@ -167,7 +176,7 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
                 <input
                   type="text"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Uncle Bob"
                   maxLength={80}
                   autoFocus
@@ -176,12 +185,15 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Their email <span className="text-muted-foreground/50 font-normal normal-case">(optional)</span>
+                  Their email{' '}
+                  <span className="text-muted-foreground/50 font-normal normal-case">
+                    (optional)
+                  </span>
                 </label>
                 <input
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="uncle.bob@example.com"
                   className="w-full px-4 py-2.5 rounded-xl bg-[rgba(13,15,19,0.6)] border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
                 />
@@ -192,7 +204,7 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
           {/* Edit Existing tab */}
           {otherTab === 'edit' && (
             <div className="space-y-1.5">
-              {otherSubmissions.map(sub => (
+              {otherSubmissions.map((sub) => (
                 <button
                   key={sub.id}
                   type="button"

@@ -11,10 +11,11 @@ worker restarts. If a task has run_catchup disabled and this invocation is a
 stale catch-up (scheduled timestamp older than one cron interval), the wrapper
 skips the task body entirely instead of running it.
 """
+
 import functools
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.core.database import TaskSessionLocal as SessionLocal
 from app.services.notifications import notification_service
@@ -37,7 +38,7 @@ def _cron_interval_seconds(task_name: str) -> float | None:
     for pt in procrastinate_app.periodic_registry.periodic_tasks.values():
         if pt.task.name == task_name:
             try:
-                it = croniter(pt.cron, datetime.now(timezone.utc))
+                it = croniter(pt.cron, datetime.now(UTC))
                 first = it.get_next(float)
                 return it.get_next(float) - first
             except Exception:
@@ -66,8 +67,12 @@ async def _fire(task_name: str, event: str, payload: dict) -> None:
             strategy=strategy,
             config=config,
             event=event,
-            payload={"task_name": task_name, "event": event,
-                     "at": datetime.now(timezone.utc).isoformat(), **payload},
+            payload={
+                "task_name": task_name,
+                "event": event,
+                "at": datetime.now(UTC).isoformat(),
+                **payload,
+            },
         )
     except Exception:
         logger.exception("notify hook failed (task=%s event=%s)", task_name, event)
@@ -82,7 +87,9 @@ async def _catchup_suppressed(task_name: str, kwargs: dict) -> bool:
             cfg = await get_notify_config(db, task_name)
         if cfg.run_catchup:
             return False
-        logger.info("Suppressing restart catch-up run of %s (run_catchup off)", task_name)
+        logger.info(
+            "Suppressing restart catch-up run of %s (run_catchup off)", task_name
+        )
         return True
     except Exception:
         # On any error, don't suppress — running is safer than silently skipping.
@@ -92,6 +99,7 @@ async def _catchup_suppressed(task_name: str, kwargs: dict) -> bool:
 
 def notify(task_name: str):
     """Wrap a task so it emits configured lifecycle notifications."""
+
     def deco(task_func):
         @functools.wraps(task_func)
         async def wrapper(*args, **kwargs):
@@ -101,9 +109,17 @@ def notify(task_name: str):
             try:
                 result = await task_func(*args, **kwargs)
             except Exception as exc:
-                await _fire(task_name, "failure", {"error": f"{type(exc).__name__}: {exc}"})
+                await _fire(
+                    task_name, "failure", {"error": f"{type(exc).__name__}: {exc}"}
+                )
                 raise
-            await _fire(task_name, "success", {"result": result if isinstance(result, dict) else {}})
+            await _fire(
+                task_name,
+                "success",
+                {"result": result if isinstance(result, dict) else {}},
+            )
             return result
+
         return wrapper
+
     return deco

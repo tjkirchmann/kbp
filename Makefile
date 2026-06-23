@@ -1,4 +1,13 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run deploy migrate frontend-component backend frontend-logic frontend-organize
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run deploy migrate frontend-component backend frontend-logic frontend-organize lint install-hooks
+
+# ── Lint ─────────────────────────────────────────────────────────────────────
+# One-time setup: install the git pre-commit hook.
+install-hooks:
+	uvx pre-commit install
+
+# Lint + format the whole repo (backend via Ruff, frontend via ESLint+Prettier).
+lint:
+	uvx pre-commit run --all-files
 
 # ── Dev ──────────────────────────────────────────────────────────────────────
 

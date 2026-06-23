@@ -4,7 +4,9 @@ Postgres/asyncpg cap a statement at 32767 bind params, so rows are chunked into
 batches of `batch_size` and upserted with ON CONFLICT DO UPDATE. The first row's
 keys define the column set; every column except the conflict target(s) is updated.
 """
-from typing import Any, Sequence
+
+from collections.abc import Sequence
+from typing import Any
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession

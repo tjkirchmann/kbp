@@ -7,8 +7,9 @@ replaces the single hardcoded espn_seed defer that used to live in main.py.
 Independent of cron and of Procrastinate's periodic catch-up: this is about
 guaranteeing data is present when the app comes up, regardless of schedule.
 """
+
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,12 +61,14 @@ async def defer_startup_tasks(app) -> None:
                 last = await _last_success_at(db, name)
                 if last is not None:
                     if last.tzinfo is None:
-                        last = last.replace(tzinfo=timezone.utc)
-                    age = (datetime.now(timezone.utc) - last).total_seconds()
+                        last = last.replace(tzinfo=UTC)
+                    age = (datetime.now(UTC) - last).total_seconds()
                     if age < cfg.startup_stale_seconds:
                         logger.info(
                             "Startup defer of %s skipped: last success %.0fs ago < %ds threshold",
-                            name, age, cfg.startup_stale_seconds,
+                            name,
+                            age,
+                            cfg.startup_stale_seconds,
                         )
                         continue
 

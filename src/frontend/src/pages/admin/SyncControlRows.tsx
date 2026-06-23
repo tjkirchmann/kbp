@@ -11,7 +11,10 @@ import { useToast } from '@/components/toast/ToastContext'
 // other rows. Both call sites pass the same `notify` shape (job.notify /
 // task.notify), so the controls are data-source-agnostic.
 export default function SyncControlRows({
-  taskName, cron, schedulable, notify,
+  taskName,
+  cron,
+  schedulable,
+  notify,
 }: {
   taskName: string
   cron: string | null
@@ -38,11 +41,15 @@ export default function SyncControlRows({
     })
   }
 
-  const feedback = run.isPending ? null
-    : run.error ? 'Failed to queue'
-    : run.data?.already_queued ? 'Already queued'
-    : run.data?.deferred ? 'Queued'
-    : null
+  const feedback = run.isPending
+    ? null
+    : run.error
+      ? 'Failed to queue'
+      : run.data?.already_queued
+        ? 'Already queued'
+        : run.data?.deferred
+          ? 'Queued'
+          : null
 
   return (
     <>
@@ -59,9 +66,11 @@ export default function SyncControlRows({
           <button
             onClick={() => setNotify.mutate({ run_catchup: !notify.run_catchup })}
             disabled={setNotify.isPending || !cron}
-            title={cron
-              ? 'Run the last missed scheduled slot when the worker restarts'
-              : 'Catch-up only applies to scheduled tasks'}
+            title={
+              cron
+                ? 'Run the last missed scheduled slot when the worker restarts'
+                : 'Catch-up only applies to scheduled tasks'
+            }
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full border transition-colors disabled:opacity-50 ${
               notify.run_catchup ? PILL_ON : PILL_OFF
             }`}
@@ -86,9 +95,11 @@ export default function SyncControlRows({
             value={notify.startup_stale_seconds ?? -1}
             onChange={(e) => setNotify.mutate({ startup_stale_seconds: Number(e.target.value) })}
             disabled={setNotify.isPending || !notify.run_on_startup}
-            title={notify.run_on_startup
-              ? 'Skip the startup run if the task succeeded within this window'
-              : 'Enable "On startup" to set a staleness window'}
+            title={
+              notify.run_on_startup
+                ? 'Skip the startup run if the task succeeded within this window'
+                : 'Enable "On startup" to set a staleness window'
+            }
             className="px-2 py-0.5 rounded-full border border-border/50 bg-transparent text-muted-foreground text-[11px] disabled:opacity-50"
           >
             {STALE_PRESETS.map((p) => (
@@ -103,9 +114,11 @@ export default function SyncControlRows({
         <button
           onClick={() => setNotify.mutate({ hide_in_history: !notify.hide_in_history })}
           disabled={setNotify.isPending}
-          title={notify.hide_in_history
-            ? 'Hidden from the History rail — click to show'
-            : 'Shown in the History rail — click to hide'}
+          title={
+            notify.hide_in_history
+              ? 'Hidden from the History rail — click to show'
+              : 'Shown in the History rail — click to hide'
+          }
           className={`ml-auto shrink-0 p-1 rounded-md border transition-colors disabled:opacity-50 ${
             notify.hide_in_history ? PILL_OFF : PILL_ON
           }`}
@@ -122,12 +135,14 @@ export default function SyncControlRows({
           <select
             value={notify.channel ?? ''}
             disabled={setNotify.isPending}
-            onChange={e => setNotify.mutate({ channel_name: e.target.value })}
+            onChange={(e) => setNotify.mutate({ channel_name: e.target.value })}
             className="bg-transparent border border-border/50 rounded-md px-1.5 py-0.5 text-foreground/90 disabled:opacity-50 focus:outline-none focus:border-primary/50"
           >
             <option value="">Global default</option>
-            {(channels.data ?? []).map(c => (
-              <option key={c.name} value={c.name}>{c.name}</option>
+            {(channels.data ?? []).map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
@@ -155,7 +170,9 @@ export default function SyncControlRows({
         {/* Run now — pinned far right */}
         <div className="flex items-center gap-2.5 shrink-0 ml-auto">
           {feedback && (
-            <span className={`text-[11px] ${run.error ? 'text-destructive' : 'text-success'}`}>{feedback}</span>
+            <span className={`text-[11px] ${run.error ? 'text-destructive' : 'text-success'}`}>
+              {feedback}
+            </span>
           )}
           <button
             onClick={runNow}

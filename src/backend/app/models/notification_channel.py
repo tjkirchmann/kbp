@@ -19,7 +19,9 @@ class NotificationChannel(Base):
     __tablename__ = "notification_channels"
 
     name: Mapped[str] = mapped_column(String, primary_key=True)
-    strategy: Mapped[str] = mapped_column(String, nullable=False, server_default="discord")
+    strategy: Mapped[str] = mapped_column(
+        String, nullable=False, server_default="discord"
+    )
     config: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
     updated_at: Mapped[datetime] = mapped_column(
         nullable=False, server_default=func.now(), onupdate=func.now()

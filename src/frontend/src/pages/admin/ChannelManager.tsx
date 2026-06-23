@@ -83,11 +83,17 @@ export default function ChannelManager() {
     <div className="flex flex-col h-full min-h-0 gap-3 min-w-0">
       {/* Scrollable channel list */}
       <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-y-auto pr-1">
-        {(channels.data ?? []).map(c => (
+        {(channels.data ?? []).map((c) => (
           <div key={c.name} className="flex items-center gap-2 text-[11px]">
-            <span className="font-medium text-foreground/90 w-24 truncate" title={c.name}>{c.name}</span>
-            <span className="px-1.5 py-0.5 rounded bg-muted/40 text-muted-foreground">{c.strategy}</span>
-            <span className="text-muted-foreground truncate flex-1" title={webhookOf(c)}>{webhookOf(c)}</span>
+            <span className="font-medium text-foreground/90 w-24 truncate" title={c.name}>
+              {c.name}
+            </span>
+            <span className="px-1.5 py-0.5 rounded bg-muted/40 text-muted-foreground">
+              {c.strategy}
+            </span>
+            <span className="text-muted-foreground truncate flex-1" title={webhookOf(c)}>
+              {webhookOf(c)}
+            </span>
             <button
               onClick={() => startEdit(c)}
               title="Edit channel"
@@ -140,19 +146,21 @@ export default function ChannelManager() {
           <span className="text-muted-foreground">Strategy</span>
           <select
             value={strategy}
-            onChange={e => setStrategy(e.target.value)}
+            onChange={(e) => setStrategy(e.target.value)}
             disabled={strategyLocked}
             className="bg-transparent border border-border/50 rounded-md px-1.5 py-0.5 text-foreground focus:outline-none focus:border-primary/50 disabled:opacity-50"
           >
-            {STRATEGIES.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
+            {STRATEGIES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
             ))}
           </select>
         </div>
         <div className="flex flex-col gap-1.5">
           <input
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             placeholder="name"
             readOnly={editing !== null}
             className="bg-transparent border border-border/50 rounded-md px-1.5 py-0.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 read-only:opacity-60"
@@ -160,7 +168,7 @@ export default function ChannelManager() {
           {needsWebhook && (
             <input
               value={webhook}
-              onChange={e => setWebhook(e.target.value)}
+              onChange={(e) => setWebhook(e.target.value)}
               placeholder="discord webhook url"
               className="bg-transparent border border-border/50 rounded-md px-1.5 py-0.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
@@ -170,7 +178,15 @@ export default function ChannelManager() {
             disabled={upsert.isPending || !name.trim() || (needsWebhook && !webhook.trim())}
             className="self-start flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/40 hover:bg-primary/25 transition-colors disabled:opacity-50"
           >
-            {editing ? <><Check className="size-3" /> Save</> : <><Plus className="size-3" /> Add</>}
+            {editing ? (
+              <>
+                <Check className="size-3" /> Save
+              </>
+            ) : (
+              <>
+                <Plus className="size-3" /> Add
+              </>
+            )}
           </button>
         </div>
       </div>
