@@ -18,7 +18,9 @@ class EntityTag(Base):
     __tablename__ = "entity_tags"
     __table_args__ = (
         # No duplicate tag on a single entity (case-sensitive).
-        UniqueConstraint("entity_type", "entity_id", "name", name="uq_entity_tags_type_id_name"),
+        UniqueConstraint(
+            "entity_type", "entity_id", "name", name="uq_entity_tags_type_id_name"
+        ),
         # Applied-tags lookup for one entity.
         Index("ix_entity_tags_type_id", "entity_type", "entity_id"),
         # Distinct-names-by-type scan that powers tag suggestions.
@@ -29,4 +31,6 @@ class EntityTag(Base):
     entity_type: Mapped[str] = mapped_column(String, nullable=False)
     entity_id: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        nullable=False, server_default=func.now()
+    )

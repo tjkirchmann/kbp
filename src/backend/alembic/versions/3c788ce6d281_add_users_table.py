@@ -5,17 +5,19 @@ Revises: 6be6916c8ebe
 Create Date: 2026-05-06 04:56:03.790275
 
 """
-from typing import Sequence, Union
 
-from alembic import op
+from collections.abc import Sequence
+from typing import Union
+
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '3c788ce6d281'
-down_revision: Union[str, None] = '6be6916c8ebe'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "3c788ce6d281"
+down_revision: str | None = "6be6916c8ebe"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

@@ -7,6 +7,7 @@ the admin panel can also defer a one-off run (see app/routers/admin.py).
 Games is a fact table (scores change), synced frequently. The slowly-changing
 dimension tables — including teams — live in app/tasks/cfbd_dims.py.
 """
+
 import logging
 from datetime import datetime
 from typing import Any
@@ -14,10 +15,10 @@ from typing import Any
 from app.core.database import TaskSessionLocal as SessionLocal
 from app.core.procrastinate import procrastinate_app as app
 from app.models.cfbd import CfbdGame
-from app.tasks.notify_decorator import notify
 from app.services.sync.providers.cfbd import cfbd_provider
 from app.services.sync.snapshots import record_snapshot
 from app.services.sync.upsert import batch_upsert
+from app.tasks.notify_decorator import notify
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,9 @@ _GAME_BATCH = 32767 // _GAME_COLS
 def _game_row(g: dict, year: int) -> dict:
     raw_date = g.get("startDate", "")
     try:
-        start_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00")).replace(tzinfo=None)
+        start_date = datetime.fromisoformat(raw_date.replace("Z", "+00:00")).replace(
+            tzinfo=None
+        )
     except (ValueError, AttributeError):
         start_date = datetime.utcnow()
     return {
@@ -88,8 +91,12 @@ async def sync_cfbd_games(timestamp: int | None = None) -> dict[str, Any]:
             ):
                 changed += 1
 
-        await batch_upsert(db, CfbdGame, [_game_row(g, year) for g in games], _GAME_BATCH)
+        await batch_upsert(
+            db, CfbdGame, [_game_row(g, year) for g in games], _GAME_BATCH
+        )
         await db.commit()
 
-    logger.info("cfbd_games sync: year=%d processed=%d changed=%d", year, len(games), changed)
+    logger.info(
+        "cfbd_games sync: year=%d processed=%d changed=%d", year, len(games), changed
+    )
     return {"processed": len(games), "changed": changed, "year": year}

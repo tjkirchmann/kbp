@@ -11,7 +11,7 @@ export default function SyncJobCard({ job }: { job: SyncJobStatus }) {
   // Re-render every second so the relative deltas tick between the 5s data polls.
   const [, force] = useState(0)
   useEffect(() => {
-    const t = setInterval(() => force(n => n + 1), 1000)
+    const t = setInterval(() => force((n) => n + 1), 1000)
     return () => clearInterval(t)
   }, [])
 
@@ -40,7 +40,8 @@ export default function SyncJobCard({ job }: { job: SyncJobStatus }) {
               <>
                 <span className="h-2.5 w-px bg-border/50" />
                 <span className="text-muted-foreground">
-                  Next run <span className="text-foreground/90">{relativeTime(job.next_run_at)}</span>
+                  Next run{' '}
+                  <span className="text-foreground/90">{relativeTime(job.next_run_at)}</span>
                 </span>
               </>
             )}

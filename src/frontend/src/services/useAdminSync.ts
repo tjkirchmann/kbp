@@ -1,5 +1,11 @@
 import { useEffect } from 'react'
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
 
 const API = import.meta.env.VITE_API_URL
@@ -7,7 +13,11 @@ const API = import.meta.env.VITE_API_URL
 async function authFetch(token: string, path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...init?.headers },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
   })
   if (!res.ok) throw new Error(`${res.status}`)
   return res.json()
@@ -101,8 +111,7 @@ export function useRecentRuns() {
       return authFetch(token!, `/admin/sync/recent${q}`)
     },
     initialPageParam: undefined as number | undefined,
-    getNextPageParam: last =>
-      last.length < RECENT_LIMIT ? undefined : last[last.length - 1].id,
+    getNextPageParam: (last) => (last.length < RECENT_LIMIT ? undefined : last[last.length - 1].id),
     // No refetchInterval: an infinite-query poll refetches EVERY loaded page. The rail
     // does targeted first-page liveness instead (see SyncActivityRail).
   })
@@ -150,11 +159,13 @@ export function useRecentLiveness(intervalMs = 5000) {
       let fresh: GlobalRun[]
       try {
         fresh = await authFetch(token, `/admin/sync/recent?limit=${RECENT_LIMIT}`)
-      } catch { return }
-      qc.setQueryData<Infinite<GlobalRun>>(RECENT_KEY, old => {
+      } catch {
+        return
+      }
+      qc.setQueryData<Infinite<GlobalRun>>(RECENT_KEY, (old) => {
         if (!old) return old
         const maxId = old.pages[0]?.[0]?.id ?? -Infinity
-        const incoming = fresh.filter(r => r.id > maxId)
+        const incoming = fresh.filter((r) => r.id > maxId)
         if (!incoming.length) return old // nothing new -> no re-render
         const pages = [...old.pages]
         pages[0] = [...incoming, ...(pages[0] ?? [])]
@@ -180,12 +191,18 @@ export function useUpcomingLiveness(intervalMs = 60000) {
       let fresh: UpcomingRun[]
       try {
         fresh = await authFetch(token, `/admin/sync/upcoming?limit=${UPCOMING_LIMIT}`)
-      } catch { return }
-      qc.setQueryData<Infinite<UpcomingRun>>(UPCOMING_KEY, old => {
+      } catch {
+        return
+      }
+      qc.setQueryData<Infinite<UpcomingRun>>(UPCOMING_KEY, (old) => {
         if (!old) return old
         const page0 = old.pages[0] ?? []
-        const same = fresh.length === page0.length &&
-          fresh.every((r, i) => r.task_name === page0[i]?.task_name && r.next_run_at === page0[i]?.next_run_at)
+        const same =
+          fresh.length === page0.length &&
+          fresh.every(
+            (r, i) =>
+              r.task_name === page0[i]?.task_name && r.next_run_at === page0[i]?.next_run_at,
+          )
         if (same) return old // unchanged -> no re-render
         const pages = [...old.pages]
         pages[0] = fresh
@@ -330,10 +347,10 @@ export interface NotifyConfigUpdate {
   notify_on_start?: boolean
   notify_on_success?: boolean
   notify_on_failure?: boolean
-  channel_name?: string      // "" clears the channel
+  channel_name?: string // "" clears the channel
   run_catchup?: boolean
   run_on_startup?: boolean
-  startup_stale_seconds?: number   // -1 clears to null ("Always")
+  startup_stale_seconds?: number // -1 clears to null ("Always")
   hide_in_history?: boolean
 }
 

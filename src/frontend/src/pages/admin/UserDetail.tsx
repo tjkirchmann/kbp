@@ -26,12 +26,15 @@ export default function UserDetail() {
   const setAdmin = useSetAdmin()
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
-  const user = users.find(u => String(u.id) === userId)
+  const user = users.find((u) => String(u.id) === userId)
 
   if (!user) {
     return (
       <div className="text-sm text-muted-foreground py-8">
-        User not found. <button onClick={() => navigate('/admin/users')} className="text-primary hover:underline">Back to users</button>
+        User not found.{' '}
+        <button onClick={() => navigate('/admin/users')} className="text-primary hover:underline">
+          Back to users
+        </button>
       </div>
     )
   }
@@ -54,7 +57,9 @@ export default function UserDetail() {
               key={key}
               className={`flex gap-4 px-4 py-2.5 text-sm ${i !== 0 ? 'border-t border-border/20' : ''}`}
             >
-              <span className="text-muted-foreground font-medium shrink-0 w-1/4">{FIELD_LABELS[key]}</span>
+              <span className="text-muted-foreground font-medium shrink-0 w-1/4">
+                {FIELD_LABELS[key]}
+              </span>
               <button
                 onClick={() => copy(key, val)}
                 title="Click to copy"

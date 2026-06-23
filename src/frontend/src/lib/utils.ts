@@ -41,6 +41,10 @@ export function formatDuration(seconds: number | null | undefined): string {
 export function absoluteTime(iso: string | null | undefined): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleString([], {
-    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
   })
 }

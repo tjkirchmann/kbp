@@ -3,9 +3,9 @@ from app.services.notifications.base import NotificationStrategy
 
 # Emoji prefix per lifecycle event, for a glanceable Discord message.
 _EVENT_ICON = {
-    "start": "▶️",   # ▶️
-    "success": "✅",        # ✅
-    "failure": "❌",        # ❌
+    "start": "▶️",  # ▶️
+    "success": "✅",  # ✅
+    "failure": "❌",  # ❌
 }
 
 

@@ -2,7 +2,17 @@ import { useState, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Plus, Trophy, Loader2, Trash2 } from 'lucide-react'
-import { useAdminPools, useCreatePool, useCfbdGames, useAddPoolGames, useDeletePool, usePoolDetail, usePatchPool, type AdminPool, type CfbdGame } from '@/services/useAdminPools'
+import {
+  useAdminPools,
+  useCreatePool,
+  useCfbdGames,
+  useAddPoolGames,
+  useDeletePool,
+  usePoolDetail,
+  usePatchPool,
+  type AdminPool,
+  type CfbdGame,
+} from '@/services/useAdminPools'
 
 type View = 'list' | 'create-step1' | 'create-step2'
 
@@ -12,7 +22,11 @@ interface PoolsPanelProps {
   onSelectPool?: (pool: AdminPool | null) => void
 }
 
-export default function PoolsPanel({ onViewChange, selectedPool = null, onSelectPool }: PoolsPanelProps) {
+export default function PoolsPanel({
+  onViewChange,
+  selectedPool = null,
+  onSelectPool,
+}: PoolsPanelProps) {
   const [view, setView] = useState<View>('list')
   const [name, setName] = useState('')
   const [seasonYear, setSeasonYear] = useState(new Date().getFullYear())
@@ -34,13 +48,13 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
   const deletePool = useDeletePool()
 
   const seasonTypeOptions = useMemo(() => {
-    const vals = [...new Set(cfbdGames.map(g => g.season_type).filter(Boolean))]
+    const vals = [...new Set(cfbdGames.map((g) => g.season_type).filter(Boolean))]
     return vals.sort()
   }, [cfbdGames])
 
   const classOptions = useMemo(() => {
     const vals = new Set<string>()
-    cfbdGames.forEach(g => {
+    cfbdGames.forEach((g) => {
       if (g.home_classification) vals.add(g.home_classification)
       if (g.away_classification) vals.add(g.away_classification)
     })
@@ -48,18 +62,28 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
   }, [cfbdGames])
 
   const finderGames = useMemo(() => {
-    return cfbdGames.filter(g => {
+    return cfbdGames.filter((g) => {
       if (finderSeasonType !== 'all' && g.season_type !== finderSeasonType) return false
-      if (finderClass !== 'all' && g.home_classification !== finderClass && g.away_classification !== finderClass) return false
+      if (
+        finderClass !== 'all' &&
+        g.home_classification !== finderClass &&
+        g.away_classification !== finderClass
+      )
+        return false
       return true
     })
   }, [cfbdGames, finderSeasonType, finderClass])
 
   const selectedGames = useMemo(() => {
-    return cfbdGames.filter(g => {
+    return cfbdGames.filter((g) => {
       if (!selected.has(g.id)) return false
       if (selectedSeasonType !== 'all' && g.season_type !== selectedSeasonType) return false
-      if (selectedClass !== 'all' && g.home_classification !== selectedClass && g.away_classification !== selectedClass) return false
+      if (
+        selectedClass !== 'all' &&
+        g.home_classification !== selectedClass &&
+        g.away_classification !== selectedClass
+      )
+        return false
       return true
     })
   }, [cfbdGames, selected, selectedSeasonType, selectedClass])
@@ -93,9 +117,10 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
   }
 
   function toggleGame(id: number) {
-    setSelected(prev => {
+    setSelected((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -112,7 +137,7 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
             <input
               type="text"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               placeholder="e.g. 2025 Kirchmann Bowl Pool"
               className="w-full rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
@@ -122,7 +147,7 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
             <input
               type="number"
               value={seasonYear}
-              onChange={e => setSeasonYear(Number(e.target.value))}
+              onChange={(e) => setSeasonYear(Number(e.target.value))}
               className="w-full rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
@@ -136,7 +161,10 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
             {createPool.isPending && <Loader2 className="size-4 animate-spin" />}
             Next: Select Games
           </button>
-          <button onClick={goToList} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={goToList}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Cancel
           </button>
         </div>
@@ -154,7 +182,9 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
 
     return (
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">Step 2 of 2 — Select games from {newPoolYear}</p>
+        <p className="text-sm text-muted-foreground">
+          Step 2 of 2 — Select games from {newPoolYear}
+        </p>
 
         {/* Tab bar */}
         <div className="flex items-center gap-1 border-b border-border">
@@ -179,12 +209,14 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
               <label className="text-xs text-muted-foreground">Season</label>
               <select
                 value={activeSeasonType}
-                onChange={e => setActiveSeasonType(e.target.value)}
+                onChange={(e) => setActiveSeasonType(e.target.value)}
                 className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
-                {seasonTypeOptions.map(v => (
-                  <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
+                {seasonTypeOptions.map((v) => (
+                  <option key={v} value={v}>
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </option>
                 ))}
               </select>
             </div>
@@ -192,12 +224,14 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
               <label className="text-xs text-muted-foreground">Classification</label>
               <select
                 value={activeClass}
-                onChange={e => setActiveClass(e.target.value)}
+                onChange={(e) => setActiveClass(e.target.value)}
                 className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
-                {classOptions.map(v => (
-                  <option key={v} value={v}>{v.toUpperCase()}</option>
+                {classOptions.map((v) => (
+                  <option key={v} value={v}>
+                    {v.toUpperCase()}
+                  </option>
                 ))}
               </select>
             </div>
@@ -206,23 +240,25 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
               {isFinder ? (
                 <button
                   onClick={() => {
-                    const allSelected = finderGames.every(g => selected.has(g.id))
-                    setSelected(prev => {
+                    const allSelected = finderGames.every((g) => selected.has(g.id))
+                    setSelected((prev) => {
                       const next = new Set(prev)
-                      finderGames.forEach(g => allSelected ? next.delete(g.id) : next.add(g.id))
+                      finderGames.forEach((g) => (allSelected ? next.delete(g.id) : next.add(g.id)))
                       return next
                     })
                   }}
                   className="text-xs text-primary hover:text-primary/80 transition-colors"
                 >
-                  {finderGames.every(g => selected.has(g.id)) && finderGames.length > 0 ? 'Deselect all' : 'Select all'}
+                  {finderGames.every((g) => selected.has(g.id)) && finderGames.length > 0
+                    ? 'Deselect all'
+                    : 'Select all'}
                 </button>
               ) : (
                 <button
                   onClick={() => {
-                    setSelected(prev => {
+                    setSelected((prev) => {
                       const next = new Set(prev)
-                      selectedGames.forEach(g => next.delete(g.id))
+                      selectedGames.forEach((g) => next.delete(g.id))
                       return next
                     })
                   }}
@@ -243,14 +279,12 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
           </div>
         ) : activeGames.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8">
-            {isFinder ? 'No games match the current filters.' : 'No selected games match the current filters.'}
+            {isFinder
+              ? 'No games match the current filters.'
+              : 'No selected games match the current filters.'}
           </p>
         ) : (
-          <VirtualGameList
-            games={activeGames}
-            selected={selected}
-            onToggle={toggleGame}
-          />
+          <VirtualGameList games={activeGames} selected={selected} onToggle={toggleGame} />
         )}
 
         <div className="flex items-center gap-3 pt-2">
@@ -262,7 +296,10 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
             {addGames.isPending && <Loader2 className="size-4 animate-spin" />}
             Add {selected.size > 0 ? `${selected.size} ` : ''}Game{selected.size !== 1 ? 's' : ''}
           </button>
-          <button onClick={goToList} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={goToList}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Cancel
           </button>
         </div>
@@ -276,7 +313,9 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
       <PoolDetail
         pool={selectedPool}
         onBack={() => onSelectPool?.(null)}
-        onDeleted={() => { onSelectPool?.(null) }}
+        onDeleted={() => {
+          onSelectPool?.(null)
+        }}
       />
     )
   }
@@ -285,9 +324,14 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{pools.length} pool{pools.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-muted-foreground">
+          {pools.length} pool{pools.length !== 1 ? 's' : ''}
+        </p>
         <button
-          onClick={() => { setView('create-step1'); onViewChange?.(true) }}
+          onClick={() => {
+            setView('create-step1')
+            onViewChange?.(true)
+          }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
         >
           <Plus className="size-4" />
@@ -307,7 +351,7 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
         </div>
       ) : (
         <div className="space-y-1">
-          {pools.map(pool => (
+          {pools.map((pool) => (
             <div
               key={pool.id}
               onClick={() => onSelectPool?.(pool)}
@@ -325,11 +369,18 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
                 <p className="text-xs text-muted-foreground mt-0.5">{pool.season_year} season</p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-sm text-foreground">{pool.game_count} game{pool.game_count !== 1 ? 's' : ''}</p>
-                <p className="text-xs text-muted-foreground">{new Date(pool.created_at).toLocaleDateString()}</p>
+                <p className="text-sm text-foreground">
+                  {pool.game_count} game{pool.game_count !== 1 ? 's' : ''}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(pool.created_at).toLocaleDateString()}
+                </p>
               </div>
               <button
-                onClick={e => { e.stopPropagation(); setConfirmDelete(pool) }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setConfirmDelete(pool)
+                }}
                 className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <Trash2 className="size-4" />
@@ -339,37 +390,39 @@ export default function PoolsPanel({ onViewChange, selectedPool = null, onSelect
         </div>
       )}
 
-      {confirmDelete && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
-            <div className="space-y-1.5">
-              <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                <span className="text-foreground font-medium">{confirmDelete.name}</span> and all its games will be permanently deleted. This cannot be undone.
-              </p>
+      {confirmDelete &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+            <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
+              <div className="space-y-1.5">
+                <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  <span className="text-foreground font-medium">{confirmDelete.name}</span> and all
+                  its games will be permanently deleted. This cannot be undone.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await deletePool.mutateAsync(confirmDelete.id)
+                    setConfirmDelete(null)
+                  }}
+                  disabled={deletePool.isPending}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
+                >
+                  {deletePool.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setConfirmDelete(null)}
-                className="flex-1 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  await deletePool.mutateAsync(confirmDelete.id)
-                  setConfirmDelete(null)
-                }}
-                disabled={deletePool.isPending}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
-              >
-                {deletePool.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
@@ -399,12 +452,18 @@ function VirtualGameList({ games, selected, onToggle }: VirtualGameListProps) {
       style={{ height: 'calc(100vh - 27rem)', scrollbarGutter: 'stable' }}
     >
       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-        {virtualizer.getVirtualItems().map(vRow => {
+        {virtualizer.getVirtualItems().map((vRow) => {
           const game = games[vRow.index]
           return (
             <div
               key={game.id}
-              style={{ position: 'absolute', transform: `translateY(${vRow.start}px)`, left: 0, right: 0, height: ROW_HEIGHT }}
+              style={{
+                position: 'absolute',
+                transform: `translateY(${vRow.start}px)`,
+                left: 0,
+                right: 0,
+                height: ROW_HEIGHT,
+              }}
             >
               <GameRow
                 game={game}
@@ -427,9 +486,9 @@ interface GameRowProps {
 }
 
 const CLASSIFICATION_COLORS: Record<string, string> = {
-  FBS:  'tag-green',
-  FCS:  'tag-amber',
-  DII:  'tag-teal',
+  FBS: 'tag-green',
+  FCS: 'tag-amber',
+  DII: 'tag-teal',
   DIII: 'tag-purple',
 }
 
@@ -440,7 +499,11 @@ function tagColor(value: string): string {
 function formatGameTime(startDate: string, timeTbd: boolean): string {
   if (!startDate) return ''
   const date = new Date(startDate)
-  const datePart = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+  const datePart = date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
   if (timeTbd) return `${datePart} · Time TBD`
   const timePart = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   return `${datePart} at ${timePart}`
@@ -456,12 +519,16 @@ function GameRow({ game, checked = false, onToggle, readOnly = false }: GameRowP
   // Classification tags — one per team if they differ, one if same
   const homeCls = game.home_classification?.toUpperCase() ?? null
   const awayCls = game.away_classification?.toUpperCase() ?? null
-  const clsTags: string[] = homeCls === awayCls
-    ? (homeCls ? [homeCls] : [])
-    : [awayCls, homeCls].filter(Boolean) as string[]
+  const clsTags: string[] =
+    homeCls === awayCls
+      ? homeCls
+        ? [homeCls]
+        : []
+      : ([awayCls, homeCls].filter(Boolean) as string[])
 
   // Conference pill
-  const sameConference = game.home_conference && game.away_conference && game.home_conference === game.away_conference
+  const sameConference =
+    game.home_conference && game.away_conference && game.home_conference === game.away_conference
   const conferencePillLabel = sameConference ? game.home_conference! : 'Out of Conference'
 
   const rowContent = (
@@ -478,8 +545,11 @@ function GameRow({ game, checked = false, onToggle, readOnly = false }: GameRowP
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium text-foreground truncate">{title}</p>
           <div className="flex items-center gap-1 shrink-0">
-            {clsTags.map(tag => (
-              <span key={tag} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${tagColor(tag)}`}>
+            {clsTags.map((tag) => (
+              <span
+                key={tag}
+                className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${tagColor(tag)}`}
+              >
                 {tag}
               </span>
             ))}
@@ -487,7 +557,9 @@ function GameRow({ game, checked = false, onToggle, readOnly = false }: GameRowP
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {dateTime && <span className="text-xs text-muted-foreground">{dateTime}</span>}
-          <span className={`text-xs px-1.5 py-0.5 rounded-full ${sameConference ? 'tag-blue' : 'bg-muted text-muted-foreground'}`}>
+          <span
+            className={`text-xs px-1.5 py-0.5 rounded-full ${sameConference ? 'tag-blue' : 'bg-muted text-muted-foreground'}`}
+          >
             {conferencePillLabel}
           </span>
         </div>
@@ -535,7 +607,8 @@ function PoolDetail({ pool, onDeleted }: PoolDetailProps) {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Created {new Date(pool.created_at).toLocaleDateString()} · {pool.game_count} game{pool.game_count !== 1 ? 's' : ''}
+            Created {new Date(pool.created_at).toLocaleDateString()} · {pool.game_count} game
+            {pool.game_count !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
@@ -543,7 +616,9 @@ function PoolDetail({ pool, onDeleted }: PoolDetailProps) {
       {/* Toggle pills */}
       <div className="flex items-center gap-2">
         <button
-          onClick={() => patchPool.mutate({ poolId: pool.id, patch: { is_featured: !live.is_featured } })}
+          onClick={() =>
+            patchPool.mutate({ poolId: pool.id, patch: { is_featured: !live.is_featured } })
+          }
           disabled={patchPool.isPending}
           className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors disabled:opacity-50 ${
             live.is_featured
@@ -554,7 +629,12 @@ function PoolDetail({ pool, onDeleted }: PoolDetailProps) {
           {live.is_featured ? 'Featured' : 'Not Featured'}
         </button>
         <button
-          onClick={() => patchPool.mutate({ poolId: pool.id, patch: { submissions_open: !live.submissions_open } })}
+          onClick={() =>
+            patchPool.mutate({
+              poolId: pool.id,
+              patch: { submissions_open: !live.submissions_open },
+            })
+          }
           disabled={patchPool.isPending}
           className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors disabled:opacity-50 ${
             live.submissions_open
@@ -582,7 +662,7 @@ function PoolDetail({ pool, onDeleted }: PoolDetailProps) {
           <p className="text-sm text-muted-foreground py-4">No games added to this pool yet.</p>
         ) : (
           <div className="rounded-xl overflow-hidden bg-white/[0.03] border border-border/20">
-            {detail?.games.map(g => {
+            {detail?.games.map((g) => {
               const asCfbdGame: CfbdGame = {
                 id: g.cfbd_game_id,
                 home_team: g.home_team,
@@ -621,34 +701,36 @@ function PoolDetail({ pool, onDeleted }: PoolDetailProps) {
         </button>
       </div>
 
-      {confirmDelete && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-          <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
-            <div className="space-y-1.5">
-              <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                <span className="text-foreground font-medium">{pool.name}</span> and all its games will be permanently deleted. This cannot be undone.
-              </p>
+      {confirmDelete &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+            <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
+              <div className="space-y-1.5">
+                <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  <span className="text-foreground font-medium">{pool.name}</span> and all its games
+                  will be permanently deleted. This cannot be undone.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deletePool.isPending}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
+                >
+                  {deletePool.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deletePool.isPending}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
-              >
-                {deletePool.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { usePoolGames, useSubmissionPicks, useSavePick, type PoolGame, type TeamMeta } from '@/services/useSubmission'
+import {
+  usePoolGames,
+  useSubmissionPicks,
+  useSavePick,
+  type PoolGame,
+  type TeamMeta,
+} from '@/services/useSubmission'
 
 interface Props {
   poolId: number
@@ -10,7 +16,10 @@ interface Props {
   onDone: () => void
 }
 
-interface Pick { winner: string; margin: number }
+interface Pick {
+  winner: string
+  margin: number
+}
 
 function teamBg(meta: TeamMeta | null): string {
   return meta?.color
@@ -45,7 +54,7 @@ function PlaceholderSections() {
       <div>
         <p className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">Impact Players</p>
         <div className="space-y-1.5">
-          {[0, 1, 2].map(i => (
+          {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="size-4 rounded-full bg-white/10 animate-pulse shrink-0" />
               <div className="h-2 bg-white/10 rounded animate-pulse flex-1" />
@@ -90,7 +99,12 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
           style={isSelected ? { filter: 'brightness(1.4)' } : undefined}
         >
           {logo ? (
-            <img src={logo} alt={team} className="h-10 w-10 object-contain drop-shadow-lg" draggable={false} />
+            <img
+              src={logo}
+              alt={team}
+              className="h-10 w-10 object-contain drop-shadow-lg"
+              draggable={false}
+            />
           ) : (
             <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-xs font-bold">
               {team.slice(0, 2).toUpperCase()}
@@ -103,20 +117,23 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
 
         {/* Inline margin controls — only when selected */}
         {isSelected && (
-          <div className="flex flex-col items-center gap-1" onClick={e => e.stopPropagation()}>
+          <div className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <input
               type="number"
               min={1}
               value={pick?.margin ?? 1}
               onChange={handleMarginInput}
               className="w-12 text-center bg-white/10 border border-white/20 rounded text-white text-sm py-0.5 focus:outline-none focus:border-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             />
             <div className="flex gap-1">
-              {[-7, -3, -1, 1, 3, 7].map(n => (
+              {[-7, -3, -1, 1, 3, 7].map((n) => (
                 <button
                   key={n}
-                  onClick={e => { e.stopPropagation(); onMarginChange(Math.max(1, (pick?.margin ?? 1) + n)) }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onMarginChange(Math.max(1, (pick?.margin ?? 1) + n))
+                  }}
                   className="px-1.5 py-0.5 rounded-full bg-white/15 text-white text-xs font-medium hover:bg-white/30 transition-colors tabular-nums"
                 >
                   {n > 0 ? `+${n}` : n}
@@ -140,7 +157,13 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
   )
 }
 
-export default function GamesStep({ poolId, submissionId, currentIndex, onIndexChange, onDone }: Props) {
+export default function GamesStep({
+  poolId,
+  submissionId,
+  currentIndex,
+  onIndexChange,
+  onDone,
+}: Props) {
   const { data: games = [] } = usePoolGames(poolId)
   const { data: existingPicks = [] } = useSubmissionPicks(submissionId)
   const savePick = useSavePick(submissionId)
@@ -167,7 +190,7 @@ export default function GamesStep({ poolId, submissionId, currentIndex, onIndexC
   const currentPick = picks[game.id] ?? null
 
   function setPick(winner: string, margin: number) {
-    setPicks(prev => ({ ...prev, [game.id]: { winner, margin } }))
+    setPicks((prev) => ({ ...prev, [game.id]: { winner, margin } }))
     scheduleAutosave(game.id, winner, margin)
   }
 
@@ -234,10 +257,10 @@ export default function GamesStep({ poolId, submissionId, currentIndex, onIndexC
         </button>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Game {currentIndex + 1} of {games.length}</span>
-          {savedFlash && (
-            <span className="text-success animate-pulse">· Saved ✓</span>
-          )}
+          <span>
+            Game {currentIndex + 1} of {games.length}
+          </span>
+          {savedFlash && <span className="text-success animate-pulse">· Saved ✓</span>}
         </div>
 
         <button

@@ -33,7 +33,7 @@ export default function PasswordStep({ poolId, onComplete }: Props) {
         <input
           type="password"
           value={password}
-          onChange={e => setPassword(e.target.value)}
+          onChange={(e) => setPassword(e.target.value)}
           placeholder="Pool password"
           autoFocus
           className="w-full px-4 py-2.5 rounded-xl bg-[rgba(13,15,19,0.6)] border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"

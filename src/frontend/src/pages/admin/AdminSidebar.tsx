@@ -102,7 +102,7 @@ export default function AdminSidebar({
   const [open, setOpen] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    setOpen(prev => {
+    setOpen((prev) => {
       const next = { ...prev }
       for (const g of groups) {
         for (const item of g.items) {
@@ -122,7 +122,7 @@ export default function AdminSidebar({
         <div key={id} className="flex flex-col gap-1">
           <button
             type="button"
-            onClick={() => setOpen(o => ({ ...o, [id]: !isOpen }))}
+            onClick={() => setOpen((o) => ({ ...o, [id]: !isOpen }))}
             className={cn(itemClasses(false, false), 'w-full')}
           >
             <Icon className="size-4 shrink-0" />
@@ -132,7 +132,7 @@ export default function AdminSidebar({
             />
           </button>
           {isOpen &&
-            children.map(child => (
+            children.map((child) => (
               <NavLink
                 key={child.id}
                 to={`/admin/${id}/${child.id}`}
@@ -147,10 +147,7 @@ export default function AdminSidebar({
     }
 
     const link = (
-      <NavLink
-        to={`/admin/${id}`}
-        className={({ isActive }) => itemClasses(isActive, collapsed)}
-      >
+      <NavLink to={`/admin/${id}`} className={({ isActive }) => itemClasses(isActive, collapsed)}>
         <Icon className="size-4 shrink-0" />
         {!collapsed && <span className="truncate">{label}</span>}
         {!collapsed && badge != null && <Badge count={badge} />}
@@ -168,10 +165,7 @@ export default function AdminSidebar({
 
   return (
     <aside
-      className={cn(
-        'shrink-0 transition-[width] duration-200',
-        collapsed ? 'w-[60px]' : 'w-60',
-      )}
+      className={cn('shrink-0 transition-[width] duration-200', collapsed ? 'w-[60px]' : 'w-60')}
     >
       <div className="flex h-full flex-col border-r border-border/40 bg-[rgba(16,18,24,0.62)] shadow-xl shadow-black/30 backdrop-blur-xl">
         {/* Brand lockup + collapse toggle. Fixed height + centered so it lines up

@@ -13,9 +13,15 @@ function describeCron(cron: string): string | null {
 
 /** Inline-editable cron, shared by the sync card and task-detail views.
  *  Blank = paused (amber). Run-only tasks (schedulable=false) show static text. */
-export default function CronField(
-  { taskName, cron, schedulable }: { taskName: string; cron: string | null; schedulable: boolean },
-) {
+export default function CronField({
+  taskName,
+  cron,
+  schedulable,
+}: {
+  taskName: string
+  cron: string | null
+  schedulable: boolean
+}) {
   const setCron = useSetCron(taskName)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(cron ?? '')
@@ -28,9 +34,16 @@ export default function CronField(
 
   const submit = () => {
     const next = draft.trim()
-    if (next === (cron ?? '')) { setEditing(false); setError(null); return }
+    if (next === (cron ?? '')) {
+      setEditing(false)
+      setError(null)
+      return
+    }
     setCron.mutate(next === '' ? null : next, {
-      onSuccess: () => { setEditing(false); setError(null) },
+      onSuccess: () => {
+        setEditing(false)
+        setError(null)
+      },
       onError: (e) => setError(e.message === '400' ? 'Invalid cron' : 'Failed to save'),
     })
   }
@@ -45,11 +58,15 @@ export default function CronField(
         <input
           autoFocus
           value={draft}
-          onChange={e => setDraft(e.target.value)}
+          onChange={(e) => setDraft(e.target.value)}
           onBlur={submit}
-          onKeyDown={e => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter') submit()
-            if (e.key === 'Escape') { setDraft(cron ?? ''); setEditing(false); setError(null) }
+            if (e.key === 'Escape') {
+              setDraft(cron ?? '')
+              setEditing(false)
+              setError(null)
+            }
           }}
           placeholder="blank = paused"
           disabled={setCron.isPending}
@@ -57,9 +74,13 @@ export default function CronField(
           className="font-mono bg-transparent border border-primary/50 rounded px-1 py-0.5 text-foreground/90 focus:outline-none disabled:opacity-50"
         />
         {/* Live plain-English preview as you type. */}
-        {error
-          ? <span className="text-destructive shrink-0">{error}</span>
-          : draftDesc && <span className="text-muted-foreground shrink-0 truncate">· {draftDesc}</span>}
+        {error ? (
+          <span className="text-destructive shrink-0">{error}</span>
+        ) : (
+          draftDesc && (
+            <span className="text-muted-foreground shrink-0 truncate">· {draftDesc}</span>
+          )
+        )}
       </span>
     )
   }
@@ -67,15 +88,23 @@ export default function CronField(
   const desc = cron ? describeCron(cron) : null
   return (
     <button
-      onClick={() => { setDraft(cron ?? ''); setEditing(true); setError(null) }}
-      title={cron
-        ? `${desc ?? 'Custom schedule'} — click to edit (blank to pause)`
-        : 'Paused — click to set a schedule'}
+      onClick={() => {
+        setDraft(cron ?? '')
+        setEditing(true)
+        setError(null)
+      }}
+      title={
+        cron
+          ? `${desc ?? 'Custom schedule'} — click to edit (blank to pause)`
+          : 'Paused — click to set a schedule'
+      }
       className="flex items-center gap-2 min-w-0 text-[10px] hover:underline"
     >
       {cron ? (
         <>
-          <span className="font-mono text-muted-foreground shrink-0 px-1 border border-transparent">{cron}</span>
+          <span className="font-mono text-muted-foreground shrink-0 px-1 border border-transparent">
+            {cron}
+          </span>
           {desc && <span className="text-muted-foreground/70 truncate">· {desc}</span>}
         </>
       ) : (

@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -30,7 +31,7 @@ class PoolGameSchema(BaseModel):
     start_time_tbd: bool = False
     week: int | None = None
     bowl_name: str | None = None
-    season_type: str = 'postseason'
+    season_type: str = "postseason"
     home_classification: str | None = None
     away_classification: str | None = None
     home_conference: str | None = None

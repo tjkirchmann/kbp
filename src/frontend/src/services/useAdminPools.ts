@@ -36,7 +36,11 @@ export interface CfbdGame {
 async function authFetch(token: string, path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...init?.headers },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
   })
   if (!res.ok) throw new Error(`${res.status}`)
   return res.json()
@@ -125,7 +129,13 @@ export function usePatchPool() {
   const { getToken } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ poolId, patch }: { poolId: number; patch: { is_featured?: boolean; submissions_open?: boolean } }) => {
+    mutationFn: async ({
+      poolId,
+      patch,
+    }: {
+      poolId: number
+      patch: { is_featured?: boolean; submissions_open?: boolean }
+    }) => {
       const token = await getToken()
       return authFetch(token!, `/admin/pools/${poolId}`, {
         method: 'PATCH',
@@ -190,7 +200,13 @@ export function useUpdateBracket() {
   const { getToken } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ poolId, assignments }: { poolId: number; assignments: BracketAssignmentItem[] }) => {
+    mutationFn: async ({
+      poolId,
+      assignments,
+    }: {
+      poolId: number
+      assignments: BracketAssignmentItem[]
+    }) => {
       const token = await getToken()
       return authFetch(token!, `/admin/pools/${poolId}/games/bracket`, {
         method: 'PATCH',
@@ -212,7 +228,13 @@ export function useUpdateMultipliers() {
   const { getToken } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ poolId, multipliers }: { poolId: number; multipliers: MultiplierItem[] }) => {
+    mutationFn: async ({
+      poolId,
+      multipliers,
+    }: {
+      poolId: number
+      multipliers: MultiplierItem[]
+    }) => {
       const token = await getToken()
       return authFetch(token!, `/admin/pools/${poolId}/games/multipliers`, {
         method: 'PATCH',

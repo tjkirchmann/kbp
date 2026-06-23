@@ -26,7 +26,11 @@ const appearance = {
     footer: { color: '#E8EAF0' },
     dividerLine: { backgroundColor: '#2A2E38' },
     dividerText: { color: '#A0A8C0' },
-    socialButtonsBlockButton: { borderColor: '#2A2E38', backgroundColor: '#21252E', color: '#E8EAF0' },
+    socialButtonsBlockButton: {
+      borderColor: '#2A2E38',
+      backgroundColor: '#21252E',
+      color: '#E8EAF0',
+    },
     socialButtonsBlockButtonText: { color: '#E8EAF0' },
     identityPreviewText: { color: '#E8EAF0' },
     identityPreviewEditButton: { color: '#009CDE' },

@@ -11,10 +11,12 @@ upserted, so periodic + manual + retry runs all converge.
 Games (a fact table whose scores change) is synced separately and far more
 frequently in app/tasks/cfbd_sync.py.
 """
+
 import hashlib
 import logging
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 from app.core.database import TaskSessionLocal as SessionLocal
 from app.core.procrastinate import procrastinate_app as app
@@ -27,10 +29,10 @@ from app.models.cfbd import (
     CfbdTeam,
     CfbdVenue,
 )
-from app.tasks.notify_decorator import notify
 from app.services.sync.providers.cfbd import cfbd_provider
 from app.services.sync.snapshots import record_snapshot
 from app.services.sync.upsert import batch_upsert
+from app.tasks.notify_decorator import notify
 
 logger = logging.getLogger(__name__)
 
@@ -114,10 +116,24 @@ def _venue_row(v: dict) -> dict:
 
 
 def _venue_hash(v: dict) -> dict:
-    return {k: v.get(k) for k in (
-        "name", "city", "state", "zip", "countryCode", "timezone", "latitude",
-        "longitude", "elevation", "capacity", "constructionYear", "grass", "dome",
-    )}
+    return {
+        k: v.get(k)
+        for k in (
+            "name",
+            "city",
+            "state",
+            "zip",
+            "countryCode",
+            "timezone",
+            "latitude",
+            "longitude",
+            "elevation",
+            "capacity",
+            "constructionYear",
+            "grass",
+            "dome",
+        )
+    }
 
 
 # --- draft positions / teams ------------------------------------------------
@@ -218,7 +234,9 @@ async def _sync_flat(
         rows[key] = row
     values = list(rows.values())
     if values:
-        await batch_upsert(db, model, values, _BATCH(len(values[0])), index_elements=(pk,))
+        await batch_upsert(
+            db, model, values, _BATCH(len(values[0])), index_elements=(pk,)
+        )
     return len(values), changed
 
 
@@ -248,12 +266,19 @@ async def _sync_coaches(db, coaches: list[dict]) -> tuple[int, int, int]:
     coaches_v = list(coach_rows.values())
     if coaches_v:
         await batch_upsert(
-            db, CfbdCoach, coaches_v, _BATCH(len(coaches_v[0])), index_elements=("coach_id",)
+            db,
+            CfbdCoach,
+            coaches_v,
+            _BATCH(len(coaches_v[0])),
+            index_elements=("coach_id",),
         )
     seasons_v = list(season_rows.values())
     if seasons_v:
         await batch_upsert(
-            db, CfbdCoachSeason, seasons_v, _BATCH(len(seasons_v[0])),
+            db,
+            CfbdCoachSeason,
+            seasons_v,
+            _BATCH(len(seasons_v[0])),
             index_elements=("coach_id", "school", "year"),
         )
     return len(coaches_v), len(seasons_v), changed
@@ -274,33 +299,56 @@ async def sync_cfbd_dims(timestamp: int | None = None) -> dict[str, Any]:
     result: dict[str, Any] = {}
     async with SessionLocal() as db:
         p, ch = await _sync_flat(
-            db, teams, entity_type="cfbd_team", pk="id", model=CfbdTeam,
-            row_fn=_team_row, hash_fn=_team_hash,
+            db,
+            teams,
+            entity_type="cfbd_team",
+            pk="id",
+            model=CfbdTeam,
+            row_fn=_team_row,
+            hash_fn=_team_hash,
         )
         result["teams"] = {"processed": p, "changed": ch}
 
         p, ch = await _sync_flat(
-            db, conferences, entity_type="cfbd_conference", pk="id", model=CfbdConference,
-            row_fn=_conference_row, hash_fn=_conference_hash,
+            db,
+            conferences,
+            entity_type="cfbd_conference",
+            pk="id",
+            model=CfbdConference,
+            row_fn=_conference_row,
+            hash_fn=_conference_hash,
         )
         result["conferences"] = {"processed": p, "changed": ch}
 
         p, ch = await _sync_flat(
-            db, venues, entity_type="cfbd_venue", pk="id", model=CfbdVenue,
-            row_fn=_venue_row, hash_fn=_venue_hash,
+            db,
+            venues,
+            entity_type="cfbd_venue",
+            pk="id",
+            model=CfbdVenue,
+            row_fn=_venue_row,
+            hash_fn=_venue_hash,
         )
         result["venues"] = {"processed": p, "changed": ch}
 
         p, ch = await _sync_flat(
-            db, draft_positions, entity_type="cfbd_draft_position", pk="name",
-            model=CfbdDraftPosition, row_fn=_draft_position_row,
+            db,
+            draft_positions,
+            entity_type="cfbd_draft_position",
+            pk="name",
+            model=CfbdDraftPosition,
+            row_fn=_draft_position_row,
             hash_fn=lambda x: {"abbreviation": x.get("abbreviation")},
         )
         result["draft_positions"] = {"processed": p, "changed": ch}
 
         p, ch = await _sync_flat(
-            db, draft_teams, entity_type="cfbd_draft_team", pk="display_name",
-            model=CfbdDraftTeam, row_fn=_draft_team_row,
+            db,
+            draft_teams,
+            entity_type="cfbd_draft_team",
+            pk="display_name",
+            model=CfbdDraftTeam,
+            row_fn=_draft_team_row,
             hash_fn=lambda x: {k: x.get(k) for k in ("location", "nickname", "logo")},
         )
         result["draft_teams"] = {"processed": p, "changed": ch}

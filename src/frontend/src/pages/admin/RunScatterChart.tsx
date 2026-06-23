@@ -30,9 +30,9 @@ const COLORS: { color: string; statuses: string[] }[] = [
 // (Y) axis lines up across both panels.
 const M_TOP = 4
 const M_BOTTOM = 22 // room for the scatter's x-axis tick labels
-const HIST_W = 72   // the histogram panel's own width, in px
+const HIST_W = 72 // the histogram panel's own width, in px
 const HIST_GAP = 16 // breathing room between the scatter and the histogram
-const BINS = 40     // vertical frequency bins
+const BINS = 40 // vertical frequency bins
 // Width of the recharts Y-axis label gutter (e.g. "17m", "1.0s"); guide lines and
 // their labels start here so they sit over the plot, not over the axis labels.
 const PLOT_LEFT = 38
@@ -51,10 +51,15 @@ function CustomTooltip({ active, payload }: any) {
 
 export default function RunScatterChart({ runs }: { runs: SyncRun[] }) {
   const points: Point[] = runs
-    .map(r => {
+    .map((r) => {
       const when = r.started_at ?? r.ended_at
       if (!when || r.duration_seconds == null || r.duration_seconds <= 0) return null
-      return { t: new Date(when).getTime(), duration: r.duration_seconds, status: r.status, id: r.id }
+      return {
+        t: new Date(when).getTime(),
+        duration: r.duration_seconds,
+        status: r.status,
+        id: r.id,
+      }
     })
     .filter((p): p is Point => p != null)
 
@@ -71,7 +76,7 @@ export default function RunScatterChart({ runs }: { runs: SyncRun[] }) {
 }
 
 function Plot({ points, height }: { points: Point[]; height: number }) {
-  const durations = points.map(p => p.duration)
+  const durations = points.map((p) => p.duration)
   const dMin = Math.min(...durations)
   const dMax = Math.max(...durations)
   // Pad the log domain a touch so extreme points aren't clipped at the edges.
@@ -86,7 +91,8 @@ function Plot({ points, height }: { points: Point[]; height: number }) {
   const yOf = (v: number) => M_TOP + (1 - (Math.log(v) - llo) / span) * plotH
 
   const sorted = [...durations].sort((a, b) => a - b)
-  const pct = (q: number) => sorted[Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1)))]
+  const pct = (q: number) =>
+    sorted[Math.min(sorted.length - 1, Math.round(q * (sorted.length - 1)))]
   const p50 = pct(0.5)
   const p95 = pct(0.95)
 
@@ -120,7 +126,7 @@ function Plot({ points, height }: { points: Point[]; height: number }) {
             />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)' }} />
             {COLORS.map(({ color, statuses }) => {
-              const data = points.filter(p => statuses.includes(p.status))
+              const data = points.filter((p) => statuses.includes(p.status))
               if (data.length === 0) return null
               return <Scatter key={color} data={data} fill={color} fillOpacity={0.6} />
             })}
@@ -151,8 +157,18 @@ function Plot({ points, height }: { points: Point[]; height: number }) {
  * the shared log Y axis; each bar grows RIGHTWARD from the panel's left edge,
  * longer and brighter where runs cluster.
  */
-function FrequencyHistogram({ durations, llo, span, plotTop, plotH }: {
-  durations: number[]; llo: number; span: number; plotTop: number; plotH: number
+function FrequencyHistogram({
+  durations,
+  llo,
+  span,
+  plotTop,
+  plotH,
+}: {
+  durations: number[]
+  llo: number
+  span: number
+  plotTop: number
+  plotH: number
 }) {
   const counts = new Array(BINS).fill(0)
   for (const d of durations) {

@@ -25,7 +25,10 @@ export default function EspnPanel() {
   async function handleSave() {
     const parsed = parseInt(rateLimit, 10)
     if (isNaN(parsed)) return
-    await update.mutateAsync({ espn_rate_limit_per_minute: parsed, espn_alert_channel: alertChannel })
+    await update.mutateAsync({
+      espn_rate_limit_per_minute: parsed,
+      espn_alert_channel: alertChannel,
+    })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -34,11 +37,12 @@ export default function EspnPanel() {
   if (error) return <p className="text-destructive text-sm">Failed to load config.</p>
 
   const intervalSec = status?.effective_interval_seconds ?? 0
-  const intervalLabel = intervalSec > 0
-    ? intervalSec >= 60
-      ? `${Math.round(intervalSec)}s / game`
-      : `${intervalSec.toFixed(1)}s / game`
-    : null
+  const intervalLabel =
+    intervalSec > 0
+      ? intervalSec >= 60
+        ? `${Math.round(intervalSec)}s / game`
+        : `${intervalSec.toFixed(1)}s / game`
+      : null
 
   return (
     <div className="flex flex-col gap-8 max-w-lg">
@@ -49,13 +53,15 @@ export default function EspnPanel() {
             type="number"
             min={1}
             value={rateLimit}
-            onChange={e => setRateLimit(e.target.value)}
+            onChange={(e) => setRateLimit(e.target.value)}
             className="px-3 py-2 rounded-lg bg-white/[0.03] border border-border/20 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors w-36 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <p className="text-xs text-muted-foreground">
             Global ESPN API request cap. Shared equally across all active games.
             {intervalLabel && (
-              <span className="ml-1 text-primary">{status!.live_games} live · {intervalLabel}</span>
+              <span className="ml-1 text-primary">
+                {status!.live_games} live · {intervalLabel}
+              </span>
             )}
           </p>
         </div>
@@ -64,17 +70,19 @@ export default function EspnPanel() {
           <label className="text-sm font-medium text-foreground">Game alerts channel</label>
           <select
             value={alertChannel}
-            onChange={e => setAlertChannel(e.target.value)}
+            onChange={(e) => setAlertChannel(e.target.value)}
             className="px-3 py-2 rounded-lg bg-white/[0.03] border border-border/20 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors w-72"
           >
             <option value="">None — silenced (default)</option>
-            {channels.map(c => (
-              <option key={c.name} value={c.name}>{c.name} ({c.strategy})</option>
+            {channels.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name} ({c.strategy})
+              </option>
             ))}
           </select>
           <p className="text-xs text-muted-foreground">
-            Where game start / halftime / final and poll errors are sent. Defaults
-            to silenced — pick a channel to deliver them.
+            Where game start / halftime / final and poll errors are sent. Defaults to silenced —
+            pick a channel to deliver them.
           </p>
         </div>
 
@@ -92,10 +100,10 @@ export default function EspnPanel() {
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-foreground">Poll activity <span className="text-muted-foreground font-normal">— last 30 min</span></p>
-          {pollLog.length === 0 && (
-            <p className="text-xs text-muted-foreground">No data yet</p>
-          )}
+          <p className="text-sm font-medium text-foreground">
+            Poll activity <span className="text-muted-foreground font-normal">— last 30 min</span>
+          </p>
+          {pollLog.length === 0 && <p className="text-xs text-muted-foreground">No data yet</p>}
         </div>
         {pollLog.length > 0 && <EspnPollChart data={pollLog} />}
       </div>

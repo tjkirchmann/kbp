@@ -53,7 +53,7 @@ export interface GamePick {
 
 export interface MySubmission {
   id: number
-  on_behalf_of_name: string  // '' = self-submission
+  on_behalf_of_name: string // '' = self-submission
   created_at: string
   is_locked: boolean
   submitted_at: string | null
@@ -136,7 +136,15 @@ export function useSavePick(submissionId: number) {
   const { getToken } = useAuth()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ poolGameId, pickedWinner, pickedMargin }: { poolGameId: number; pickedWinner: string; pickedMargin: number }) => {
+    mutationFn: async ({
+      poolGameId,
+      pickedWinner,
+      pickedMargin,
+    }: {
+      poolGameId: number
+      pickedWinner: string
+      pickedMargin: number
+    }) => {
       const token = await getToken()
       return apiFetch(token, `/submission/${submissionId}/picks/${poolGameId}`, {
         method: 'PUT',

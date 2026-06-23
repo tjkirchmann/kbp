@@ -6,15 +6,23 @@ import { useClerk, useAuth } from '@clerk/react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMe } from '@/services/useMe'
 
-const navBtn = "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors whitespace-nowrap"
-const mobileNavBtn = "flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors w-full"
+const navBtn =
+  'flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors whitespace-nowrap'
+const mobileNavBtn =
+  'flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors w-full'
 
 function avatarLetter(data: { name?: string | null; email?: string } | undefined) {
   const src = data?.name || data?.email || '?'
   return src[0].toUpperCase()
 }
 
-function AvatarMenu({ data, isAdmin }: { data: { name?: string | null; email?: string } | undefined; isAdmin: boolean }) {
+function AvatarMenu({
+  data,
+  isAdmin,
+}: {
+  data: { name?: string | null; email?: string } | undefined
+  isAdmin: boolean
+}) {
   const { signOut } = useClerk()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -31,17 +39,27 @@ function AvatarMenu({ data, isAdmin }: { data: { name?: string | null; email?: s
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary text-sm font-semibold hover:bg-primary/30 transition-colors"
       >
         {avatarLetter(data)}
       </button>
 
       {open && (
-        <div className="absolute -right-6 top-12 rounded-xl overflow-hidden min-w-40 z-50 shadow-lg border border-white/10" style={{ background: 'rgba(13, 15, 19, 0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+        <div
+          className="absolute -right-6 top-12 rounded-xl overflow-hidden min-w-40 z-50 shadow-lg border border-white/10"
+          style={{
+            background: 'rgba(13, 15, 19, 0.92)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+          }}
+        >
           {isAdmin && (
             <button
-              onClick={() => { navigate('/admin'); setOpen(false) }}
+              onClick={() => {
+                navigate('/admin')
+                setOpen(false)
+              }}
               className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors"
             >
               <ShieldCheck className="size-4" />
@@ -50,7 +68,10 @@ function AvatarMenu({ data, isAdmin }: { data: { name?: string | null; email?: s
           )}
           {isAdmin && <div className="border-t border-border/40" />}
           <button
-            onClick={() => { signOut({ redirectUrl: '/' }); setOpen(false) }}
+            onClick={() => {
+              signOut({ redirectUrl: '/' })
+              setOpen(false)
+            }}
             className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors"
           >
             <LogOut className="size-4 text-destructive" />
@@ -115,7 +136,7 @@ export default function Header() {
         {/* Hamburger — mobile */}
         <button
           className="sm:hidden p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors"
-          onClick={() => setMenuOpen(o => !o)}
+          onClick={() => setMenuOpen((o) => !o)}
           aria-label="Toggle menu"
         >
           {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -125,7 +146,13 @@ export default function Header() {
       {/* Mobile dropdown */}
       {menuOpen && (
         <div className="sm:hidden mt-2 glass-panel rounded-2xl px-3 py-3 flex flex-col gap-1">
-          <button className={mobileNavBtn} onClick={() => { navigate('/record-book'); setMenuOpen(false) }}>
+          <button
+            className={mobileNavBtn}
+            onClick={() => {
+              navigate('/record-book')
+              setMenuOpen(false)
+            }}
+          >
             <BookOpen className="size-4" />
             Record Book
           </button>
@@ -142,7 +169,10 @@ export default function Header() {
             <>
               {isAdmin && (
                 <button
-                  onClick={() => { navigate('/admin'); setMenuOpen(false) }}
+                  onClick={() => {
+                    navigate('/admin')
+                    setMenuOpen(false)
+                  }}
                   className={mobileNavBtn}
                 >
                   <ShieldCheck className="size-4" />
@@ -150,7 +180,10 @@ export default function Header() {
                 </button>
               )}
               <button
-                onClick={() => { signOut({ redirectUrl: '/' }); setMenuOpen(false) }}
+                onClick={() => {
+                  signOut({ redirectUrl: '/' })
+                  setMenuOpen(false)
+                }}
                 className={mobileNavBtn}
               >
                 <LogOut className="size-4" />
@@ -159,7 +192,10 @@ export default function Header() {
             </>
           ) : (
             <button
-              onClick={() => { navigate('/login'); setMenuOpen(false) }}
+              onClick={() => {
+                navigate('/login')
+                setMenuOpen(false)
+              }}
               className="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white w-full"
             >
               <LogIn className="size-4" />
