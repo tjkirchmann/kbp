@@ -6,6 +6,7 @@ call `get_temporal_client()` and `client.start_workflow(...)` the same way.
 
 Run as: python -m app.temporal.starter [name]
 """
+
 import asyncio
 import sys
 

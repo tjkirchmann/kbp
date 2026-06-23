@@ -52,27 +52,36 @@ export default function Capsule({ run, taskName }: { run: SyncRun; taskName?: st
       className="relative flex-1 min-w-0"
     >
       <div className={`h-full w-full transition-colors ${statusColor(run.status)}`} />
-      {pos && createPortal(
-        <div
-          className={`pointer-events-none fixed z-50 -translate-x-1/2 ${pos.below ? '' : '-translate-y-full'}`}
-          style={{ left: pos.left, top: pos.top }}
-        >
-          <div className="rounded-lg border border-border bg-popover px-3 py-2.5 text-xs whitespace-nowrap shadow-xl">
-            <p className={`font-medium ${
-              run.status === 'succeeded' ? 'text-success'
-              : ['failed', 'aborted', 'cancelled'].includes(run.status) ? 'text-destructive'
-              : 'text-foreground'
-            }`}>
-              {statusLabel(run.status)}
-            </p>
-            <p className="text-muted-foreground mt-0.5">{relativeTime(when)} · {absoluteTime(when)}</p>
-            {run.duration_seconds != null && (
-              <p className="text-muted-foreground/80 mt-0.5">took {formatDuration(run.duration_seconds)}</p>
-            )}
-          </div>
-        </div>,
-        document.body,
-      )}
+      {pos &&
+        createPortal(
+          <div
+            className={`pointer-events-none fixed z-50 -translate-x-1/2 ${pos.below ? '' : '-translate-y-full'}`}
+            style={{ left: pos.left, top: pos.top }}
+          >
+            <div className="rounded-lg border border-border bg-popover px-3 py-2.5 text-xs whitespace-nowrap shadow-xl">
+              <p
+                className={`font-medium ${
+                  run.status === 'succeeded'
+                    ? 'text-success'
+                    : ['failed', 'aborted', 'cancelled'].includes(run.status)
+                      ? 'text-destructive'
+                      : 'text-foreground'
+                }`}
+              >
+                {statusLabel(run.status)}
+              </p>
+              <p className="text-muted-foreground mt-0.5">
+                {relativeTime(when)} · {absoluteTime(when)}
+              </p>
+              {run.duration_seconds != null && (
+                <p className="text-muted-foreground/80 mt-0.5">
+                  took {formatDuration(run.duration_seconds)}
+                </p>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </Link>
   )
 }

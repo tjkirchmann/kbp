@@ -5,6 +5,7 @@ on_ready hook that syncs slash commands (per-guild in dev for instant
 propagation; global otherwise). Handlers live in cogs and stay thin — real work
 is pushed into services and Procrastinate tasks.
 """
+
 import logging
 
 import discord
@@ -37,16 +38,24 @@ def build_bot() -> commands.Bot:
 
     @bot.event
     async def on_ready() -> None:
-        logger.info("Bot connected as %s (id=%s)", bot.user, getattr(bot.user, "id", "?"))
+        logger.info(
+            "Bot connected as %s (id=%s)", bot.user, getattr(bot.user, "id", "?")
+        )
         try:
             if settings.discord_guild_id:
                 guild = discord.Object(id=int(settings.discord_guild_id))
                 bot.tree.copy_global_to(guild=guild)
                 synced = await bot.tree.sync(guild=guild)
-                logger.info("Synced %d command(s) to guild %s", len(synced), settings.discord_guild_id)
+                logger.info(
+                    "Synced %d command(s) to guild %s",
+                    len(synced),
+                    settings.discord_guild_id,
+                )
             else:
                 synced = await bot.tree.sync()
-                logger.info("Synced %d global command(s) (may take ~1h to appear)", len(synced))
+                logger.info(
+                    "Synced %d global command(s) (may take ~1h to appear)", len(synced)
+                )
         except Exception:
             logger.exception("Slash command sync failed")
 

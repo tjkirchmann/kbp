@@ -5,6 +5,7 @@ does nothing with them. Point any consumer (a task's channel, the ESPN alerts
 channel, ...) at a none channel to silence it cleanly without special-casing the
 caller — the channel abstraction stays uniform, the delivery is just a no-op.
 """
+
 from app.services.notifications.base import NotificationStrategy
 
 

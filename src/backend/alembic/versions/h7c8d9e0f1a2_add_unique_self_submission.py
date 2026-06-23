@@ -5,14 +5,16 @@ Revises: g6b7c8d9e0f1
 Create Date: 2026-05-09 00:00:00.000000
 
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
+from typing import Union
 
 from alembic import op
 
-revision: str = 'h7c8d9e0f1a2'
-down_revision: Union[str, None] = 'g6b7c8d9e0f1'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision: str = "h7c8d9e0f1a2"
+down_revision: str | None = "g6b7c8d9e0f1"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

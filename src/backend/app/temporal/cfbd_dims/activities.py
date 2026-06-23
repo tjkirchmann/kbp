@@ -14,11 +14,13 @@ Two activities cover all six dimensions:
 The row/hash mapping helpers are ported verbatim from the former
 ``app/tasks/cfbd_dims.py`` Procrastinate task; only the orchestration changed.
 """
+
 import hashlib
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 from temporalio import activity
 
@@ -118,10 +120,24 @@ def _venue_row(v: dict) -> dict:
 
 
 def _venue_hash(v: dict) -> dict:
-    return {k: v.get(k) for k in (
-        "name", "city", "state", "zip", "countryCode", "timezone", "latitude",
-        "longitude", "elevation", "capacity", "constructionYear", "grass", "dome",
-    )}
+    return {
+        k: v.get(k)
+        for k in (
+            "name",
+            "city",
+            "state",
+            "zip",
+            "countryCode",
+            "timezone",
+            "latitude",
+            "longitude",
+            "elevation",
+            "capacity",
+            "constructionYear",
+            "grass",
+            "dome",
+        )
+    }
 
 
 # --- draft positions / teams ------------------------------------------------

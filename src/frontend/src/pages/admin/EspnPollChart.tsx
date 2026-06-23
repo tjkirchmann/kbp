@@ -18,19 +18,24 @@ function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   const bucket: EventBucket = payload[0]?.payload
   const games = bucket.events
-    .filter(e => e.event === 'poll_ok' || e.event === 'poll_error')
-    .map(e => {
+    .filter((e) => e.event === 'poll_ok' || e.event === 'poll_error')
+    .map((e) => {
       const label = (e.payload.game_label as string) ?? e.payload.espn_event_id ?? '?'
       return e.event === 'poll_error' ? `${label} (error)` : label
     })
   return (
     <div className="bg-white/[0.03] border border-border/20 rounded-lg px-3 py-2.5 text-xs max-w-[220px]">
       <p className="font-medium text-foreground mb-1.5">{formatMinute(label)}</p>
-      <p className="text-muted-foreground mb-1">{bucket.count} poll{bucket.count !== 1 ? 's' : ''}</p>
+      <p className="text-muted-foreground mb-1">
+        {bucket.count} poll{bucket.count !== 1 ? 's' : ''}
+      </p>
       {games.length > 0 && (
         <ul className="flex flex-col gap-0.5">
           {games.map((g, i) => (
-            <li key={i} className={g.includes('(error)') ? 'text-destructive' : 'text-foreground/80'}>
+            <li
+              key={i}
+              className={g.includes('(error)') ? 'text-destructive' : 'text-foreground/80'}
+            >
               {g}
             </li>
           ))}
@@ -45,7 +50,7 @@ interface Props {
 }
 
 export default function EspnPollChart({ data }: Props) {
-  const chartData = data.map(b => ({ ...b, minute: b.minute }))
+  const chartData = data.map((b) => ({ ...b, minute: b.minute }))
 
   return (
     <ResponsiveContainer width="100%" height={180}>

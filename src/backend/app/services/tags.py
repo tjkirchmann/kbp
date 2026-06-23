@@ -4,6 +4,7 @@ Polymorphic by (entity_type, entity_id) — no shared catalog. Tag color is not
 stored: it is derived deterministically from the name here and returned to the
 frontend as a CSS class so the same name always renders the same color.
 """
+
 import zlib
 
 from sqlalchemy import delete, select
@@ -57,25 +58,46 @@ def validate_entity_type(entity_type: str) -> None:
         raise ValueError(f"Unknown entity_type {entity_type!r}")
 
 
-async def list_tags(db: AsyncSession, entity_type: str, entity_id: str) -> list[EntityTag]:
-    rows = (await db.execute(
-        select(EntityTag)
-        .where(EntityTag.entity_type == entity_type, EntityTag.entity_id == entity_id)
-        .order_by(EntityTag.name)
-    )).scalars().all()
+async def list_tags(
+    db: AsyncSession, entity_type: str, entity_id: str
+) -> list[EntityTag]:
+    rows = (
+        (
+            await db.execute(
+                select(EntityTag)
+                .where(
+                    EntityTag.entity_type == entity_type,
+                    EntityTag.entity_id == entity_id,
+                )
+                .order_by(EntityTag.name)
+            )
+        )
+        .scalars()
+        .all()
+    )
     return list(rows)
 
 
-async def add_tag(db: AsyncSession, entity_type: str, entity_id: str, name: str) -> None:
+async def add_tag(
+    db: AsyncSession, entity_type: str, entity_id: str, name: str
+) -> None:
     """Idempotent apply: insert, ignore if (type, id, name) already present."""
-    stmt = pg_insert(EntityTag).values(
-        entity_type=entity_type, entity_id=entity_id, name=name,
-    ).on_conflict_do_nothing(constraint="uq_entity_tags_type_id_name")
+    stmt = (
+        pg_insert(EntityTag)
+        .values(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            name=name,
+        )
+        .on_conflict_do_nothing(constraint="uq_entity_tags_type_id_name")
+    )
     await db.execute(stmt)
     await db.commit()
 
 
-async def remove_tag(db: AsyncSession, entity_type: str, entity_id: str, name: str) -> None:
+async def remove_tag(
+    db: AsyncSession, entity_type: str, entity_id: str, name: str
+) -> None:
     await db.execute(
         delete(EntityTag).where(
             EntityTag.entity_type == entity_type,
@@ -89,14 +111,21 @@ async def remove_tag(db: AsyncSession, entity_type: str, entity_id: str, name: s
 async def suggest_tags(db: AsyncSession, entity_type: str, entity_id: str) -> list[str]:
     """Distinct names used anywhere in this entity_type, minus those already
     applied to this specific entity, alphabetical."""
-    applied = (
-        select(EntityTag.name)
-        .where(EntityTag.entity_type == entity_type, EntityTag.entity_id == entity_id)
+    applied = select(EntityTag.name).where(
+        EntityTag.entity_type == entity_type, EntityTag.entity_id == entity_id
     )
-    rows = (await db.execute(
-        select(EntityTag.name)
-        .where(EntityTag.entity_type == entity_type, EntityTag.name.notin_(applied))
-        .distinct()
-        .order_by(EntityTag.name)
-    )).scalars().all()
+    rows = (
+        (
+            await db.execute(
+                select(EntityTag.name)
+                .where(
+                    EntityTag.entity_type == entity_type, EntityTag.name.notin_(applied)
+                )
+                .distinct()
+                .order_by(EntityTag.name)
+            )
+        )
+        .scalars()
+        .all()
+    )
     return list(rows)

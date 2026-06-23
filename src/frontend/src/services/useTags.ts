@@ -6,7 +6,11 @@ const API = import.meta.env.VITE_API_URL
 async function authFetch(token: string, path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...init?.headers },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
   })
   if (!res.ok) throw new Error(`${res.status}`)
   return res.json()
@@ -42,7 +46,7 @@ export function useTags(entityType: string, entityId: string) {
 export function useEntityTagsBatch(entityType: string, entityIds: string[]) {
   const { getToken } = useAuth()
   const results = useQueries({
-    queries: entityIds.map(id => ({
+    queries: entityIds.map((id) => ({
       queryKey: tagsKey(entityType, id),
       queryFn: async (): Promise<Tag[]> => {
         const token = await getToken()
@@ -51,7 +55,9 @@ export function useEntityTagsBatch(entityType: string, entityIds: string[]) {
     })),
   })
   const byId: Record<string, Tag[]> = {}
-  entityIds.forEach((id, i) => { byId[id] = results[i]?.data ?? [] })
+  entityIds.forEach((id, i) => {
+    byId[id] = results[i]?.data ?? []
+  })
   return byId
 }
 
@@ -63,7 +69,10 @@ export function useTagSuggestions(entityType: string, entityId: string, enabled:
     enabled: enabled && !!entityId,
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, `/admin/tags/${entityType}/${encodeURIComponent(entityId)}/suggestions`)
+      return authFetch(
+        token!,
+        `/admin/tags/${entityType}/${encodeURIComponent(entityId)}/suggestions`,
+      )
     },
   })
 }

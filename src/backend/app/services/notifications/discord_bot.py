@@ -8,6 +8,7 @@ gateway), so delivery is over REST via send_bot_message.
 
 Message formatting is shared with the webhook strategy so both look identical.
 """
+
 from app.core.config import settings
 from app.services.discord import send_bot_message
 from app.services.notifications.base import NotificationStrategy

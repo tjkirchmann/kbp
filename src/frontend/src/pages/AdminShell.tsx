@@ -16,7 +16,10 @@ function useBreadcrumbs() {
   const { data: users = [] } = useAdminUsers()
   const { data: pools = [] } = useAdminPools()
 
-  const parts = pathname.replace(/^\/admin\/?/, '').split('/').filter(Boolean)
+  const parts = pathname
+    .replace(/^\/admin\/?/, '')
+    .split('/')
+    .filter(Boolean)
 
   // On a run page, derive the parent task crumb. Prefer the task name passed via
   // link state (available on first render, no flash); fall back to the cached run.
@@ -27,7 +30,7 @@ function useBreadcrumbs() {
   if (parts[0] === 'users') {
     const crumbs = [{ label: 'Users', to: '/admin/users' }]
     if (parts[1]) {
-      const user = users.find(u => String(u.id) === parts[1])
+      const user = users.find((u) => String(u.id) === parts[1])
       crumbs.push({ label: user?.email ?? `User ${parts[1]}`, to: '' })
     }
     return crumbs
@@ -38,7 +41,7 @@ function useBreadcrumbs() {
     if (parts[1] === 'new') {
       crumbs.push({ label: 'New Pool', to: '' })
     } else if (parts[1]) {
-      const pool = pools.find(p => String(p.id) === parts[1])
+      const pool = pools.find((p) => String(p.id) === parts[1])
       crumbs.push({ label: pool?.name ?? `Pool ${parts[1]}`, to: '' })
     }
     return crumbs
@@ -95,13 +98,13 @@ export default function AdminShell() {
   return (
     <div className="h-screen overflow-hidden flex flex-col">
       <div className="flex flex-1 min-h-0">
-        <AdminSidebar collapsed={collapsed} onToggleSidebar={() => setCollapsed(c => !c)} />
+        <AdminSidebar collapsed={collapsed} onToggleSidebar={() => setCollapsed((c) => !c)} />
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Header: flush glass bar with just the diagonal hatch + info toggle. */}
           <div className="shrink-0 flex h-16 items-center gap-6 px-6 border-b border-border/40 bg-[rgba(16,18,24,0.62)] shadow-xl shadow-black/30 backdrop-blur-xl">
             <div className="hatch flex-1 h-8 rounded" />
             <button
-              onClick={() => setInfoOpen(v => !v)}
+              onClick={() => setInfoOpen((v) => !v)}
               className={`p-1.5 rounded-full transition-colors shrink-0 ${
                 infoOpen
                   ? 'bg-primary/20 text-primary'
@@ -113,7 +116,10 @@ export default function AdminShell() {
           </div>
           {/* Breadcrumbs live on the naked background, below the header. */}
           <AdminBreadcrumbs crumbs={breadcrumbs} />
-          <div key={pathname} className="px-6 pb-6 flex-1 min-h-0 overflow-y-auto animate-view-fade-in">
+          <div
+            key={pathname}
+            className="px-6 pb-6 flex-1 min-h-0 overflow-y-auto animate-view-fade-in"
+          >
             {infoOpen ? <AdminInfoPanel section={currentSection} /> : <Outlet />}
           </div>
         </div>

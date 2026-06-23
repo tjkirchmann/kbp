@@ -26,7 +26,11 @@ export interface SyncResult {
 async function authFetch(token: string, path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...init?.headers },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
   })
   if (!res.ok) throw new Error(`${res.status}`)
   return res.json()

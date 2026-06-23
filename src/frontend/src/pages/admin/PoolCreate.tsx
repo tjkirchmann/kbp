@@ -33,21 +33,26 @@ const BRACKET_SLOTS: BracketSlot[] = [
   { key: 'FR1', label: '#5 vs #12', round: 'first_round' },
   { key: 'FR2', label: '#6 vs #11', round: 'first_round' },
   { key: 'FR3', label: '#7 vs #10', round: 'first_round' },
-  { key: 'FR4', label: '#8 vs #9',  round: 'first_round' },
+  { key: 'FR4', label: '#8 vs #9', round: 'first_round' },
   { key: 'QF1', label: '#1 vs FR4 winner', round: 'quarterfinal' },
   { key: 'QF2', label: '#2 vs FR3 winner', round: 'quarterfinal' },
   { key: 'QF3', label: '#3 vs FR2 winner', round: 'quarterfinal' },
   { key: 'QF4', label: '#4 vs FR1 winner', round: 'quarterfinal' },
   { key: 'SF1', label: 'QF1 winner vs QF2 winner', round: 'semifinal' },
   { key: 'SF2', label: 'QF3 winner vs QF4 winner', round: 'semifinal' },
-  { key: 'CH',  label: 'SF1 winner vs SF2 winner', round: 'championship' },
+  { key: 'CH', label: 'SF1 winner vs SF2 winner', round: 'championship' },
 ]
 
-const SLOT_BY_KEY: Record<string, BracketSlot> = Object.fromEntries(BRACKET_SLOTS.map(s => [s.key, s]))
+const SLOT_BY_KEY: Record<string, BracketSlot> = Object.fromEntries(
+  BRACKET_SLOTS.map((s) => [s.key, s]),
+)
 
 // Which FR slot is required before each QF slot
 const QF_REQUIRES_FR: Record<string, string> = {
-  QF1: 'FR4', QF2: 'FR3', QF3: 'FR2', QF4: 'FR1',
+  QF1: 'FR4',
+  QF2: 'FR3',
+  QF3: 'FR2',
+  QF4: 'FR1',
 }
 
 const ROUND_LABELS: Record<PlayoffRound, string> = {
@@ -74,7 +79,7 @@ function validateBracket(slotToGame: Record<string, number>): string | null {
   }
   const allQF = ['QF1', 'QF2', 'QF3', 'QF4']
   const hasSF = slotToGame['SF1'] !== undefined || slotToGame['SF2'] !== undefined
-  if (hasSF && !allQF.every(k => slotToGame[k] !== undefined)) {
+  if (hasSF && !allQF.every((k) => slotToGame[k] !== undefined)) {
     return 'Assign all Quarterfinal games before assigning Semifinals'
   }
   if (slotToGame['CH'] !== undefined) {
@@ -123,13 +128,13 @@ export default function PoolCreate() {
   const { data: cfbdGames = [], isLoading: gamesLoading } = useCfbdGames(newPoolYear)
 
   const seasonTypeOptions = useMemo(() => {
-    const vals = [...new Set(cfbdGames.map(g => g.season_type).filter(Boolean))]
+    const vals = [...new Set(cfbdGames.map((g) => g.season_type).filter(Boolean))]
     return vals.sort()
   }, [cfbdGames])
 
   const classOptions = useMemo(() => {
     const vals = new Set<string>()
-    cfbdGames.forEach(g => {
+    cfbdGames.forEach((g) => {
       if (g.home_classification) vals.add(g.home_classification)
       if (g.away_classification) vals.add(g.away_classification)
     })
@@ -137,31 +142,49 @@ export default function PoolCreate() {
   }, [cfbdGames])
 
   const weekOptions = useMemo(() => {
-    const vals = [...new Set(cfbdGames.map(g => g.week).filter((w): w is number => w != null))]
+    const vals = [...new Set(cfbdGames.map((g) => g.week).filter((w): w is number => w != null))]
     return vals.sort((a, b) => a - b)
   }, [cfbdGames])
 
   // school → team flavor (logos/colors) for the step-4 review table
   const teamMeta = useMemo(() => {
     const m = new Map<string, { logo: string | null; color: string | null }>()
-    teams.forEach(t => m.set(t.school, { logo: t.logos?.[0] ?? null, color: t.color }))
+    teams.forEach((t) => m.set(t.school, { logo: t.logos?.[0] ?? null, color: t.color }))
     return m
   }, [teams])
 
-  const finderGames = useMemo(() => cfbdGames.filter(g => {
-    if (finderSeasonType !== 'all' && g.season_type !== finderSeasonType) return false
-    if (finderClass !== 'all' && g.home_classification !== finderClass && g.away_classification !== finderClass) return false
-    if (finderWeek !== 'all' && String(g.week) !== finderWeek) return false
-    return true
-  }), [cfbdGames, finderSeasonType, finderClass, finderWeek])
+  const finderGames = useMemo(
+    () =>
+      cfbdGames.filter((g) => {
+        if (finderSeasonType !== 'all' && g.season_type !== finderSeasonType) return false
+        if (
+          finderClass !== 'all' &&
+          g.home_classification !== finderClass &&
+          g.away_classification !== finderClass
+        )
+          return false
+        if (finderWeek !== 'all' && String(g.week) !== finderWeek) return false
+        return true
+      }),
+    [cfbdGames, finderSeasonType, finderClass, finderWeek],
+  )
 
-  const selectedGames = useMemo(() => cfbdGames.filter(g => {
-    if (!selected.has(g.id)) return false
-    if (selectedSeasonType !== 'all' && g.season_type !== selectedSeasonType) return false
-    if (selectedClass !== 'all' && g.home_classification !== selectedClass && g.away_classification !== selectedClass) return false
-    if (selectedWeek !== 'all' && String(g.week) !== selectedWeek) return false
-    return true
-  }), [cfbdGames, selected, selectedSeasonType, selectedClass, selectedWeek])
+  const selectedGames = useMemo(
+    () =>
+      cfbdGames.filter((g) => {
+        if (!selected.has(g.id)) return false
+        if (selectedSeasonType !== 'all' && g.season_type !== selectedSeasonType) return false
+        if (
+          selectedClass !== 'all' &&
+          g.home_classification !== selectedClass &&
+          g.away_classification !== selectedClass
+        )
+          return false
+        if (selectedWeek !== 'all' && String(g.week) !== selectedWeek) return false
+        return true
+      }),
+    [cfbdGames, selected, selectedSeasonType, selectedClass, selectedWeek],
+  )
 
   async function handleCreatePool() {
     const pool = await createPool.mutateAsync({ name: name.trim(), season_year: seasonYear })
@@ -175,13 +198,15 @@ export default function PoolCreate() {
     const games = await addGames.mutateAsync({ poolId: newPoolId, cfbdGameIds: [...selected] })
     setPoolGames(games)
     // Preserve any multipliers already set; default new games to 1x
-    setMultipliers(prev => {
+    setMultipliers((prev) => {
       const next: Record<number, number> = {}
-      games.forEach(pg => { next[pg.id] = prev[pg.id] ?? 1 })
+      games.forEach((pg) => {
+        next[pg.id] = prev[pg.id] ?? 1
+      })
       return next
     })
     // Default the bracket step to "skip" unless there are postseason games
-    setBracketMode(games.some(pg => pg.season_type === 'postseason') ? 'assign' : 'skip')
+    setBracketMode(games.some((pg) => pg.season_type === 'postseason') ? 'assign' : 'skip')
     setStep('step3')
   }
 
@@ -189,7 +214,10 @@ export default function PoolCreate() {
   // when the bracket is invalid so callers can block the transition.
   async function persistBracket(): Promise<boolean> {
     const err = validateBracket(slotToGame)
-    if (err) { setBracketError(err); return false }
+    if (err) {
+      setBracketError(err)
+      return false
+    }
     setBracketError(null)
     if (newPoolId) {
       const assignments = Object.entries(slotToGame).map(([slot, pgId]) => ({
@@ -207,7 +235,7 @@ export default function PoolCreate() {
 
   // Step 3 "Back" — persist before leaving so assignments aren't lost going back.
   async function handleBracketBack() {
-    if (bracketMode === 'skip' || await persistBracket()) setStep('step2')
+    if (bracketMode === 'skip' || (await persistBracket())) setStep('step2')
   }
 
   function handleSkipBracket() {
@@ -219,16 +247,24 @@ export default function PoolCreate() {
   async function handleRemovePoolGame(pgId: number) {
     if (!newPoolId) return
     await removePoolGame.mutateAsync({ poolId: newPoolId, poolGameId: pgId })
-    const game = poolGames.find(pg => pg.id === pgId)
-    setPoolGames(prev => prev.filter(pg => pg.id !== pgId))
-    setMultipliers(prev => { const n = { ...prev }; delete n[pgId]; return n })
-    setSlotToGame(prev => {
+    const game = poolGames.find((pg) => pg.id === pgId)
+    setPoolGames((prev) => prev.filter((pg) => pg.id !== pgId))
+    setMultipliers((prev) => {
+      const n = { ...prev }
+      delete n[pgId]
+      return n
+    })
+    setSlotToGame((prev) => {
       const n = { ...prev }
       for (const [slot, id] of Object.entries(n)) if (id === pgId) delete n[slot]
       return n
     })
     if (game) {
-      setSelected(prev => { const n = new Set(prev); n.delete(game.cfbd_game_id); return n })
+      setSelected((prev) => {
+        const n = new Set(prev)
+        n.delete(game.cfbd_game_id)
+        return n
+      })
     }
   }
 
@@ -256,15 +292,20 @@ export default function PoolCreate() {
   // Cancel rolls back the pool created at step 1 (no-op if not yet created).
   async function handleCancel() {
     if (newPoolId) {
-      try { await deletePool.mutateAsync(newPoolId) } catch { /* best-effort rollback */ }
+      try {
+        await deletePool.mutateAsync(newPoolId)
+      } catch {
+        /* best-effort rollback */
+      }
     }
     navigate('/admin/pools')
   }
 
   function toggleGame(id: number) {
-    setSelected(prev => {
+    setSelected((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -283,7 +324,7 @@ export default function PoolCreate() {
             <input
               type="text"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               placeholder="e.g. 2025 Kirchmann Bowl Pool"
               className="w-full rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
@@ -293,7 +334,7 @@ export default function PoolCreate() {
             <input
               type="number"
               value={seasonYear}
-              onChange={e => setSeasonYear(Number(e.target.value))}
+              onChange={(e) => setSeasonYear(Number(e.target.value))}
               className="w-full rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
@@ -307,7 +348,11 @@ export default function PoolCreate() {
             {createPool.isPending && <Loader2 className="size-4 animate-spin" />}
             Next: Select Games
           </button>
-          <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+          <button
+            onClick={handleCancel}
+            disabled={deletePool.isPending}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
             Cancel
           </button>
         </div>
@@ -329,7 +374,9 @@ export default function PoolCreate() {
 
     return (
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">Step 2 of 4 — Select games from {newPoolYear}</p>
+        <p className="text-sm text-muted-foreground">
+          Step 2 of 4 — Select games from {newPoolYear}
+        </p>
 
         <div className="flex items-center gap-1 border-b border-border">
           <button
@@ -352,12 +399,14 @@ export default function PoolCreate() {
               <label className="text-xs text-muted-foreground">Season Stage</label>
               <select
                 value={activeSeasonType}
-                onChange={e => setActiveSeasonType(e.target.value)}
+                onChange={(e) => setActiveSeasonType(e.target.value)}
                 className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
-                {seasonTypeOptions.map(v => (
-                  <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
+                {seasonTypeOptions.map((v) => (
+                  <option key={v} value={v}>
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </option>
                 ))}
               </select>
             </div>
@@ -365,12 +414,14 @@ export default function PoolCreate() {
               <label className="text-xs text-muted-foreground">Week</label>
               <select
                 value={activeWeek}
-                onChange={e => setActiveWeek(e.target.value)}
+                onChange={(e) => setActiveWeek(e.target.value)}
                 className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
-                {weekOptions.map(v => (
-                  <option key={v} value={String(v)}>Week {v}</option>
+                {weekOptions.map((v) => (
+                  <option key={v} value={String(v)}>
+                    Week {v}
+                  </option>
                 ))}
               </select>
             </div>
@@ -378,12 +429,14 @@ export default function PoolCreate() {
               <label className="text-xs text-muted-foreground">Classification</label>
               <select
                 value={activeClass}
-                onChange={e => setActiveClass(e.target.value)}
+                onChange={(e) => setActiveClass(e.target.value)}
                 className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="all">All</option>
-                {classOptions.map(v => (
-                  <option key={v} value={v}>{v.toUpperCase()}</option>
+                {classOptions.map((v) => (
+                  <option key={v} value={v}>
+                    {v.toUpperCase()}
+                  </option>
                 ))}
               </select>
             </div>
@@ -392,24 +445,28 @@ export default function PoolCreate() {
               {isFinder ? (
                 <button
                   onClick={() => {
-                    const allSelected = finderGames.every(g => selected.has(g.id))
-                    setSelected(prev => {
+                    const allSelected = finderGames.every((g) => selected.has(g.id))
+                    setSelected((prev) => {
                       const next = new Set(prev)
-                      finderGames.forEach(g => allSelected ? next.delete(g.id) : next.add(g.id))
+                      finderGames.forEach((g) => (allSelected ? next.delete(g.id) : next.add(g.id)))
                       return next
                     })
                   }}
                   className="text-xs text-primary hover:text-primary/80 transition-colors"
                 >
-                  {finderGames.every(g => selected.has(g.id)) && finderGames.length > 0 ? 'Deselect all' : 'Select all'}
+                  {finderGames.every((g) => selected.has(g.id)) && finderGames.length > 0
+                    ? 'Deselect all'
+                    : 'Select all'}
                 </button>
               ) : (
                 <button
-                  onClick={() => setSelected(prev => {
-                    const next = new Set(prev)
-                    selectedGames.forEach(g => next.delete(g.id))
-                    return next
-                  })}
+                  onClick={() =>
+                    setSelected((prev) => {
+                      const next = new Set(prev)
+                      selectedGames.forEach((g) => next.delete(g.id))
+                      return next
+                    })
+                  }
                   className="text-xs text-primary hover:text-primary/80 transition-colors"
                   disabled={selectedGames.length === 0}
                 >
@@ -427,7 +484,9 @@ export default function PoolCreate() {
           </div>
         ) : activeGames.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8">
-            {isFinder ? 'No games match the current filters.' : 'No selected games match the current filters.'}
+            {isFinder
+              ? 'No games match the current filters.'
+              : 'No selected games match the current filters.'}
           </p>
         ) : (
           <VirtualGameList games={activeGames} selected={selected} onToggle={toggleGame} />
@@ -442,7 +501,11 @@ export default function PoolCreate() {
             {addGames.isPending && <Loader2 className="size-4 animate-spin" />}
             Next: Configure Bracket
           </button>
-          <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+          <button
+            onClick={handleCancel}
+            disabled={deletePool.isPending}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
             Cancel
           </button>
         </div>
@@ -462,7 +525,7 @@ export default function PoolCreate() {
     function assignSlot(slotKey: string, pgIdStr: string) {
       setBracketError(null)
       const pgId = pgIdStr === '' ? null : Number(pgIdStr)
-      setSlotToGame(prev => {
+      setSlotToGame((prev) => {
         const next = { ...prev }
         // Remove any existing assignment for this slot
         delete next[slotKey]
@@ -478,89 +541,115 @@ export default function PoolCreate() {
     }
 
     const roundGroups: { round: PlayoffRound; slots: BracketSlot[] }[] = [
-      { round: 'first_round', slots: BRACKET_SLOTS.filter(s => s.round === 'first_round') },
-      { round: 'quarterfinal', slots: BRACKET_SLOTS.filter(s => s.round === 'quarterfinal') },
-      { round: 'semifinal', slots: BRACKET_SLOTS.filter(s => s.round === 'semifinal') },
-      { round: 'championship', slots: BRACKET_SLOTS.filter(s => s.round === 'championship') },
+      { round: 'first_round', slots: BRACKET_SLOTS.filter((s) => s.round === 'first_round') },
+      { round: 'quarterfinal', slots: BRACKET_SLOTS.filter((s) => s.round === 'quarterfinal') },
+      { round: 'semifinal', slots: BRACKET_SLOTS.filter((s) => s.round === 'semifinal') },
+      { round: 'championship', slots: BRACKET_SLOTS.filter((s) => s.round === 'championship') },
     ]
 
-    const hasPostseason = poolGames.some(pg => pg.season_type === 'postseason')
+    const hasPostseason = poolGames.some((pg) => pg.season_type === 'postseason')
 
     return (
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">Step 3 of 4 — Playoff bracket <span className="text-xs">(optional)</span></p>
+          <p className="text-sm text-muted-foreground">
+            Step 3 of 4 — Playoff bracket <span className="text-xs">(optional)</span>
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
-            onClick={() => { setBracketError(null); setBracketMode('assign') }}
+            onClick={() => {
+              setBracketError(null)
+              setBracketMode('assign')
+            }}
             className={`text-left rounded-xl border px-4 py-3 transition-colors ${bracketMode === 'assign' ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border/20 bg-white/[0.03] hover:bg-white/[0.05]'}`}
           >
             <div className="flex items-center gap-2">
-              <ListChecks className={`size-4 ${bracketMode === 'assign' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <ListChecks
+                className={`size-4 ${bracketMode === 'assign' ? 'text-primary' : 'text-muted-foreground'}`}
+              />
               <span className="text-sm font-medium text-foreground">Assign playoff bracket</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Map selected games onto CFP bracket slots.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Map selected games onto CFP bracket slots.
+            </p>
           </button>
           <button
-            onClick={() => { setBracketError(null); setSlotToGame({}); setBracketMode('skip') }}
+            onClick={() => {
+              setBracketError(null)
+              setSlotToGame({})
+              setBracketMode('skip')
+            }}
             className={`text-left rounded-xl border px-4 py-3 transition-colors ${bracketMode === 'skip' ? 'border-primary bg-primary/10 ring-1 ring-primary' : 'border-border/20 bg-white/[0.03] hover:bg-white/[0.05]'}`}
           >
             <div className="flex items-center gap-2">
-              <CircleSlash className={`size-4 ${bracketMode === 'skip' ? 'text-primary' : 'text-muted-foreground'}`} />
+              <CircleSlash
+                className={`size-4 ${bracketMode === 'skip' ? 'text-primary' : 'text-muted-foreground'}`}
+              />
               <span className="text-sm font-medium text-foreground">Skip playoff assignments</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {hasPostseason ? 'No bracket — score all games the same way.' : 'No postseason games in this pool.'}
+              {hasPostseason
+                ? 'No bracket — score all games the same way.'
+                : 'No postseason games in this pool.'}
             </p>
           </button>
         </div>
 
         {bracketMode === 'assign' && (
-        <div className="space-y-6">
-          {roundGroups.map(({ round, slots }) => (
-            <div key={round} className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{ROUND_LABELS[round]}</p>
-              <div className="space-y-1">
-                {slots.map(slot => {
-                  const assignedPgId = slotToGame[slot.key]
-                  // Options: unassigned games + currently assigned game for this slot
-                  const options = poolGames.filter(pg =>
-                    gameToSlot[pg.id] === undefined || gameToSlot[pg.id] === slot.key
-                  )
-                  return (
-                    <div key={slot.key} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.03] border border-border/20">
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0 ${ROUND_COLORS[round]}`}>
-                        {slot.key}
-                      </span>
-                      <span className="text-sm text-foreground flex-1">{slot.label}</span>
-                      <select
-                        value={assignedPgId ?? ''}
-                        onChange={e => assignSlot(slot.key, e.target.value)}
-                        className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[220px] truncate"
+          <div className="space-y-6">
+            {roundGroups.map(({ round, slots }) => (
+              <div key={round} className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {ROUND_LABELS[round]}
+                </p>
+                <div className="space-y-1">
+                  {slots.map((slot) => {
+                    const assignedPgId = slotToGame[slot.key]
+                    // Options: unassigned games + currently assigned game for this slot
+                    const options = poolGames.filter(
+                      (pg) => gameToSlot[pg.id] === undefined || gameToSlot[pg.id] === slot.key,
+                    )
+                    return (
+                      <div
+                        key={slot.key}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/[0.03] border border-border/20"
                       >
-                        <option value="">— Not assigned —</option>
-                        {options.map(pg => {
-                          const matchup = pg.neutral_site
-                            ? `${pg.away_team} vs ${pg.home_team}`
-                            : `${pg.away_team} at ${pg.home_team}`
-                          const label = pg.bowl_name ? `${pg.bowl_name}, ${matchup}` : matchup
-                          return <option key={pg.id} value={pg.id}>{label}</option>
-                        })}
-                      </select>
-                    </div>
-                  )
-                })}
+                        <span
+                          className={`text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0 ${ROUND_COLORS[round]}`}
+                        >
+                          {slot.key}
+                        </span>
+                        <span className="text-sm text-foreground flex-1">{slot.label}</span>
+                        <select
+                          value={assignedPgId ?? ''}
+                          onChange={(e) => assignSlot(slot.key, e.target.value)}
+                          className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary max-w-[220px] truncate"
+                        >
+                          <option value="">— Not assigned —</option>
+                          {options.map((pg) => {
+                            const matchup = pg.neutral_site
+                              ? `${pg.away_team} vs ${pg.home_team}`
+                              : `${pg.away_team} at ${pg.home_team}`
+                            const label = pg.bowl_name ? `${pg.bowl_name}, ${matchup}` : matchup
+                            return (
+                              <option key={pg.id} value={pg.id}>
+                                {label}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
 
-        {bracketError && (
-          <p className="text-sm text-destructive">{bracketError}</p>
-        )}
+        {bracketError && <p className="text-sm text-destructive">{bracketError}</p>}
 
         <div className="flex items-center gap-3 pt-2">
           <button
@@ -594,7 +683,9 @@ export default function PoolCreate() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">Step 4 of 4 — Review &amp; assign multipliers · {poolGames.length} games</p>
+        <p className="text-sm text-muted-foreground">
+          Step 4 of 4 — Review &amp; assign multipliers · {poolGames.length} games
+        </p>
         <button
           onClick={handleBackToStep2FromReview}
           disabled={updateMultipliers.isPending}
@@ -606,7 +697,9 @@ export default function PoolCreate() {
       </div>
 
       {poolGames.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-8">No games in this pool. Use “Add games” to pick some.</p>
+        <p className="text-sm text-muted-foreground py-8">
+          No games in this pool. Use “Add games” to pick some.
+        </p>
       ) : (
         <div className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden">
           <div className="flex items-center border-b border-border/40 text-xs font-medium text-muted-foreground">
@@ -616,7 +709,7 @@ export default function PoolCreate() {
             <div className="px-5 py-2.5 flex-[1.5] text-center">Multiplier</div>
             <div className="px-5 py-2.5 flex-[0.5]" />
           </div>
-          {poolGames.map(pg => {
+          {poolGames.map((pg) => {
             const slotKey = gameIdToSlotKey[pg.id]
             const slot = slotKey ? SLOT_BY_KEY[slotKey] : null
             const mult = multipliers[pg.id] ?? 1
@@ -624,35 +717,58 @@ export default function PoolCreate() {
             const sep = pg.neutral_site ? 'vs' : 'at'
 
             return (
-              <div key={pg.id} className="flex items-center border-t border-border/20 hover:bg-[rgba(26,30,42,0.4)] transition-colors">
+              <div
+                key={pg.id}
+                className="flex items-center border-t border-border/20 hover:bg-[rgba(26,30,42,0.4)] transition-colors"
+              >
                 <div className="px-5 py-2.5 flex-[3] min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <TeamBadge name={pg.away_team} meta={teamMeta.get(pg.away_team)} />
                     <span className="text-xs text-muted-foreground shrink-0">{sep}</span>
                     <TeamBadge name={pg.home_team} meta={teamMeta.get(pg.home_team)} />
                   </div>
-                  {pg.bowl_name && <span className="text-xs text-muted-foreground truncate block mt-0.5">{pg.bowl_name}</span>}
+                  {pg.bowl_name && (
+                    <span className="text-xs text-muted-foreground truncate block mt-0.5">
+                      {pg.bowl_name}
+                    </span>
+                  )}
                 </div>
                 <div className="px-5 py-2.5 flex-[2] text-xs text-muted-foreground">
-                  {dateTime || '—'}{pg.week != null ? ` · Wk ${pg.week}` : ''}
+                  {dateTime || '—'}
+                  {pg.week != null ? ` · Wk ${pg.week}` : ''}
                 </div>
                 <div className="px-5 py-2.5 flex-[1.5]">
-                  {slot
-                    ? <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${ROUND_COLORS[slot.round]}`}>{ROUND_LABELS[slot.round]}</span>
-                    : <span className="text-xs text-muted-foreground">—</span>}
+                  {slot ? (
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${ROUND_COLORS[slot.round]}`}
+                    >
+                      {ROUND_LABELS[slot.round]}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </div>
                 <div className="px-5 py-2.5 flex-[1.5]">
                   <div className="flex items-center justify-center gap-2">
                     <button
-                      onClick={() => setMultipliers(prev => ({ ...prev, [pg.id]: Math.max(1, (prev[pg.id] ?? 1) - 1) }))}
+                      onClick={() =>
+                        setMultipliers((prev) => ({
+                          ...prev,
+                          [pg.id]: Math.max(1, (prev[pg.id] ?? 1) - 1),
+                        }))
+                      }
                       disabled={mult <= 1}
                       className="size-7 flex items-center justify-center rounded-md border border-border bg-muted hover:bg-muted/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       <Minus className="size-3" />
                     </button>
-                    <span className="text-sm font-semibold text-foreground w-8 text-center">{mult}x</span>
+                    <span className="text-sm font-semibold text-foreground w-8 text-center">
+                      {mult}x
+                    </span>
                     <button
-                      onClick={() => setMultipliers(prev => ({ ...prev, [pg.id]: (prev[pg.id] ?? 1) + 1 }))}
+                      onClick={() =>
+                        setMultipliers((prev) => ({ ...prev, [pg.id]: (prev[pg.id] ?? 1) + 1 }))
+                      }
                       className="size-7 flex items-center justify-center rounded-md border border-border bg-muted hover:bg-muted/60 transition-colors"
                     >
                       <Plus className="size-3" />
@@ -684,7 +800,11 @@ export default function PoolCreate() {
           {updateMultipliers.isPending && <Loader2 className="size-4 animate-spin" />}
           Create Pool
         </button>
-        <button onClick={handleCancel} disabled={deletePool.isPending} className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50">
+        <button
+          onClick={handleCancel}
+          disabled={deletePool.isPending}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        >
           Cancel
         </button>
       </div>
@@ -694,13 +814,21 @@ export default function PoolCreate() {
 
 // ─── Team badge (Step 4 table) ──────────────────────────────────────────────────
 
-function TeamBadge({ name, meta }: { name: string; meta?: { logo: string | null; color: string | null } }) {
+function TeamBadge({
+  name,
+  meta,
+}: {
+  name: string
+  meta?: { logo: string | null; color: string | null }
+}) {
   const logo = meta?.logo ?? null
   return (
     <span className="flex items-center gap-1.5 min-w-0">
-      {logo
-        ? <img src={logo} alt={name} className="size-4 object-contain shrink-0" />
-        : <span className="size-4 rounded bg-muted/40 shrink-0" />}
+      {logo ? (
+        <img src={logo} alt={name} className="size-4 object-contain shrink-0" />
+      ) : (
+        <span className="size-4 rounded bg-muted/40 shrink-0" />
+      )}
       <span className="text-sm font-medium text-foreground truncate">{name}</span>
     </span>
   )
@@ -729,14 +857,24 @@ function VirtualGameList({ games, selected, onToggle }: VirtualGameListProps) {
       style={{ height: 'calc(100vh - 26rem)', scrollbarGutter: 'stable' }}
     >
       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-        {virtualizer.getVirtualItems().map(vRow => {
+        {virtualizer.getVirtualItems().map((vRow) => {
           const game = games[vRow.index]
           return (
             <div
               key={game.id}
-              style={{ position: 'absolute', top: vRow.start, left: 0, right: 0, height: ROW_HEIGHT }}
+              style={{
+                position: 'absolute',
+                top: vRow.start,
+                left: 0,
+                right: 0,
+                height: ROW_HEIGHT,
+              }}
             >
-              <GameRow game={game} checked={selected.has(game.id)} onToggle={() => onToggle(game.id)} />
+              <GameRow
+                game={game}
+                checked={selected.has(game.id)}
+                onToggle={() => onToggle(game.id)}
+              />
             </div>
           )
         })}
@@ -752,12 +890,18 @@ const CLASSIFICATION_COLORS: Record<string, string> = {
   DIII: 'tag-purple',
 }
 
-function tagColor(v: string) { return CLASSIFICATION_COLORS[v] ?? 'tag-blue' }
+function tagColor(v: string) {
+  return CLASSIFICATION_COLORS[v] ?? 'tag-blue'
+}
 
 function formatGameTime(startDate: string, timeTbd: boolean): string {
   if (!startDate) return ''
   const date = new Date(startDate)
-  const datePart = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+  const datePart = date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
   if (timeTbd) return `${datePart} · Time TBD`
   return `${datePart} at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
 }
@@ -775,14 +919,30 @@ const STATUS_DOT: Record<string, string> = {
   upcoming: 'size-2 rounded-full bg-border shrink-0',
 }
 
-function GameRow({ game, checked, onToggle }: { game: CfbdGame; checked: boolean; onToggle: () => void }) {
-  const matchup = game.neutral_site ? `${game.away_team} vs ${game.home_team}` : `${game.away_team} at ${game.home_team}`
+function GameRow({
+  game,
+  checked,
+  onToggle,
+}: {
+  game: CfbdGame
+  checked: boolean
+  onToggle: () => void
+}) {
+  const matchup = game.neutral_site
+    ? `${game.away_team} vs ${game.home_team}`
+    : `${game.away_team} at ${game.home_team}`
   const title = game.bowl_name ? `${game.bowl_name}, ${matchup}` : matchup
   const dateTime = formatGameTime(game.start_date, game.start_time_tbd)
   const homeCls = game.home_classification?.toUpperCase() ?? null
   const awayCls = game.away_classification?.toUpperCase() ?? null
-  const clsTags: string[] = homeCls === awayCls ? (homeCls ? [homeCls] : []) : [awayCls, homeCls].filter(Boolean) as string[]
-  const sameConference = game.home_conference && game.away_conference && game.home_conference === game.away_conference
+  const clsTags: string[] =
+    homeCls === awayCls
+      ? homeCls
+        ? [homeCls]
+        : []
+      : ([awayCls, homeCls].filter(Boolean) as string[])
+  const sameConference =
+    game.home_conference && game.away_conference && game.home_conference === game.away_conference
   const conferencePillLabel = sameConference ? game.home_conference! : 'Out of Conference'
   const status = gameStatus(game)
 
@@ -795,19 +955,29 @@ function GameRow({ game, checked, onToggle }: { game: CfbdGame; checked: boolean
       >
         {checked && <Check className="size-3 text-primary-foreground" strokeWidth={3} />}
       </span>
-      <div className={STATUS_DOT[status]} title={status === 'final' ? 'Final' : status === 'live' ? 'In Progress' : 'Upcoming'} />
+      <div
+        className={STATUS_DOT[status]}
+        title={status === 'final' ? 'Final' : status === 'live' ? 'In Progress' : 'Upcoming'}
+      />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium text-foreground truncate">{title}</p>
           <div className="flex items-center gap-1 shrink-0">
-            {clsTags.map(tag => (
-              <span key={tag} className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${tagColor(tag)}`}>{tag}</span>
+            {clsTags.map((tag) => (
+              <span
+                key={tag}
+                className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${tagColor(tag)}`}
+              >
+                {tag}
+              </span>
             ))}
           </div>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {dateTime && <span className="text-xs text-muted-foreground">{dateTime}</span>}
-          <span className={`text-xs px-1.5 py-0.5 rounded-full ${sameConference ? 'tag-blue' : 'bg-muted text-muted-foreground'}`}>
+          <span
+            className={`text-xs px-1.5 py-0.5 rounded-full ${sameConference ? 'tag-blue' : 'bg-muted text-muted-foreground'}`}
+          >
             {conferencePillLabel}
           </span>
         </div>

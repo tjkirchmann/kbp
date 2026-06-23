@@ -26,10 +26,13 @@ export default function SyncSidePanel() {
   const [width, setWidth] = useState(initialWidth)
   const drag = useRef<{ startX: number; startWidth: number } | null>(null)
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault()
-    drag.current = { startX: e.clientX, startWidth: width }
-  }, [width])
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault()
+      drag.current = { startX: e.clientX, startWidth: width }
+    },
+    [width],
+  )
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -41,7 +44,10 @@ export default function SyncSidePanel() {
     const onUp = () => {
       if (!drag.current) return
       drag.current = null
-      setWidth(w => { localStorage.setItem(WIDTH_KEY, String(w)); return w })
+      setWidth((w) => {
+        localStorage.setItem(WIDTH_KEY, String(w))
+        return w
+      })
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)

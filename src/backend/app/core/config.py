@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     database_url: str
     clerk_secret_key: str = ""
@@ -17,8 +18,8 @@ class Settings(BaseSettings):
     aws_secret_access_key: str = ""
     s3_region: str = "us-east-1"
     s3_bucket_name: str = ""
-    s3_endpoint_url: str = ""          # server-side ops (head/delete); empty → real AWS
-    s3_public_endpoint_url: str = ""   # browser-facing presigning; empty → real AWS
+    s3_endpoint_url: str = ""  # server-side ops (head/delete); empty → real AWS
+    s3_public_endpoint_url: str = ""  # browser-facing presigning; empty → real AWS
     library_max_upload_bytes: int = 1_073_741_824  # 1 GB
 
     # Temporal. Local self-host defaults; for Temporal Cloud set temporal_api_key
@@ -32,5 +33,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
 
 settings = Settings()
