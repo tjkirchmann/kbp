@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,7 +52,7 @@ async def record_snapshot(
         SyncSnapshot(
             entity_type=entity_type,
             entity_id=entity_id,
-            captured_at=datetime.utcnow(),
+            captured_at=datetime.now(UTC).replace(tzinfo=None),
             content_hash=content_hash,
             payload=payload,
             source=source,

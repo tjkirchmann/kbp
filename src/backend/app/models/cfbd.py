@@ -10,7 +10,8 @@ from app.core.database import Base
 # ---------------------------------------------------------------------------
 # CFBD fact tables (event/measurement data that changes over time).
 #
-# Dimensions (slowly-changing reference data) are synced by cfbd_dims; the
+# Dimensions (slowly-changing reference data) are synced by the CfbdDimsWorkflow
+# Temporal workflow (app/temporal/cfbd_dims/); the
 # fact tables below are synced by cfbd_facts (see app/tasks/cfbd_facts.py for
 # the full coverage roadmap of every CFBD fact endpoint). cfbd_games is also a
 # fact table but predates this group and runs on its own 15-min cadence.
@@ -108,7 +109,7 @@ class CfbdCoach(Base):
     __tablename__ = "cfbd_coaches"
 
     # CFBD exposes no coach id; coach_id is a deterministic sha1 of
-    # first|last|hireDate computed at sync time (see app/tasks/cfbd_dims.py).
+    # first|last|hireDate computed at sync time (see app/temporal/cfbd_dims/).
     coach_id: Mapped[str] = mapped_column(String, primary_key=True)
     first_name: Mapped[str | None] = mapped_column(String, nullable=True)
     last_name: Mapped[str | None] = mapped_column(String, nullable=True)

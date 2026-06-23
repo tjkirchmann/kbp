@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select, update
@@ -146,7 +146,7 @@ async def delete_pool(pool_id: int, db: AsyncSession = Depends(get_db)):
     pool = result.scalar_one_or_none()
     if not pool:
         raise HTTPException(status_code=404, detail="Pool not found")
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     pool.deleted_at = now
     await db.execute(
         update(PoolGame).where(PoolGame.pool_id == pool_id).values(deleted_at=now)
@@ -223,7 +223,7 @@ async def remove_pool_game(
     pool_game = result.scalar_one_or_none()
     if not pool_game:
         raise HTTPException(status_code=404, detail="Pool game not found")
-    pool_game.deleted_at = datetime.utcnow()
+    pool_game.deleted_at = datetime.now(UTC).replace(tzinfo=None)
     await db.commit()
     return {"ok": True}
 

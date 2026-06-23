@@ -13,7 +13,7 @@ procrastinate_app = App(
     connector=PsycopgConnector(conninfo=_conninfo),
     import_paths=[
         "app.tasks.cfbd_sync",
-        "app.tasks.cfbd_dims",
+        # cfbd dimensions migrated to a Temporal workflow (app/temporal/cfbd_dims/).
         "app.tasks.cfbd_facts",
         "app.tasks.cfbd_plays",
         "app.tasks.espn_poller",

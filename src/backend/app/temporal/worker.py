@@ -18,6 +18,9 @@ from temporalio.worker import Worker
 from app.core.config import settings
 from app.core.temporal import get_temporal_client
 from app.temporal.activities import compose_greeting
+from app.temporal.cfbd_dims.activities import sync_coaches, sync_flat_dim
+from app.temporal.cfbd_dims.schedule import ensure_schedule
+from app.temporal.cfbd_dims.workflow import CfbdDimsWorkflow
 from app.temporal.workflows import GreetingWorkflow
 
 logging.basicConfig(level=logging.INFO)
@@ -49,11 +52,16 @@ async def main() -> None:
         settings.temporal_namespace,
         settings.temporal_task_queue,
     )
+
+    # Reconcile the nightly CFBD-dims schedule on boot (mirrors how the
+    # Procrastinate worker reconciles DB crons at startup).
+    await ensure_schedule(client)
+
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[GreetingWorkflow],
-        activities=[compose_greeting],
+        workflows=[GreetingWorkflow, CfbdDimsWorkflow],
+        activities=[compose_greeting, sync_flat_dim, sync_coaches],
     )
     await worker.run()
 
