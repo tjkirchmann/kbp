@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.admin_notify_config import AdminNotifyConfig
 from app.models.notification_channel import NotificationChannel
 
-
 # The built-in black-hole channel. Seeded on startup and protected from deletion.
 # It is both the explicit "silence this consumer" option AND the fallback: any
 # consumer with no channel selected resolves here, so "unconfigured" means "don't
@@ -32,13 +31,17 @@ class NotifyConfig:
     notify_on_start: bool = False
     notify_on_success: bool = False
     notify_on_failure: bool = True
-    strategy: str = "discord"          # legacy; channel.strategy wins when a channel is set
-    channel_name: str | None = None    # named channel for all this task's events; null → none (silence)
-    run_catchup: bool = False          # fire last missed cron slot on worker restart
-    run_on_startup: bool = False       # defer this task once when the app boots
-    startup_stale_seconds: int | None = None  # skip startup defer if succeeded within this window
-    hide_in_history: bool = False      # exclude runs from the side History rail
-    cron: str | None = None            # schedule; null/blank = paused (not fired)
+    strategy: str = "discord"  # legacy; channel.strategy wins when a channel is set
+    channel_name: str | None = (
+        None  # named channel for all this task's events; null → none (silence)
+    )
+    run_catchup: bool = False  # fire last missed cron slot on worker restart
+    run_on_startup: bool = False  # defer this task once when the app boots
+    startup_stale_seconds: int | None = (
+        None  # skip startup defer if succeeded within this window
+    )
+    hide_in_history: bool = False  # exclude runs from the side History rail
+    cron: str | None = None  # schedule; null/blank = paused (not fired)
 
     @property
     def events(self) -> set[str]:
@@ -90,7 +93,9 @@ async def set_notify_config(db: AsyncSession, task_name: str, **fields) -> None:
     await db.commit()
 
 
-async def resolve_channel(db: AsyncSession, channel_name: str | None) -> tuple[str, dict]:
+async def resolve_channel(
+    db: AsyncSession, channel_name: str | None
+) -> tuple[str, dict]:
     """Resolve a named channel into (strategy, config) for delivery.
 
     Used by any consumer that delivers through a notification_channels row — task

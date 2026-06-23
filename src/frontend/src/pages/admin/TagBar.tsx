@@ -58,12 +58,15 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
   const [input, setInput] = useState('')
 
   const allRef = useClickOutside<HTMLDivElement>(() => setAllOpen(false))
-  const addRef = useClickOutside<HTMLDivElement>(() => { setAddOpen(false); setInput('') })
+  const addRef = useClickOutside<HTMLDivElement>(() => {
+    setAddOpen(false)
+    setInput('')
+  })
 
   const { data: suggestions = [] } = useTagSuggestions(entityType, entityId, addOpen)
   const filtered = useMemo(() => {
     const q = input.trim().toLowerCase()
-    return q ? suggestions.filter(s => s.toLowerCase().includes(q)) : suggestions
+    return q ? suggestions.filter((s) => s.toLowerCase().includes(q)) : suggestions
   }, [suggestions, input])
 
   // --- Overflow measurement: show as many chips as fit, collapse rest into +N ---
@@ -76,7 +79,7 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
     const measure = measureRef.current
     if (!row || !measure) return
     const recompute = () => {
-      const widths = Array.from(measure.children).map(c => (c as HTMLElement).offsetWidth)
+      const widths = Array.from(measure.children).map((c) => (c as HTMLElement).offsetWidth)
       setVisibleCount(fitCount(widths, row.clientWidth))
     }
     recompute()
@@ -92,7 +95,10 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
     const trimmed = name.trim()
     if (!trimmed) return
     add.mutate(trimmed, {
-      onSuccess: () => { setInput(''); setAddOpen(false) },
+      onSuccess: () => {
+        setInput('')
+        setAddOpen(false)
+      },
       onError: () => toast({ variant: 'error', title: 'Could not add tag', description: trimmed }),
     })
   }
@@ -107,15 +113,21 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
     // No overflow-hidden here — it would clip the +N / + add popovers.
     <div ref={rowRef} className="flex items-center gap-1.5 w-full min-w-0">
       {/* Offscreen measurement layer: all chips at natural width, never shown. */}
-      <div ref={measureRef} aria-hidden className="absolute -left-[9999px] top-0 flex gap-1.5 invisible">
-        {tags.map(t => <TagChip key={t.name} tag={t} />)}
+      <div
+        ref={measureRef}
+        aria-hidden
+        className="absolute -left-[9999px] top-0 flex gap-1.5 invisible"
+      >
+        {tags.map((t) => (
+          <TagChip key={t.name} tag={t} />
+        ))}
       </div>
 
       {/* Visible chips — as many as fit, left-justified. */}
       {tags.length === 0 ? (
         <span className="text-[10px] text-muted-foreground/60 shrink-0">No tags</span>
       ) : (
-        visible.map(t => (
+        visible.map((t) => (
           <span key={t.name} className="shrink-0">
             <TagChip tag={t} onRemove={() => onRemove(t.name)} />
           </span>
@@ -126,7 +138,7 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
       {hidden.length > 0 && (
         <div ref={allRef} className="relative shrink-0">
           <button
-            onClick={() => setAllOpen(o => !o)}
+            onClick={() => setAllOpen((o) => !o)}
             className="text-[10px] px-1.5 py-0.5 rounded-full border border-border/50 text-muted-foreground hover:bg-muted/40 transition-colors"
           >
             +{hidden.length}
@@ -136,7 +148,7 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
               className="absolute left-0 top-7 rounded-xl p-2 min-w-44 z-50 shadow-lg border border-white/10 flex flex-wrap gap-1.5"
               style={dropdownStyle}
             >
-              {tags.map(t => (
+              {tags.map((t) => (
                 <TagChip key={t.name} tag={t} onRemove={() => onRemove(t.name)} />
               ))}
             </div>
@@ -147,7 +159,7 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
       {/* + add — free text or pick from existing; sits after the chips. */}
       <div ref={addRef} className="relative shrink-0">
         <button
-          onClick={() => setAddOpen(o => !o)}
+          onClick={() => setAddOpen((o) => !o)}
           className="p-0.5 rounded-full border border-border/50 text-muted-foreground hover:bg-muted/40 transition-colors"
           aria-label="Add tag"
         >
@@ -161,8 +173,10 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
             <input
               autoFocus
               value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') submit(input) }}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit(input)
+              }}
               placeholder="Add a tag…"
               className="bg-transparent border border-border/50 rounded-md px-2 py-1 text-[11px] text-foreground/90 focus:outline-none focus:border-primary/50"
             />
@@ -176,7 +190,7 @@ export default function TagBar({ entityType, entityId }: { entityType: string; e
             )}
             {filtered.length > 0 && (
               <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
-                {filtered.map(s => (
+                {filtered.map((s) => (
                   <button
                     key={s}
                     onClick={() => submit(s)}

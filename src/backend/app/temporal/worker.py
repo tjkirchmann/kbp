@@ -8,6 +8,7 @@ Run as: python -m app.temporal.worker
 Registering new work: add the workflow class to `workflows=` and the activity
 function to `activities=` below.
 """
+
 import asyncio
 import logging
 
@@ -17,6 +18,9 @@ from temporalio.worker import Worker
 from app.core.config import settings
 from app.core.temporal import get_temporal_client
 from app.temporal.activities import compose_greeting
+from app.temporal.cfbd_dims.activities import sync_coaches, sync_flat_dim
+from app.temporal.cfbd_dims.schedule import ensure_schedule
+from app.temporal.cfbd_dims.workflow import CfbdDimsWorkflow
 from app.temporal.cfbd_facts.activities import (
     get_facts_config,
     load_fact_coverage,
@@ -59,6 +63,10 @@ async def main() -> None:
         settings.temporal_task_queue,
     )
 
+    # Reconcile the nightly CFBD-dims schedule on boot (mirrors how the
+    # Procrastinate worker reconciles DB crons at startup).
+    await ensure_schedule(client)
+
     # Declare the daily CFBD facts schedule in code (idempotent create-or-update),
     # so it's self-registering on boot the way the Procrastinate crons were.
     await ensure_cfbd_facts_schedule(client)
@@ -66,9 +74,16 @@ async def main() -> None:
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[GreetingWorkflow, CfbdFactsWorkflow, CfbdEndpointWorkflow],
+        workflows=[
+            GreetingWorkflow,
+            CfbdDimsWorkflow,
+            CfbdFactsWorkflow,
+            CfbdEndpointWorkflow,
+        ],
         activities=[
             compose_greeting,
+            sync_flat_dim,
+            sync_coaches,
             get_facts_config,
             load_fact_coverage,
             sync_fact_season,

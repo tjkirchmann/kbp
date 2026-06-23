@@ -1,0 +1,44 @@
+# Pre-commit hooks for the KBP monorepo.
+# Setup:   uvx pre-commit install
+# Run all: make lint   (uvx pre-commit run --all-files)
+repos:
+  # ── Generic hygiene ─────────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # ── Python backend (Ruff: lint + format) ────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        name: ruff (backend)
+        args: [--fix]
+        files: ^src/backend/
+      - id: ruff-format
+        name: ruff-format (backend)
+        files: ^src/backend/
+
+  # ── Frontend (ESLint + Prettier via the frontend's own npm scripts) ─────────
+  - repo: local
+    hooks:
+      - id: frontend-eslint
+        name: ESLint (frontend)
+        language: system
+        entry: bash -c 'cd src/frontend && npm run lint'
+        files: ^src/frontend/src/.*\.(ts|tsx)$
+        pass_filenames: false
+      - id: frontend-prettier
+        name: Prettier (frontend)
+        language: system
+        entry: bash -c 'cd src/frontend && npm run format'
+        files: ^src/frontend/.*\.(ts|tsx|js|jsx|json|css|html)$
+        pass_filenames: false

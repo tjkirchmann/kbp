@@ -39,7 +39,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   const dismiss = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
+    setToasts((prev) => prev.filter((t) => t.id !== id))
     const timer = timers.current.get(id)
     if (timer) {
       clearTimeout(timer)
@@ -47,22 +47,25 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const toast = useCallback((opts: ToastOptions) => {
-    const id = crypto.randomUUID()
-    setToasts(prev => [
-      ...prev,
-      { id, variant: opts.variant ?? 'info', title: opts.title, description: opts.description },
-    ])
-    const timer = setTimeout(() => dismiss(id), opts.duration ?? DEFAULT_DURATION)
-    timers.current.set(id, timer)
-    return id
-  }, [dismiss])
+  const toast = useCallback(
+    (opts: ToastOptions) => {
+      const id = crypto.randomUUID()
+      setToasts((prev) => [
+        ...prev,
+        { id, variant: opts.variant ?? 'info', title: opts.title, description: opts.description },
+      ])
+      const timer = setTimeout(() => dismiss(id), opts.duration ?? DEFAULT_DURATION)
+      timers.current.set(id, timer)
+      return id
+    },
+    [dismiss],
+  )
 
   return (
     <ToastContext.Provider value={{ toast, dismiss }}>
       {children}
       <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 w-[min(22rem,calc(100vw-2rem))] pointer-events-none">
-        {toasts.map(t => (
+        {toasts.map((t) => (
           <ToastCard key={t.id} toast={t} onDismiss={dismiss} />
         ))}
       </div>

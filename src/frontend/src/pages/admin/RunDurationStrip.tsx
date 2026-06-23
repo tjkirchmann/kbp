@@ -12,15 +12,16 @@ const BINS = 48
 
 export default function RunDurationStrip({ runs }: { runs: SyncRun[] }) {
   const durations = runs
-    .map(r => r.duration_seconds)
+    .map((r) => r.duration_seconds)
     .filter((d): d is number => d != null && d > 0)
     .sort((a, b) => a - b)
 
-  const body = durations.length < 2 ? (
-    <p className="text-xs text-muted-foreground/60 py-3">Not enough completed runs.</p>
-  ) : (
-    <Strip durations={durations} />
-  )
+  const body =
+    durations.length < 2 ? (
+      <p className="text-xs text-muted-foreground/60 py-3">Not enough completed runs.</p>
+    ) : (
+      <Strip durations={durations} />
+    )
 
   return (
     <div className="rounded-lg p-3.5 bg-white/[0.03] border border-border/20">
@@ -96,7 +97,7 @@ function Strip({ durations }: { durations: number[] }) {
 // Color ramp: dim blue (#009CDE, low) -> hot cyan-white (high). Lerp in RGB and
 // lift alpha so peak columns glow.
 function barColor(t: number): string {
-  const lo = [0, 156, 222]   // #009CDE primary
+  const lo = [0, 156, 222] // #009CDE primary
   const hi = [180, 245, 255] // hot cyan-white
   const c = lo.map((v, i) => Math.round(v + (hi[i] - v) * t))
   const alpha = 0.45 + t * 0.55

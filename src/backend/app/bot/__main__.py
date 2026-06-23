@@ -5,6 +5,7 @@ so cogs can defer jobs (same API the admin endpoints use), then runs the bot's
 gateway connection. Exits cleanly when no token is configured so supervisor /
 compose don't crash-loop an unconfigured bot.
 """
+
 import asyncio
 import logging
 
@@ -19,7 +20,9 @@ logger = logging.getLogger("app.bot")
 async def main() -> None:
     token = settings.discord_bot_token
     if not token:
-        logger.warning("DISCORD_BOT_TOKEN unset — Discord bot disabled; exiting cleanly.")
+        logger.warning(
+            "DISCORD_BOT_TOKEN unset — Discord bot disabled; exiting cleanly."
+        )
         return
 
     # Open the Procrastinate connection pool for the lifetime of the bot so cogs

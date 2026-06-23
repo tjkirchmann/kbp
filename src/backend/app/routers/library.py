@@ -8,7 +8,6 @@ succeeded.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
@@ -25,7 +24,7 @@ router = APIRouter(prefix="/admin/library", dependencies=[Depends(require_admin)
 
 class PresignBody(BaseModel):
     original_name: str
-    content_type: Optional[str] = None
+    content_type: str | None = None
 
 
 class PresignResult(BaseModel):
@@ -38,16 +37,18 @@ class LibraryFileSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     original_name: str
-    content_type: Optional[str] = None
-    size_bytes: Optional[int] = None
+    content_type: str | None = None
+    size_bytes: int | None = None
     status: str
     created_at: datetime
-    deleted_at: Optional[datetime] = None
-    uploaded_by_user_id: Optional[int] = None
+    deleted_at: datetime | None = None
+    uploaded_by_user_id: int | None = None
 
 
 async def _get_file(db: AsyncSession, file_id: int) -> LibraryFile:
-    row = (await db.execute(select(LibraryFile).where(LibraryFile.id == file_id))).scalar_one_or_none()
+    row = (
+        await db.execute(select(LibraryFile).where(LibraryFile.id == file_id))
+    ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="File not found")
     return row
@@ -79,7 +80,10 @@ async def confirm_upload(file_id: int, db: AsyncSession = Depends(get_db)):
     row = await _get_file(db, file_id)
     head = s3.head_object(row.s3_key)
     if head is None:
-        raise HTTPException(status_code=400, detail="Object not found in storage; upload did not complete")
+        raise HTTPException(
+            status_code=400,
+            detail="Object not found in storage; upload did not complete",
+        )
     row.size_bytes = head["size"]
     row.etag = head["etag"]
     if head.get("content_type"):

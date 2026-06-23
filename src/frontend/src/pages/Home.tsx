@@ -32,11 +32,16 @@ function WelcomeCard() {
         {/* Headline + CTA overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 flex flex-col gap-4 items-center text-center sm:items-start sm:text-left">
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">30-ish years · kinda annual</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              30-ish years · kinda annual
+            </p>
             <h1 className="text-gradient text-3xl sm:text-5xl font-bold tracking-tight leading-[1.05]">
-              The Kirchmann<br className="hidden sm:block" /> Bowl Pool
+              The Kirchmann
+              <br className="hidden sm:block" /> Bowl Pool
             </h1>
-            <p className="text-sm text-foreground/70 max-w-md">No football knowledge required. Ignorance encouraged. A pool even Canadians can win.</p>
+            <p className="text-sm text-foreground/70 max-w-md">
+              No football knowledge required. Ignorance encouraged. A pool even Canadians can win.
+            </p>
           </div>
           <div className="flex gap-3">
             <button
@@ -45,9 +50,7 @@ function WelcomeCard() {
             >
               Enter the Pool
             </button>
-            <button
-              className="btn-glass-blue px-5 py-2.5 rounded-full text-sm font-semibold"
-            >
+            <button className="btn-glass-blue px-5 py-2.5 rounded-full text-sm font-semibold">
               View Standings
             </button>
           </div>
@@ -57,21 +60,41 @@ function WelcomeCard() {
         {/* Title row: label left, hatch fills right */}
         <div className="flex items-center gap-6">
           <div className="shrink-0 flex flex-col gap-1">
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary">A Message from Eric Kirchmann...</p>
-            <p className="text-sm text-muted-foreground">KBP Founder / Commissioner / President / CEO</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+              A Message from Eric Kirchmann...
+            </p>
+            <p className="text-sm text-muted-foreground">
+              KBP Founder / Commissioner / President / CEO
+            </p>
           </div>
           <div className="hatch flex-1 h-10 rounded" />
         </div>
         {/* Pull-quote */}
         <blockquote className="border-l-2 border-primary/60 pl-4 text-lg sm:text-xl font-medium italic text-foreground/90 leading-snug">
-          "In the bizarre world of the KBP, wives trounce husbands, grandmas talk trash, and school children dominate you."
+          "In the bizarre world of the KBP, wives trounce husbands, grandmas talk trash, and school
+          children dominate you."
         </blockquote>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
           <p>
-            Welcome to the 2024-25, 30th (or 31st), Kinda Annual Kirchmann Bowl Pool, otherwise referred to as the KBP. If you are new to the KBP, it started as a small family pool around 1992 or 1993 (we don't know for sure) and quickly morphed into a national (and international) sensation. Entries sometimes come from faraway countries like Ecuador, Greece, and the Republic of Texas. Participants are an odd, and I do mean odd, and eclectic groups of friends accumulated from all phases of my life. No football knowledge is required. Ignorance is encouraged as you make your picks in the unpredictable world of bowl games. It's a pool even Canadians can win. In the bizarre world of the KBP, wives trounce husbands, grandmas talk trash, school children dominate you and that scintillating Sun Belt/MAC match-up becomes must watch TV.
+            Welcome to the 2024-25, 30th (or 31st), Kinda Annual Kirchmann Bowl Pool, otherwise
+            referred to as the KBP. If you are new to the KBP, it started as a small family pool
+            around 1992 or 1993 (we don't know for sure) and quickly morphed into a national (and
+            international) sensation. Entries sometimes come from faraway countries like Ecuador,
+            Greece, and the Republic of Texas. Participants are an odd, and I do mean odd, and
+            eclectic groups of friends accumulated from all phases of my life. No football knowledge
+            is required. Ignorance is encouraged as you make your picks in the unpredictable world
+            of bowl games. It's a pool even Canadians can win. In the bizarre world of the KBP,
+            wives trounce husbands, grandmas talk trash, school children dominate you and that
+            scintillating Sun Belt/MAC match-up becomes must watch TV.
           </p>
           <p>
-            Absolutely no money rides on the KBP. The only prizes are bragging rights, and oh what rights those are! The KBP has taken smack talk to a new level. You might get blasted by the blue haired, 4pm dinner club or toddlers in Indiana (and everyone in between). Good-natured smack talk is encouraged, but keep it clean! Besides that, as Roitman quipped, "Here's a quick lesson on KBP etiquette.. there is no such thing." If someone gives you the business, give it right back to them. Like on the playground, it means they like you.
+            Absolutely no money rides on the KBP. The only prizes are bragging rights, and oh what
+            rights those are! The KBP has taken smack talk to a new level. You might get blasted by
+            the blue haired, 4pm dinner club or toddlers in Indiana (and everyone in between).
+            Good-natured smack talk is encouraged, but keep it clean! Besides that, as Roitman
+            quipped, "Here's a quick lesson on KBP etiquette.. there is no such thing." If someone
+            gives you the business, give it right back to them. Like on the playground, it means
+            they like you.
           </p>
         </div>
       </div>
@@ -79,7 +102,13 @@ function WelcomeCard() {
   )
 }
 
-function CTACard({ icon, title, description, cta, onClick }: {
+function CTACard({
+  icon,
+  title,
+  description,
+  cta,
+  onClick,
+}: {
   icon: React.ReactNode
   title: string
   description: string
@@ -122,7 +151,9 @@ function StatStrip() {
       {stats.map((s) => (
         <div key={s.label} className="flex flex-col items-center gap-0.5 py-5 px-4">
           <span className="text-2xl sm:text-3xl font-bold text-primary">{s.value}</span>
-          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">{s.label}</span>
+          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+            {s.label}
+          </span>
         </div>
       ))}
     </div>
@@ -141,8 +172,12 @@ function PhotoGallery() {
       {/* Title row: label left, hatch fills right */}
       <div className="flex items-center gap-6">
         <div className="shrink-0 flex flex-col gap-1">
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary">From the Archives</p>
-          <p className="text-sm text-muted-foreground">Three decades of questionable decisions, immortalized.</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+            From the Archives
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Three decades of questionable decisions, immortalized.
+          </p>
         </div>
         <div className="hatch flex-1 h-10 rounded" />
       </div>

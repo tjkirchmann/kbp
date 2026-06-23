@@ -75,7 +75,7 @@ const INFO: Record<string, SectionInfo> = {
       {
         name: 'Pool Detail — Submissions',
         description:
-          'All user pick submissions for the pool. Shows each participant\'s picks, score, and tiebreaker value.',
+          "All user pick submissions for the pool. Shows each participant's picks, score, and tiebreaker value.",
       },
       {
         name: 'Delete Pool',
@@ -119,7 +119,7 @@ export default function AdminInfoPanel({ section }: { section: string }) {
         <p className="text-sm text-muted-foreground leading-relaxed">{info.description}</p>
       </div>
       <div className="flex flex-col gap-3">
-        {info.features.map(f => (
+        {info.features.map((f) => (
           <div
             key={f.name}
             className="rounded-lg px-4 py-3 bg-white/[0.03] border border-border/20"

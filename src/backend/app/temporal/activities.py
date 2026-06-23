@@ -4,6 +4,7 @@ Activities are where side effects live (network calls, DB writes, etc.) — they
 outside the workflow sandbox, so normal imports and I/O are fine here. This sample
 just composes a greeting; real activities can import app.services / the DB session.
 """
+
 from temporalio import activity
 
 

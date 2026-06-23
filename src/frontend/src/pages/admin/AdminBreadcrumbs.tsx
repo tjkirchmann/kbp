@@ -43,7 +43,7 @@ function SectionSwitcher({ crumb, isLeaf }: { crumb: Crumb; isLeaf: boolean }) {
       <button
         type="button"
         aria-label="Switch section"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         className="rounded p-0.5 text-muted-foreground/70 transition-colors hover:text-foreground"
       >
         <ChevronsUpDown className="size-4" />
@@ -52,14 +52,21 @@ function SectionSwitcher({ crumb, isLeaf }: { crumb: Crumb; isLeaf: boolean }) {
       {open && (
         <div
           className="absolute left-0 top-9 z-50 min-w-48 overflow-hidden rounded-xl border border-white/10 py-1.5 shadow-xl"
-          style={{ background: 'rgba(13, 15, 19, 0.92)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+          style={{
+            background: 'rgba(13, 15, 19, 0.92)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+          }}
         >
-          {SECTIONS.map(s => {
+          {SECTIONS.map((s) => {
             const active = s.label === crumb.label
             return (
               <button
                 key={s.path}
-                onClick={() => { navigate(s.path); setOpen(false) }}
+                onClick={() => {
+                  navigate(s.path)
+                  setOpen(false)
+                }}
                 className={`block w-full px-4 py-2 text-left text-sm transition-colors ${
                   active
                     ? 'text-foreground bg-white/5'

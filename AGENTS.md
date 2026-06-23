@@ -1,3 +1,15 @@
+# KBP - Agentic Coding Pair Programmer Guidelines and Beliefs
+
+Ask, don't assume. If something is unclear, ask before writing a single line. Never make silent assumptions about intent, architecture, or requirements.
+
+Simplest solution first. Always implement the simplest thing that could work. Do not add abstractions or flexibility that weren't explicitly requested.
+
+Don't touch unrelated code. If a file or function is not directly part of the current task, do not modify it, even if you think it could be improved.
+
+Flag uncertainty explicitly. If you are not confident about an approach or technical detail, say so before proceeding. Confidence without certainty causes more damage than admitting a gap.
+
+I'm always open to ideas on better ways to do things. Please don't hesitate to suggest a better way, or one that has long lasting impact over a tactical change.
+
 # KBP — Agent Orientation Guide
 
 Start here. Read this before touching any file.
@@ -98,6 +110,25 @@ Backend API + docs: `http://localhost:8000/docs`
 
 ---
 
+## Linting & pre-commit
+
+Linting/formatting is orchestrated by [pre-commit](https://pre-commit.com) via
+`.pre-commit-config.yaml` at the repo root:
+
+- **Backend** — [Ruff](https://docs.astral.sh/ruff/) lints and formats `src/backend`
+  (config in `src/backend/pyproject.toml`).
+- **Frontend** — ESLint + Prettier lint and format `src/frontend`
+  (`eslint.config.js`, `.prettierrc.json`; run as `npm run lint` / `npm run format`).
+
+```bash
+make install-hooks  # one-time: install the git pre-commit hook (needs uv)
+make lint           # lint + format the whole repo (pre-commit run --all-files)
+```
+
+Frontend tooling requires `npm install` in `src/frontend` first.
+
+---
+
 ## Key conventions
 
 ### Frontend
@@ -163,8 +194,14 @@ make data-modeling        # adding tables, columns, or relationships
 ## Temporal (durable workflows)
 
 Self-hosted Temporal runs alongside the app for durable, multi-step workflows.
-It's **separate from Procrastinate** — Procrastinate (`app/tasks/`) still owns the
-cron/sync jobs; Temporal (`app/temporal/`) is the home for new durable workflows.
+It's **separate from Procrastinate** — Procrastinate (`app/tasks/`) owns the
+remaining cron/sync jobs (cfbd_sync, cfbd_facts, cfbd_plays, espn_poller);
+Temporal (`app/temporal/`) is the home for durable workflows. The **CFBD
+dimension sync** has migrated here as `CfbdDimsWorkflow`
+(`app/temporal/cfbd_dims/`): it fans out one activity per dimension entity
+(teams/conferences/venues/coaches/draft) with per-activity retry, and runs on a
+native **Temporal Schedule** (nightly `0 3 * * *`, overlap=SKIP) instead of the
+DB-cron admin panel — so it no longer appears in the admin Sync panel.
 
 - **Compose services**: `temporal` (`auto-setup`), `temporal-ui` (`localhost:8080`),
   `temporal-admin-tools` (the `temporal`/`tctl` CLI), and `temporal_worker` (Python
@@ -178,5 +215,9 @@ cron/sync jobs; Temporal (`app/temporal/`) is the home for new durable workflows
   **migrating to Cloud is an env-var change, no code edits**. See `.env.example`.
 - **Try it**: `make up`, then `make temporal-run` → kicks off the sample
   `GreetingWorkflow` and prints the result; view the execution at `localhost:8080`.
+  `make temporal-cfbd-dims` triggers an off-schedule CFBD-dims run ("Run now").
 - **Add a workflow**: write it in `app/temporal/workflows.py` (push I/O into
-  `activities.py`), then register both in `app/temporal/worker.py`.
+  `activities.py`), then register both in `app/temporal/worker.py`. A larger
+  workflow can get its own package — see `app/temporal/cfbd_dims/`
+  (`activities.py` + `workflow.py` + `schedule.py`) as the worked example,
+  including how to drive it with a Temporal Schedule reconciled at worker boot.

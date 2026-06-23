@@ -1,4 +1,13 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run temporal-cfbd-facts deploy migrate frontend-component backend frontend-logic frontend-organize
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run temporal-cfbd-facts temporal-cfbd-dims deploy migrate frontend-component backend frontend-logic frontend-organize lint install-hooks
+
+# ── Lint ─────────────────────────────────────────────────────────────────────
+# One-time setup: install the git pre-commit hook.
+install-hooks:
+	uvx pre-commit install
+
+# Lint + format the whole repo (backend via Ruff, frontend via ESLint+Prettier).
+lint:
+	uvx pre-commit run --all-files
 
 # ── Dev ──────────────────────────────────────────────────────────────────────
 
@@ -45,6 +54,11 @@ temporal-run:
 # The daily run is driven by a Temporal Schedule registered on worker boot.
 temporal-cfbd-facts:
 	docker compose run --rm temporal_worker python -m app.temporal.cfbd_facts.starter
+
+# Trigger an immediate run of the nightly CFBD-dims workflow (the 'Run now').
+# Ensures the schedule exists, then fires one off-schedule execution.
+temporal-cfbd-dims:
+	docker compose run --rm temporal_worker python -m app.temporal.cfbd_dims.schedule
 
 # ── Deploy ───────────────────────────────────────────────────────────────────
 

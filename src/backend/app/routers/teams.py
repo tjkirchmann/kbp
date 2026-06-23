@@ -1,9 +1,11 @@
-from datetime import datetime
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.auth import require_admin
 from app.core.database import get_db
 from app.models.cfbd import CfbdTeam
@@ -44,7 +46,7 @@ def _api_to_row(t: dict) -> dict:
         "division": t.get("division") or None,
         "classification": t.get("classification") or None,
         "twitter": t.get("twitter") or None,
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
@@ -71,7 +73,10 @@ async def sync_teams(db: AsyncSession = Depends(get_db)):
     rows = [_api_to_row(t) for t in teams if t.get("id")]
     await _upsert_teams(db, rows)
     await db.commit()
-    return {"synced": len(rows), "last_synced_at": datetime.utcnow().isoformat()}
+    return {
+        "synced": len(rows),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None).isoformat(),
+    }
 
 
 @router.get("", response_model=list[CfbdTeamSchema])

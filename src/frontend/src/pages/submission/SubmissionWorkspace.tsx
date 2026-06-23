@@ -16,7 +16,7 @@ export default function SubmissionWorkspace() {
   const navigate = useNavigate()
 
   const { data: pools = [], isLoading } = useOpenPools()
-  const pool = pools.find(p => p.id === poolId)
+  const pool = pools.find((p) => p.id === poolId)
 
   const [passwordVerified, setPasswordVerified] = useState(false)
   const [currentStep, setCurrentStep] = useState<StepId | null>(null)
@@ -40,7 +40,9 @@ export default function SubmissionWorkspace() {
   if (!pool) {
     return (
       <div className="glass-panel rounded-2xl p-10 flex flex-col items-center gap-2 text-center">
-        <p className="text-sm font-medium text-foreground">Pool not found or submissions are closed.</p>
+        <p className="text-sm font-medium text-foreground">
+          Pool not found or submissions are closed.
+        </p>
       </div>
     )
   }
@@ -54,12 +56,13 @@ export default function SubmissionWorkspace() {
     { id: 'games' as const, label: 'Pick Games' },
   ]
 
-  const pickByGameId = new Map(existingPicks.map(p => [p.pool_game_id, p]))
+  const pickByGameId = new Map(existingPicks.map((p) => [p.pool_game_id, p]))
 
   const gameItems = poolGames.map((g, i) => {
     const pick = pickByGameId.get(g.id)
     const pickedLogo = pick
-      ? (pick.picked_winner === g.away_team ? g.away_team_meta : g.home_team_meta)?.logos?.[0] ?? null
+      ? ((pick.picked_winner === g.away_team ? g.away_team_meta : g.home_team_meta)?.logos?.[0] ??
+        null)
       : null
     return {
       id: g.id,
@@ -67,15 +70,15 @@ export default function SubmissionWorkspace() {
       label: g.bowl_name
         ? g.bowl_name
         : g.neutral_site
-        ? `${g.away_team} vs ${g.home_team}`
-        : `${g.away_team} at ${g.home_team}`,
+          ? `${g.away_team} vs ${g.home_team}`
+          : `${g.away_team} at ${g.home_team}`,
       picked: pick !== undefined,
       pickedLogo,
     }
   })
 
   function advance(from: StepId, next: StepId) {
-    setCompletedSteps(prev => new Set([...prev, from]))
+    setCompletedSteps((prev) => new Set([...prev, from]))
     setCurrentStep(next)
   }
 
@@ -111,11 +114,11 @@ export default function SubmissionWorkspace() {
           steps={steps}
           currentStep={activeStep}
           completedSteps={completedSteps as Set<string>}
-          onStepClick={id => setCurrentStep(id as StepId)}
+          onStepClick={(id) => setCurrentStep(id as StepId)}
           games={activeStep === 'games' || activeStep === 'review' ? gameItems : undefined}
           activeGameId={activeStep === 'games' ? (poolGames[currentGameIndex]?.id ?? null) : null}
-          onGameClick={id => {
-            const idx = poolGames.findIndex(g => g.id === id)
+          onGameClick={(id) => {
+            const idx = poolGames.findIndex((g) => g.id === id)
             if (idx >= 0) {
               setCurrentGameIndex(idx)
               setCurrentStep('games')
@@ -144,11 +147,7 @@ export default function SubmissionWorkspace() {
             />
           )}
           {activeStep === 'review' && submissionId && (
-            <ReviewStep
-              poolId={pool.id}
-              submissionId={submissionId}
-              entryName={entryName ?? ''}
-            />
+            <ReviewStep poolId={pool.id} submissionId={submissionId} entryName={entryName ?? ''} />
           )}
         </div>
       </div>

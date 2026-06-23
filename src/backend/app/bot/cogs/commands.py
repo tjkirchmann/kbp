@@ -5,6 +5,7 @@ job → reply. Slash commands need no privileged intent. The job-trigger path
 reuses the exact defer mechanism the admin endpoints use
 (procrastinate_app.tasks[name].defer_async()), so the existing worker runs them.
 """
+
 import logging
 
 import discord
@@ -51,7 +52,9 @@ class CommandsCog(commands.Cog):
         the command must be invoked there."""
         async with TaskSessionLocal() as db:
             if not await get_bot_enabled(db):
-                await interaction.response.send_message("Bot is disabled.", ephemeral=True)
+                await interaction.response.send_message(
+                    "Bot is disabled.", ephemeral=True
+                )
                 return False
             command_channel = await get_bot_command_channel(db)
         if command_channel and str(interaction.channel_id) != command_channel:
@@ -61,7 +64,9 @@ class CommandsCog(commands.Cog):
             return False
         return True
 
-    @app_commands.command(name="sync", description="Trigger a background sync task by name.")
+    @app_commands.command(
+        name="sync", description="Trigger a background sync task by name."
+    )
     @app_commands.describe(task_name="The registered task to run (e.g. cfbd_sync).")
     async def sync(self, interaction: discord.Interaction, task_name: str) -> None:
         if not await self._authorized(interaction):
@@ -89,7 +94,9 @@ class CommandsCog(commands.Cog):
                 f"Failed to defer `{task_name}`.", ephemeral=True
             )
 
-    @app_commands.command(name="status", description="Show the most recent background runs.")
+    @app_commands.command(
+        name="status", description="Show the most recent background runs."
+    )
     async def status(self, interaction: discord.Interaction) -> None:
         if not await self._authorized(interaction):
             return

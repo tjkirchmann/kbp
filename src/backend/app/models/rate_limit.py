@@ -16,9 +16,9 @@ class EspnRateToken(Base):
     """
 
     __tablename__ = "espn_rate_tokens"
-    __table_args__ = (
-        Index("ix_espn_rate_tokens_acquired_at", "acquired_at"),
-    )
+    __table_args__ = (Index("ix_espn_rate_tokens_acquired_at", "acquired_at"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    acquired_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
+    acquired_at: Mapped[datetime] = mapped_column(
+        nullable=False, server_default=func.now()
+    )

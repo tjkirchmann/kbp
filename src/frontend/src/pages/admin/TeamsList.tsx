@@ -6,36 +6,53 @@ import { useAdminTeams, useSyncTeams, type CfbdTeam } from '@/services/useAdminT
 const ROW_HEIGHT = 44
 
 function ColorSwatch({ hex }: { hex: string | null }) {
-  if (!hex) return <div className="size-3.5 rounded-full bg-muted border border-border/40 shrink-0" />
+  if (!hex)
+    return <div className="size-3.5 rounded-full bg-muted border border-border/40 shrink-0" />
   const color = hex.startsWith('#') ? hex : `#${hex}`
-  return <div className="size-3.5 rounded-full border border-border/30 shrink-0" style={{ background: color }} />
+  return (
+    <div
+      className="size-3.5 rounded-full border border-border/30 shrink-0"
+      style={{ background: color }}
+    />
+  )
 }
 
 function TeamRow({ team, style }: { team: CfbdTeam; style: React.CSSProperties }) {
   const logo = team.logos?.[0] ?? null
   return (
-    <div style={style} className="flex items-center border-t border-border/20 hover:bg-[rgba(26,30,42,0.4)] transition-colors">
+    <div
+      style={style}
+      className="flex items-center border-t border-border/20 hover:bg-[rgba(26,30,42,0.4)] transition-colors"
+    >
       <div className="flex items-center gap-3 px-5 flex-[3] min-w-0">
         <div className="size-6 shrink-0 flex items-center justify-center">
-          {logo
-            ? <img src={logo} alt={team.school} className="size-6 object-contain" />
-            : <div className="size-6 rounded bg-muted/40" />
-          }
+          {logo ? (
+            <img src={logo} alt={team.school} className="size-6 object-contain" />
+          ) : (
+            <div className="size-6 rounded bg-muted/40" />
+          )}
         </div>
         <div className="min-w-0">
           <span className="text-sm font-medium text-foreground truncate block">{team.school}</span>
-          {team.mascot && <span className="text-xs text-muted-foreground truncate block">{team.mascot}</span>}
+          {team.mascot && (
+            <span className="text-xs text-muted-foreground truncate block">{team.mascot}</span>
+          )}
         </div>
       </div>
-      <div className="px-5 flex-[1] text-xs text-muted-foreground font-mono">{team.abbreviation ?? '—'}</div>
+      <div className="px-5 flex-[1] text-xs text-muted-foreground font-mono">
+        {team.abbreviation ?? '—'}
+      </div>
       <div className="px-5 flex-[2] text-xs text-muted-foreground truncate">
         {[team.conference, team.division].filter(Boolean).join(' · ') || '—'}
       </div>
       <div className="px-5 flex-[1]">
-        {team.classification
-          ? <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/60 text-muted-foreground">{team.classification.toUpperCase()}</span>
-          : <span className="text-xs text-muted-foreground">—</span>
-        }
+        {team.classification ? (
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/60 text-muted-foreground">
+            {team.classification.toUpperCase()}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
       </div>
       <div className="px-5 flex-[1]">
         <div className="flex items-center gap-1">
@@ -57,20 +74,26 @@ export default function TeamsList() {
   const parentRef = useRef<HTMLDivElement>(null)
 
   const conferences = useMemo(() => {
-    return [...new Set(teams.map(t => t.conference).filter(Boolean) as string[])].sort()
+    return [...new Set(teams.map((t) => t.conference).filter(Boolean) as string[])].sort()
   }, [teams])
 
   const classifications = useMemo(() => {
-    return [...new Set(teams.map(t => t.classification).filter(Boolean) as string[])].sort()
+    return [...new Set(teams.map((t) => t.classification).filter(Boolean) as string[])].sort()
   }, [teams])
 
   const filtered = useMemo(() => {
-    return teams.filter(t => {
-      if (search && !t.school.toLowerCase().includes(search.toLowerCase())) return false
-      if (confFilter !== 'all' && t.conference !== confFilter) return false
-      if (classFilter !== 'all' && t.classification !== classFilter) return false
-      return true
-    }).sort((a, b) => (a.conference ?? '').localeCompare(b.conference ?? '') || a.school.localeCompare(b.school))
+    return teams
+      .filter((t) => {
+        if (search && !t.school.toLowerCase().includes(search.toLowerCase())) return false
+        if (confFilter !== 'all' && t.conference !== confFilter) return false
+        if (classFilter !== 'all' && t.classification !== classFilter) return false
+        return true
+      })
+      .sort(
+        (a, b) =>
+          (a.conference ?? '').localeCompare(b.conference ?? '') ||
+          a.school.localeCompare(b.school),
+      )
   }, [teams, search, confFilter, classFilter])
 
   const virtualizer = useVirtualizer({
@@ -87,7 +110,10 @@ export default function TeamsList() {
   async function handleSync() {
     try {
       const result = await syncTeams.mutateAsync()
-      setLogLine({ text: `Synced ${result.synced} teams at ${new Date(result.last_synced_at).toLocaleString()}`, ok: true })
+      setLogLine({
+        text: `Synced ${result.synced} teams at ${new Date(result.last_synced_at).toLocaleString()}`,
+        ok: true,
+      })
     } catch {
       setLogLine({ text: 'Sync failed — check backend logs', ok: false })
     }
@@ -108,13 +134,19 @@ export default function TeamsList() {
           disabled={syncTeams.isPending}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-medium hover:bg-primary/25 transition-colors disabled:opacity-40"
         >
-          {syncTeams.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+          {syncTeams.isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <RefreshCw className="size-4" />
+          )}
           Sync Now
         </button>
       </div>
 
       {logLine && (
-        <div className={`shrink-0 text-xs px-3 py-2 rounded-lg font-mono ${logLine.ok ? 'bg-green-500/10 text-green-400' : 'bg-destructive/10 text-destructive'}`}>
+        <div
+          className={`shrink-0 text-xs px-3 py-2 rounded-lg font-mono ${logLine.ok ? 'bg-green-500/10 text-green-400' : 'bg-destructive/10 text-destructive'}`}
+        >
           {logLine.text}
         </div>
       )}
@@ -125,24 +157,32 @@ export default function TeamsList() {
             type="text"
             placeholder="Search teams…"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="flex-1 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-border/20 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
           />
           <select
             value={confFilter}
-            onChange={e => setConfFilter(e.target.value)}
+            onChange={(e) => setConfFilter(e.target.value)}
             className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
           >
             <option value="all">All conferences</option>
-            {conferences.map(c => <option key={c} value={c}>{c}</option>)}
+            {conferences.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
           <select
             value={classFilter}
-            onChange={e => setClassFilter(e.target.value)}
+            onChange={(e) => setClassFilter(e.target.value)}
             className="rounded-lg bg-white/[0.03] border border-border/20 px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
           >
             <option value="all">All classes</option>
-            {classifications.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+            {classifications.map((c) => (
+              <option key={c} value={c}>
+                {c.toUpperCase()}
+              </option>
+            ))}
           </select>
         </div>
       )}
@@ -177,7 +217,7 @@ export default function TeamsList() {
             style={{ scrollbarGutter: 'stable', willChange: 'transform' }}
           >
             <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-              {virtualizer.getVirtualItems().map(vRow => (
+              {virtualizer.getVirtualItems().map((vRow) => (
                 <TeamRow
                   key={filtered[vRow.index].id}
                   team={filtered[vRow.index]}

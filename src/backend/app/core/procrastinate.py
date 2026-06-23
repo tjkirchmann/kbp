@@ -12,10 +12,10 @@ _conninfo = settings.database_url.replace("postgresql+asyncpg://", "postgresql:/
 procrastinate_app = App(
     connector=PsycopgConnector(conninfo=_conninfo),
     import_paths=[
-        # cfbd_facts orchestration now lives in Temporal (app/temporal/cfbd_facts);
-        # it is intentionally no longer registered here.
+        # cfbd_facts and cfbd_dims orchestration now live in Temporal
+        # (app/temporal/cfbd_facts and app/temporal/cfbd_dims); they are
+        # intentionally no longer registered here.
         "app.tasks.cfbd_sync",
-        "app.tasks.cfbd_dims",
         "app.tasks.cfbd_plays",
         "app.tasks.espn_poller",
     ],

@@ -20,5 +20,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </ToastProvider>
       </QueryClientProvider>
     </ClerkProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 )
