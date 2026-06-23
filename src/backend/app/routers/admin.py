@@ -951,7 +951,7 @@ async def get_events(
     minutes: int = Query(30, ge=1, le=1440),
     db: AsyncSession = Depends(get_db),
 ):
-    cutoff = datetime.utcnow() - timedelta(minutes=minutes)
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=minutes)
     stmt = select(EventLog).where(EventLog.at >= cutoff)
     if source:
         stmt = stmt.where(EventLog.source == source)

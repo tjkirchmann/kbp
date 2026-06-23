@@ -49,7 +49,7 @@ CFBD fact-table coverage roadmap (✅ done · ⬜ planned)
 
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -96,7 +96,7 @@ def _batch(cols: int) -> int:
 
 # --- /lines → cfbd_betting_lines --------------------------------------------
 async def _sync_lines(db, games: list[dict], year: int) -> tuple[int, int]:
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     rows: dict[tuple, dict] = {}
     changed = 0
     for g in games:
@@ -153,7 +153,7 @@ async def _sync_lines(db, games: list[dict], year: int) -> tuple[int, int]:
 
 # --- /rankings → cfbd_rankings ----------------------------------------------
 async def _sync_rankings(db, weeks: list[dict], year: int) -> tuple[int, int]:
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     rows: dict[tuple, dict] = {}
     changed = 0
     for pw in weeks:
@@ -204,7 +204,7 @@ async def _sync_rankings(db, weeks: list[dict], year: int) -> tuple[int, int]:
 
 # --- /games/teams → cfbd_game_team_stats ------------------------------------
 async def _sync_team_stats(db, games: list[dict], year: int) -> tuple[int, int]:
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     rows: dict[tuple, dict] = {}
     changed = 0
     for gts in games:
@@ -286,7 +286,7 @@ def _make_generic(
     hash_fields: Callable[[dict], dict] | None = None,
 ) -> Callable[[Any, list[dict], int], Awaitable[tuple[int, int]]]:
     async def _syncer(db, items: list[dict], year: int) -> tuple[int, int]:
-        now = datetime.utcnow()
+        now = datetime.now(UTC).replace(tzinfo=None)
         rows: dict[tuple, dict] = {}
         changed = 0
         for it in items:
@@ -967,7 +967,7 @@ async def _load_coverage(db) -> dict[tuple[str, int], bool]:
 async def sync_cfbd_facts(timestamp: int | None = None) -> dict[str, Any]:
     """Smart daily materialization of CFBD fact tables (lines, rankings, team
     game stats). Backfills missing seasons; re-pulls only the current season."""
-    current = datetime.utcnow().year
+    current = datetime.now(UTC).replace(tzinfo=None).year
     start = settings.cfbd_facts_start_year
     result: dict[str, Any] = {}
 
@@ -1002,7 +1002,7 @@ async def sync_cfbd_facts(timestamp: int | None = None) -> dict[str, Any]:
                                 "season_year": year,
                                 "complete": year < current,
                                 "row_count": processed,
-                                "last_synced_at": datetime.utcnow(),
+                                "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
                             }
                         ],
                         1,

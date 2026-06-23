@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -67,7 +67,7 @@ def _game_label(game: EspnGame) -> str:
 
 async def _run_poll() -> dict:
     rate_limit = await _get_cached_rate_limit()
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
 
     async with SessionLocal() as db:
         result = await db.execute(
@@ -96,7 +96,7 @@ async def _run_poll() -> dict:
     polled = 0
 
     for game in live_games:
-        now = datetime.utcnow()
+        now = datetime.now(UTC).replace(tzinfo=None)
 
         # Bail out stale pre-game: start_date passed 2h ago and still pre
         if (

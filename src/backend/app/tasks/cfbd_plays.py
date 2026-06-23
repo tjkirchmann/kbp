@@ -16,7 +16,7 @@ the shared coverage table never collides between the two tasks.
 
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -38,7 +38,7 @@ def _batch(cols: int) -> int:
 
 # --- /plays → cfbd_plays ----------------------------------------------------
 async def _sync_plays(db, plays: list[dict], year: int) -> tuple[int, int]:
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     rows: dict[str, dict] = {}
     for p in plays:
         pid = p.get("id")
@@ -81,7 +81,7 @@ async def _sync_plays(db, plays: list[dict], year: int) -> tuple[int, int]:
 
 # --- /plays/stats → cfbd_play_stats (EAV) -----------------------------------
 async def _sync_play_stats(db, stats: list[dict], year: int) -> tuple[int, int]:
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     rows: dict[tuple, dict] = {}
     for s in stats:
         play_id, athlete_id = s.get("playId"), s.get("athleteId")
@@ -137,7 +137,7 @@ async def _load_coverage(db) -> dict[tuple[str, int], bool]:
 async def sync_cfbd_plays(timestamp: int | None = None) -> dict[str, Any]:
     """Backfill/refresh high-volume play-by-play. Manual (cron-less) — runnable
     from the admin Run button. Smart-syncs by season like cfbd_facts."""
-    current = datetime.utcnow().year
+    current = datetime.now(UTC).replace(tzinfo=None).year
     start = settings.cfbd_facts_start_year
     result: dict[str, Any] = {}
 
@@ -166,7 +166,7 @@ async def sync_cfbd_plays(timestamp: int | None = None) -> dict[str, Any]:
                                 "season_year": year,
                                 "complete": year < current,
                                 "row_count": processed,
-                                "last_synced_at": datetime.utcnow(),
+                                "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
                             }
                         ],
                         1,

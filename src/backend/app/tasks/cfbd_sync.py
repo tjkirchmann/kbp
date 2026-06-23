@@ -9,7 +9,7 @@ dimension tables — including teams — live in app/temporal/cfbd_dims/ (Tempor
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from app.core.database import TaskSessionLocal as SessionLocal
@@ -34,7 +34,7 @@ def _game_row(g: dict, year: int) -> dict:
             tzinfo=None
         )
     except (ValueError, AttributeError):
-        start_date = datetime.utcnow()
+        start_date = datetime.now(UTC).replace(tzinfo=None)
     return {
         "id": g["id"],
         "home_team": g.get("homeTeam", ""),
@@ -53,7 +53,7 @@ def _game_row(g: dict, year: int) -> dict:
         "completed": bool(g.get("completed", False)),
         "home_score": g.get("homePoints"),
         "away_score": g.get("awayPoints"),
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
@@ -73,7 +73,7 @@ def _game_hash_fields(g: dict) -> dict:
 @app.task(name="cfbd_games", queueing_lock="cfbd_games", retry=3)
 @notify(task_name="cfbd_games")
 async def sync_cfbd_games(timestamp: int | None = None) -> dict[str, Any]:
-    year = datetime.utcnow().year
+    year = datetime.now(UTC).replace(tzinfo=None).year
     games = [g for g in await cfbd_provider.fetch("games", year=year) if g.get("id")]
     if not games:
         return {"processed": 0, "changed": 0, "year": year}

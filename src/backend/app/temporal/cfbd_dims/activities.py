@@ -19,7 +19,7 @@ import hashlib
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from temporalio import activity
@@ -58,7 +58,7 @@ def _team_row(t: dict) -> dict:
         "division": t.get("division") or None,
         "classification": t.get("classification") or None,
         "twitter": t.get("twitter") or None,
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
@@ -85,7 +85,7 @@ def _conference_row(c: dict) -> dict:
         "short_name": c.get("shortName") or None,
         "abbreviation": c.get("abbreviation") or None,
         "classification": c.get("classification") or None,
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
@@ -115,7 +115,7 @@ def _venue_row(v: dict) -> dict:
         "construction_year": v.get("constructionYear"),
         "grass": v.get("grass"),
         "dome": v.get("dome"),
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
@@ -145,7 +145,7 @@ def _draft_position_row(p: dict) -> dict:
     return {
         "name": p.get("name"),
         "abbreviation": p.get("abbreviation") or None,
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
@@ -155,7 +155,7 @@ def _draft_team_row(t: dict) -> dict:
         "location": t.get("location") or None,
         "nickname": t.get("nickname") or None,
         "logo": t.get("logo") or None,
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
@@ -172,7 +172,7 @@ def _coach_row(c: dict, cid: str) -> dict:
         "first_name": c.get("firstName") or None,
         "last_name": c.get("lastName") or None,
         "hire_date": c.get("hireDate") or None,
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
@@ -191,7 +191,7 @@ def _coach_season_row(s: dict, cid: str) -> dict:
         "sp_overall": s.get("spOverall"),
         "sp_offense": s.get("spOffense"),
         "sp_defense": s.get("spDefense"),
-        "last_synced_at": datetime.utcnow(),
+        "last_synced_at": datetime.now(UTC).replace(tzinfo=None),
     }
 
 
