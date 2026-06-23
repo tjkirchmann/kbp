@@ -15,6 +15,7 @@ from temporalio.client import (
     Client,
     Schedule,
     ScheduleActionStartWorkflow,
+    ScheduleAlreadyRunningError,
     ScheduleOverlapPolicy,
     SchedulePolicy,
     ScheduleSpec,
@@ -54,8 +55,12 @@ async def ensure_cfbd_facts_schedule(client: Client) -> None:
             SCHEDULE_ID,
             settings.temporal_cfbd_facts_cron,
         )
-    except RPCError as err:
-        if err.status != RPCStatusCode.ALREADY_EXISTS:
+    except (ScheduleAlreadyRunningError, RPCError) as err:
+        # The SDK raises the typed ScheduleAlreadyRunningError when the schedule
+        # exists; older/other paths surface a raw RPCError(ALREADY_EXISTS). Treat
+        # both as "exists → update" so worker reboots are idempotent. Anything
+        # else is a real error and propagates.
+        if isinstance(err, RPCError) and err.status != RPCStatusCode.ALREADY_EXISTS:
             raise
         handle = client.get_schedule_handle(SCHEDULE_ID)
 

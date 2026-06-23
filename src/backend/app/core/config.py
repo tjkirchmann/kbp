@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = ""  # server-side ops (head/delete); empty → real AWS
     s3_public_endpoint_url: str = ""  # browser-facing presigning; empty → real AWS
     library_max_upload_bytes: int = 1_073_741_824  # 1 GB
+    # SQLAlchemy statement echo. Off by default — when on, every statement (incl.
+    # each of the millions of CFBD fact upserts) is logged, which is a real
+    # throughput drag. Flip to true only for local SQL debugging.
+    sql_echo: bool = False
 
     # Temporal. Local self-host defaults; for Temporal Cloud set temporal_api_key
     # (+ leave temporal_tls implied) and point temporal_address/namespace at the

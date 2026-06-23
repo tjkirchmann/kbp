@@ -18,3 +18,6 @@ src/frontend/vite.config.ts.timestamp-*.mjs
 
 # VS Code
 .vscode/
+
+# Local scratch / reports
+temp/

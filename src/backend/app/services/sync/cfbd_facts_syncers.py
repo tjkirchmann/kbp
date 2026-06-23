@@ -85,6 +85,28 @@ def _batch(cols: int) -> int:
     return max(1, 32767 // cols)
 
 
+# CFBD returns numeric fields inconsistently — some come back as JSON strings
+# (e.g. recruit "id": "108699", "commits": "2", "averageStars": "3.0000"). asyncpg
+# binds straight to the column type and rejects a str for an Integer/Float column,
+# so coerce at the edge. None and unparseable values pass through as None.
+def _int(v: Any) -> int | None:
+    if v is None:
+        return None
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _float(v: Any) -> float | None:
+    if v is None:
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
 # --- /lines → cfbd_betting_lines --------------------------------------------
 async def _sync_lines(db, games: list[dict], year: int) -> tuple[int, int]:
     now = datetime.utcnow()
@@ -440,12 +462,15 @@ def _expand_player_season_stats(it, year, now):
 
 # --- /talent → cfbd_team_talent ---------------------------------------------
 def _expand_talent(it, year, now):
-    school = it.get("school")
+    # CFBD /talent keys the team as "team" (not "school"); the DB column stays
+    # `school`. Reading the wrong key silently dropped every row → 0-row seasons
+    # frozen as complete.
+    school = it.get("team") or it.get("school")
     if school is None:
         return []
-    yr = it.get("year") or year
+    yr = _int(it.get("year")) or year
     return [((yr, school), {
-        "year": yr, "school": school, "talent": it.get("talent"),
+        "year": yr, "school": school, "talent": _float(it.get("talent")),
         "last_synced_at": now,
     })]
 
@@ -464,17 +489,17 @@ def _expand_recruiting_teams(it, year, now):
 
 # --- /recruiting/players → cfbd_recruiting_players --------------------------
 def _expand_recruiting_players(it, year, now):
-    rid = it.get("id")
+    rid = _int(it.get("id"))
     if rid is None:
         return []
     return [((rid,), {
-        "id": rid, "athlete_id": it.get("athleteId"),
-        "recruit_type": it.get("recruitType"), "year": it.get("year") or year,
-        "ranking": it.get("ranking"), "name": it.get("name"),
+        "id": rid, "athlete_id": _int(it.get("athleteId")),
+        "recruit_type": it.get("recruitType"), "year": _int(it.get("year")) or year,
+        "ranking": _int(it.get("ranking")), "name": it.get("name"),
         "school": it.get("school"), "committed_to": it.get("committedTo"),
-        "position": it.get("position"), "height": it.get("height"),
-        "weight": it.get("weight"), "stars": it.get("stars"),
-        "rating": it.get("rating"), "city": it.get("city"),
+        "position": it.get("position"), "height": _float(it.get("height")),
+        "weight": _float(it.get("weight")), "stars": _int(it.get("stars")),
+        "rating": _float(it.get("rating")), "city": it.get("city"),
         "state_province": it.get("stateProvince"), "country": it.get("country"),
         "last_synced_at": now,
     })]
@@ -485,13 +510,14 @@ def _expand_recruiting_groups(it, year, now):
     team, grp = it.get("team"), it.get("positionGroup")
     if team is None or grp is None:
         return []
-    yr = it.get("startYear") or it.get("year") or year
+    yr = _int(it.get("startYear")) or _int(it.get("year")) or year
     return [((yr, team, grp), {
         "year": yr, "team": team, "position_group": grp,
         "conference": it.get("conference"),
-        "average_rating": it.get("averageRating"),
-        "total_rating": it.get("totalRating"), "commits": it.get("commits"),
-        "average_stars": it.get("averageStars"), "last_synced_at": now,
+        "average_rating": _float(it.get("averageRating")),
+        "total_rating": _float(it.get("totalRating")),
+        "commits": _int(it.get("commits")),
+        "average_stars": _float(it.get("averageStars")), "last_synced_at": now,
     })]
 
 
@@ -732,6 +758,17 @@ async def sync_one_season(
     syncer = _SYNCERS[endpoint]
     items = await cfbd_provider.fetch(endpoint, year=year)
     processed, changed = await syncer(db, items or [], year)
+
+    # Audit guard: CFBD handed us a non-empty payload but the syncer produced
+    # zero rows — a transform bug (wrong field name, dropped items), not an empty
+    # season. Without this it gets silently frozen as complete=True and never
+    # re-fetched (the `talent` "team" vs "school" failure mode). Loud, every run.
+    if items and processed == 0:
+        logger.warning(
+            "cfbd_facts %s %s: %d source items but 0 rows materialized "
+            "(likely a transform/field-mapping bug)",
+            endpoint, year, len(items),
+        )
 
     # complete=True freezes a finished season so we never re-fetch it.
     await batch_upsert(
