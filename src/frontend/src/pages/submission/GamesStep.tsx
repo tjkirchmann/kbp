@@ -89,11 +89,11 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
       style={{ background: teamBg(meta) }}
       onClick={onSelect}
     >
-      {/* Top ~33%: logo ring pinned to top-center, name below, margin controls when selected */}
-      <div className="h-[33%] shrink-0 flex flex-col items-center gap-1 pt-3">
-        {/* Logo ring — always at top, no layout shift on select */}
+      {/* Upper portion: logo + name own everything above the point selector. */}
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 px-2 py-4">
+        {/* Logo ring */}
         <div
-          className={`rounded-full p-1.5 border-2 transition-all ${
+          className={`rounded-full p-2.5 border-2 transition-all ${
             isSelected ? 'border-white/80 brightness-125' : 'border-white/30'
           }`}
           style={isSelected ? { filter: 'brightness(1.4)' } : undefined}
@@ -102,49 +102,52 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
             <img
               src={logo}
               alt={team}
-              className="h-10 w-10 object-contain drop-shadow-lg"
+              className="h-20 w-20 object-contain drop-shadow-lg"
               draggable={false}
             />
           ) : (
-            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-xs font-bold">
+            <div className="h-20 w-20 rounded-full bg-white/10 flex items-center justify-center text-white/40 text-xl font-bold">
               {team.slice(0, 2).toUpperCase()}
             </div>
           )}
         </div>
 
         {/* Team name */}
-        <p className="text-sm font-bold text-white text-center px-2 leading-tight">{team}</p>
-
-        {/* Inline margin controls — only when selected */}
-        {isSelected && (
-          <div className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="number"
-              min={1}
-              value={pick?.margin ?? 1}
-              onChange={handleMarginInput}
-              className="w-12 text-center bg-white/10 border border-white/20 rounded text-white text-sm py-0.5 focus:outline-none focus:border-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <div className="flex gap-1">
-              {[-7, -3, -1, 1, 3, 7].map((n) => (
-                <button
-                  key={n}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onMarginChange(Math.max(1, (pick?.margin ?? 1) + n))
-                  }}
-                  className="px-1.5 py-0.5 rounded-full bg-white/15 text-white text-xs font-medium hover:bg-white/30 transition-colors tabular-nums"
-                >
-                  {n > 0 ? `+${n}` : n}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <p className="text-xl font-bold text-white text-center px-2 leading-tight">{team}</p>
       </div>
 
-      {/* Bottom ~67%: placeholder sections */}
+      {/* Point selector row — its own band beneath the logo/name */}
+      {isSelected && (
+        <div
+          className="shrink-0 flex flex-col items-center gap-1 pb-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="number"
+            min={1}
+            value={pick?.margin ?? 1}
+            onChange={handleMarginInput}
+            className="w-12 text-center bg-white/10 border border-white/20 rounded text-white text-sm py-0.5 focus:outline-none focus:border-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="flex gap-1">
+            {[-7, -3, -1, 1, 3, 7].map((n) => (
+              <button
+                key={n}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onMarginChange(Math.max(1, (pick?.margin ?? 1) + n))
+                }}
+                className="px-1.5 py-0.5 rounded-full bg-white/15 text-white text-xs font-medium hover:bg-white/30 transition-colors tabular-nums"
+              >
+                {n > 0 ? `+${n}` : n}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lower portion: placeholder sections */}
       <PlaceholderSections />
 
       {/* Non-selected but has pick: margin badge */}
@@ -172,6 +175,11 @@ export default function GamesStep({
   const [savedFlash, setSavedFlash] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const picksHydrated = useRef(false)
+  // Latest unsaved pick awaiting the debounce; flushed on navigate/unmount.
+  const pendingRef = useRef<{ poolGameId: number; winner: string; margin: number } | null>(null)
+  // Keep the save mutation reachable from cleanup effects without re-subscribing them.
+  const saveRef = useRef(savePick)
+  saveRef.current = savePick
 
   useEffect(() => {
     if (existingPicks.length > 0 && !picksHydrated.current) {
@@ -183,6 +191,39 @@ export default function GamesStep({
       setPicks(init)
     }
   }, [existingPicks])
+
+  // Immediately persist any pending pick (e.g. before navigating away). Stable
+  // identity so cleanup effects can depend on it without re-running.
+  const flushPending = useRef(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
+    const p = pendingRef.current
+    if (!p) return
+    pendingRef.current = null
+    saveRef.current.mutate({
+      poolGameId: p.poolGameId,
+      pickedWinner: p.winner,
+      pickedMargin: p.margin,
+    })
+  }).current
+
+  // Flush when switching games, on unmount (leaving the step / navigating away),
+  // and when the page is being hidden/closed.
+  useEffect(() => {
+    return () => flushPending()
+  }, [currentIndex, flushPending])
+
+  useEffect(() => {
+    const handler = () => flushPending()
+    window.addEventListener('pagehide', handler)
+    window.addEventListener('beforeunload', handler)
+    return () => {
+      window.removeEventListener('pagehide', handler)
+      window.removeEventListener('beforeunload', handler)
+    }
+  }, [flushPending])
 
   const game = games[currentIndex]
   if (!game) return null
@@ -196,7 +237,9 @@ export default function GamesStep({
 
   function scheduleAutosave(poolGameId: number, winner: string, margin: number) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
+    pendingRef.current = { poolGameId, winner, margin }
     debounceRef.current = setTimeout(async () => {
+      pendingRef.current = null
       await savePick.mutateAsync({ poolGameId, pickedWinner: winner, pickedMargin: margin })
       setSavedFlash(true)
       setTimeout(() => setSavedFlash(false), 2000)

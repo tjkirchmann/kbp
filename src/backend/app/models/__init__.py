@@ -42,9 +42,12 @@ from app.models.notification_channel import NotificationChannel
 from app.models.pool import (
     Pool,
     PoolGame,
+    PoolQuestion,
     PoolSubmission,
     PoolSubmissionGameItem,
+    QuestionType,
     ScoringStrategy,
+    SubmissionAnswer,
 )
 from app.models.rate_limit import EspnRateToken
 from app.models.sync import SyncSnapshot
@@ -86,9 +89,12 @@ __all__ = [
     "CfbdPlayStat",
     "Pool",
     "PoolGame",
+    "PoolQuestion",
     "PoolSubmission",
     "PoolSubmissionGameItem",
+    "QuestionType",
     "ScoringStrategy",
+    "SubmissionAnswer",
     "EspnGame",
     "AdminConfig",
     "AdminNotifyConfig",

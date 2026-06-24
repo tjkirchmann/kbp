@@ -92,6 +92,25 @@ class CfbdGameSchema(BaseModel):
     away_score: int | None = None
 
 
+class PoolQuestionSchema(BaseModel):
+    id: int
+    prompt: str
+    question_type: str
+    sort_order: int
+    required: bool
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PoolQuestionInput(BaseModel):
+    prompt: str
+    question_type: str
+    required: bool = False
+
+
+class PoolQuestionsUpdate(BaseModel):
+    questions: list[PoolQuestionInput]
+
+
 class PoolDetailSchema(BaseModel):
     id: int
     name: str
@@ -102,6 +121,7 @@ class PoolDetailSchema(BaseModel):
     game_count: int
     created_at: datetime
     games: list[PoolGameSchema]
+    questions: list[PoolQuestionSchema] = []
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -169,6 +189,21 @@ class GamePickSchema(BaseModel):
     picked_winner: str
     picked_margin: int
     model_config = ConfigDict(from_attributes=True)
+
+
+class SubmissionAnswerSchema(BaseModel):
+    question_id: int
+    answer_text: str | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SubmissionAnswerInput(BaseModel):
+    question_id: int
+    answer_text: str | None = None
+
+
+class SubmissionAnswersUpdate(BaseModel):
+    answers: list[SubmissionAnswerInput]
 
 
 class MySubmissionSchema(BaseModel):

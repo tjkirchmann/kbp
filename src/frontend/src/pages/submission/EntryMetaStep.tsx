@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '@clerk/react'
 import { Loader2, User, Users } from 'lucide-react'
-import { useEnterPool, useMySubmissions } from '@/services/useSubmission'
+import {
+  useEnterPool,
+  useMySubmissions,
+  usePoolQuestions,
+  putAnswers,
+  getAnswers,
+} from '@/services/useSubmission'
+import QuestionFields from './QuestionFields'
 
 interface Props {
   poolId: number
@@ -26,8 +34,13 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
+  const { getToken } = useAuth()
   const enter = useEnterPool(poolId)
   const { data: mySubmissions = [] } = useMySubmissions(poolId)
+  const { data: questions = [] } = usePoolQuestions(poolId)
+
+  // Answers keyed by question id (stored as strings; 'true'/'false' for boolean).
+  const [answers, setAnswers] = useState<Record<number, string>>({})
 
   const selfSubmission = mySubmissions.find((s) => s.on_behalf_of_name === '')
   const otherSubmissions = mySubmissions.filter((s) => s.on_behalf_of_name !== '')
@@ -37,8 +50,39 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
     setName('')
     setEmail('')
     setError(null)
+    setAnswers({})
     if (mode === 'other') setOtherTab('create')
   }, [mode])
+
+  // When resuming an existing submission, prefill its saved answers.
+  const resumingId = selectedId ?? (mode === 'self' ? (selfSubmission?.id ?? null) : null)
+  useEffect(() => {
+    let cancelled = false
+    if (resumingId === null) return
+    ;(async () => {
+      const token = await getToken()
+      const existing = await getAnswers(token, resumingId)
+      if (cancelled) return
+      const init: Record<number, string> = {}
+      for (const a of existing) {
+        if (a.answer_text !== null) init[a.question_id] = a.answer_text
+      }
+      setAnswers(init)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [resumingId, getToken])
+
+  async function saveAnswers(submissionId: number) {
+    if (questions.length === 0) return
+    const payload = questions.map((q) => ({
+      question_id: q.id,
+      answer_text: answers[q.id] ?? null,
+    }))
+    const token = await getToken()
+    await putAnswers(token, submissionId, payload)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -47,12 +91,14 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
     // Resuming an existing submission
     if (selectedId !== null) {
       const sub = mySubmissions.find((s) => s.id === selectedId)
+      await saveAnswers(selectedId)
       onComplete(selectedId, sub?.on_behalf_of_name || 'Me')
       return
     }
 
     // Self with existing — button shouldn't be reachable, but guard anyway
     if (mode === 'self' && selfSubmission) {
+      await saveAnswers(selfSubmission.id)
       onComplete(selfSubmission.id, 'Me')
       return
     }
@@ -64,6 +110,7 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
         on_behalf_of_name: mode === 'other' ? name.trim() : '',
         on_behalf_of_email: mode === 'other' ? email.trim() || null : null,
       })
+      await saveAnswers(submission_id)
       onComplete(submission_id, mode === 'other' ? name.trim() : 'Me')
     } catch {
       setError('Something went wrong. Please try again.')
@@ -82,7 +129,10 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
   })()
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full gap-5 items-center">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col h-full gap-5 items-center overflow-y-auto"
+    >
       <div className="space-y-1 self-start">
         <h2 className="text-base font-semibold text-foreground">Your Entry</h2>
         <p className="text-sm text-muted-foreground">Who is this entry for?</p>
@@ -222,6 +272,14 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
             </div>
           )}
         </div>
+      )}
+
+      {mode !== null && (mode === 'self' || otherTab === 'create' || selectedId !== null) && (
+        <QuestionFields
+          questions={questions}
+          answers={answers}
+          onChange={(qid, value) => setAnswers((prev) => ({ ...prev, [qid]: value }))}
+        />
       )}
 
       {error && <p className="text-xs text-destructive max-w-xs w-full">{error}</p>}

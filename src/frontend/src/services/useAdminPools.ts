@@ -108,9 +108,26 @@ export interface PoolGameDetail {
   away_score: number | null
 }
 
+export type QuestionType = 'text' | 'number' | 'boolean'
+
+export interface PoolQuestion {
+  id: number
+  prompt: string
+  question_type: QuestionType
+  sort_order: number
+  required: boolean
+}
+
+export interface PoolQuestionInput {
+  prompt: string
+  question_type: QuestionType
+  required: boolean
+}
+
 export interface PoolDetail extends AdminPool {
   submissions_due_at: string | null
   games: PoolGameDetail[]
+  questions: PoolQuestion[]
 }
 
 export function usePoolDetail(poolId: number | null) {
@@ -212,6 +229,29 @@ export function useUpdateBracket() {
         method: 'PATCH',
         body: JSON.stringify({ assignments }),
       }) as Promise<PoolGameDetail[]>
+    },
+    onSuccess: (_data, { poolId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'pools', poolId] })
+    },
+  })
+}
+
+export function useUpdatePoolQuestions() {
+  const { getToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      poolId,
+      questions,
+    }: {
+      poolId: number
+      questions: PoolQuestionInput[]
+    }) => {
+      const token = await getToken()
+      return authFetch(token!, `/admin/pools/${poolId}/questions`, {
+        method: 'PUT',
+        body: JSON.stringify({ questions }),
+      }) as Promise<PoolQuestion[]>
     },
     onSuccess: (_data, { poolId }) => {
       qc.invalidateQueries({ queryKey: ['admin', 'pools', poolId] })

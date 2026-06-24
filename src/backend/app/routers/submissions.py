@@ -11,14 +11,24 @@ from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models import User
 from app.models.cfbd import CfbdTeam
-from app.models.pool import Pool, PoolGame, PoolSubmission, PoolSubmissionGameItem
+from app.models.pool import (
+    Pool,
+    PoolGame,
+    PoolQuestion,
+    PoolSubmission,
+    PoolSubmissionGameItem,
+    SubmissionAnswer,
+)
 from app.schemas.pool import (
     GamePickSchema,
     GamePickUpsert,
     MySubmissionSchema,
     PasswordVerify,
     PoolGameWithTeamsSchema,
+    PoolQuestionSchema,
     PublicPoolSchema,
+    SubmissionAnswerSchema,
+    SubmissionAnswersUpdate,
     SubmissionCreate,
     TeamMetaSchema,
 )
@@ -87,6 +97,28 @@ async def get_pool_games(pool_id: int, db: AsyncSession = Depends(get_db)):
         base.away_team_meta = _team_meta(team_map.get(g.cfbd_game.away_team))
         out.append(base)
     return out
+
+
+@router.get("/pools/{pool_id}/questions", response_model=list[PoolQuestionSchema])
+async def get_pool_questions(pool_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Pool).where(
+            Pool.id == pool_id,
+            Pool.deleted_at.is_(None),
+            Pool.submissions_open.is_(True),
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Pool not found")
+
+    questions_result = await db.execute(
+        select(PoolQuestion)
+        .where(PoolQuestion.pool_id == pool_id, PoolQuestion.deleted_at.is_(None))
+        .order_by(PoolQuestion.sort_order)
+    )
+    return [
+        PoolQuestionSchema.model_validate(q) for q in questions_result.scalars().all()
+    ]
 
 
 @router.get("/pools/{pool_id}/my-submissions", response_model=list[MySubmissionSchema])
@@ -235,6 +267,72 @@ async def upsert_pick(
     result = await db.execute(stmt)
     await db.commit()
     return result.scalars().one()
+
+
+@router.get("/{submission_id}/answers", response_model=list[SubmissionAnswerSchema])
+async def get_answers(
+    submission_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    await _get_owned_submission(submission_id, user, db)
+    result = await db.execute(
+        select(SubmissionAnswer).where(
+            SubmissionAnswer.submission_id == submission_id,
+            SubmissionAnswer.deleted_at.is_(None),
+        )
+    )
+    return result.scalars().all()
+
+
+@router.put("/{submission_id}/answers", response_model=list[SubmissionAnswerSchema])
+async def upsert_answers(
+    submission_id: int,
+    body: SubmissionAnswersUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    sub = await _get_owned_submission(submission_id, user, db)
+    if sub.is_locked:
+        raise HTTPException(status_code=403, detail="Submission is locked")
+
+    # Validate every question_id belongs to this submission's pool.
+    valid_q_result = await db.execute(
+        select(PoolQuestion.id).where(
+            PoolQuestion.pool_id == sub.pool_id, PoolQuestion.deleted_at.is_(None)
+        )
+    )
+    valid_q_ids = set(valid_q_result.scalars().all())
+    for a in body.answers:
+        if a.question_id not in valid_q_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"question_id {a.question_id} not found in pool",
+            )
+
+    for a in body.answers:
+        stmt = (
+            pg_insert(SubmissionAnswer)
+            .values(
+                submission_id=submission_id,
+                question_id=a.question_id,
+                answer_text=a.answer_text,
+            )
+            .on_conflict_do_update(
+                constraint="uq_submission_answers_sub_q",
+                set_={"answer_text": a.answer_text, "deleted_at": None},
+            )
+        )
+        await db.execute(stmt)
+    await db.commit()
+
+    result = await db.execute(
+        select(SubmissionAnswer).where(
+            SubmissionAnswer.submission_id == submission_id,
+            SubmissionAnswer.deleted_at.is_(None),
+        )
+    )
+    return result.scalars().all()
 
 
 @router.post("/{submission_id}/submit", response_model=MySubmissionSchema)

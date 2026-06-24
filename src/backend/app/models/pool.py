@@ -20,6 +20,12 @@ class ScoringStrategy(enum.StrEnum):
     tbd = "tbd"
 
 
+class QuestionType(enum.StrEnum):
+    text = "text"
+    number = "number"
+    boolean = "boolean"
+
+
 class Pool(Base):
     __tablename__ = "pools"
 
@@ -47,6 +53,9 @@ class Pool(Base):
         back_populates="pool", cascade="all, delete-orphan"
     )
     submissions: Mapped[list["PoolSubmission"]] = relationship(
+        back_populates="pool", cascade="all, delete-orphan"
+    )
+    questions: Mapped[list["PoolQuestion"]] = relationship(
         back_populates="pool", cascade="all, delete-orphan"
     )
 
@@ -104,6 +113,9 @@ class PoolSubmission(Base):
     game_items: Mapped[list["PoolSubmissionGameItem"]] = relationship(
         back_populates="submission", cascade="all, delete-orphan"
     )
+    answers: Mapped[list["SubmissionAnswer"]] = relationship(
+        back_populates="submission", cascade="all, delete-orphan"
+    )
 
 
 class PoolSubmissionGameItem(Base):
@@ -122,3 +134,50 @@ class PoolSubmissionGameItem(Base):
 
     submission: Mapped["PoolSubmission"] = relationship(back_populates="game_items")
     pool_game: Mapped["PoolGame"] = relationship(back_populates="submission_items")
+
+
+class PoolQuestion(Base):
+    __tablename__ = "pool_questions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    pool_id: Mapped[int] = mapped_column(
+        ForeignKey("pools.id"), nullable=False, index=True
+    )
+    prompt: Mapped[str] = mapped_column(String, nullable=False)
+    question_type: Mapped[QuestionType] = mapped_column(
+        Enum(QuestionType, name="question_type"), nullable=False
+    )
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    required: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="false"
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+    pool: Mapped["Pool"] = relationship(back_populates="questions")
+
+
+class SubmissionAnswer(Base):
+    __tablename__ = "submission_answers"
+    __table_args__ = (
+        UniqueConstraint(
+            "submission_id", "question_id", name="uq_submission_answers_sub_q"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
+    )
+    submission_id: Mapped[int] = mapped_column(
+        ForeignKey("pool_submissions.id"), nullable=False, index=True
+    )
+    question_id: Mapped[int] = mapped_column(
+        ForeignKey("pool_questions.id"), nullable=False, index=True
+    )
+    answer_text: Mapped[str | None] = mapped_column(String, nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+
+    submission: Mapped["PoolSubmission"] = relationship(back_populates="answers")
+    question: Mapped["PoolQuestion"] = relationship()

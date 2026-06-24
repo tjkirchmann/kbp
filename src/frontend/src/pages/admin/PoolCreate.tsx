@@ -1,17 +1,30 @@
 import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Loader2, Minus, Plus, Check, Trash2, ListChecks, CircleSlash } from 'lucide-react'
+import {
+  Loader2,
+  Minus,
+  Plus,
+  Check,
+  Trash2,
+  ListChecks,
+  CircleSlash,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react'
 import {
   useCreatePool,
   useCfbdGames,
   useAddPoolGames,
   useUpdateBracket,
   useUpdateMultipliers,
+  useUpdatePoolQuestions,
   useRemovePoolGame,
   useDeletePool,
   type CfbdGame,
   type PoolGameDetail,
+  type PoolQuestionInput,
+  type QuestionType,
 } from '@/services/useAdminPools'
 import { useAdminTeams } from '@/services/useAdminTeams'
 
@@ -46,6 +59,21 @@ const BRACKET_SLOTS: BracketSlot[] = [
 const SLOT_BY_KEY: Record<string, BracketSlot> = Object.fromEntries(
   BRACKET_SLOTS.map((s) => [s.key, s]),
 )
+
+// ─── Default "for the record" questions (legacy Richmond Bull Pool) ────────────
+
+const DEFAULT_QUESTIONS: PoolQuestionInput[] = [
+  { prompt: "Allegiances / who you're dating (for the record)", question_type: 'text', required: false },
+  { prompt: 'Your approach to football (or otherwise)', question_type: 'text', required: false },
+  { prompt: 'Hours of college football watched this year', question_type: 'number', required: false },
+  { prompt: 'Want to be in the KBP group chat?', question_type: 'boolean', required: false },
+]
+
+const QUESTION_TYPE_OPTIONS: { value: QuestionType; label: string }[] = [
+  { value: 'text', label: 'Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'boolean', label: 'Yes / No' },
+]
 
 // Which FR slot is required before each QF slot
 const QF_REQUIRES_FR: Record<string, string> = {
@@ -98,6 +126,7 @@ export default function PoolCreate() {
   const addGames = useAddPoolGames()
   const updateBracket = useUpdateBracket()
   const updateMultipliers = useUpdateMultipliers()
+  const updateQuestions = useUpdatePoolQuestions()
   const removePoolGame = useRemovePoolGame()
   const deletePool = useDeletePool()
   const { data: teams = [] } = useAdminTeams()
@@ -105,6 +134,7 @@ export default function PoolCreate() {
   const [step, setStep] = useState<Step>('step1')
   const [name, setName] = useState('')
   const [seasonYear, setSeasonYear] = useState(new Date().getFullYear())
+  const [questions, setQuestions] = useState<PoolQuestionInput[]>(DEFAULT_QUESTIONS)
   const [newPoolId, setNewPoolId] = useState<number | null>(null)
   const [newPoolYear, setNewPoolYear] = useState<number | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -190,7 +220,31 @@ export default function PoolCreate() {
     const pool = await createPool.mutateAsync({ name: name.trim(), season_year: seasonYear })
     setNewPoolId(pool.id)
     setNewPoolYear(pool.season_year)
+    const validQuestions = questions.filter((q) => q.prompt.trim().length > 0)
+    await updateQuestions.mutateAsync({ poolId: pool.id, questions: validQuestions })
     setStep('step2')
+  }
+
+  function addQuestion() {
+    setQuestions((prev) => [...prev, { prompt: '', question_type: 'text', required: false }])
+  }
+
+  function updateQuestion(index: number, patch: Partial<PoolQuestionInput>) {
+    setQuestions((prev) => prev.map((q, i) => (i === index ? { ...q, ...patch } : q)))
+  }
+
+  function removeQuestion(index: number) {
+    setQuestions((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function moveQuestion(index: number, dir: -1 | 1) {
+    setQuestions((prev) => {
+      const next = [...prev]
+      const target = index + dir
+      if (target < 0 || target >= next.length) return prev
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
   }
 
   async function handleAddGames() {
@@ -313,10 +367,11 @@ export default function PoolCreate() {
   // ── Step 1 ──────────────────────────────────────────────────────────────────
 
   if (step === 'step1') {
+    const isSavingStep1 = createPool.isPending || updateQuestions.isPending
     return (
-      <div className="max-w-md space-y-6">
+      <div className="max-w-2xl space-y-6">
         <p className="text-sm text-muted-foreground">Step 1 of 4 — Pool details</p>
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-md">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">
               Pool name <span className="text-destructive">*</span>
@@ -339,13 +394,95 @@ export default function PoolCreate() {
             />
           </div>
         </div>
+
+        {/* Entry questions builder */}
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium text-foreground">Entry questions</label>
+            <p className="text-xs text-muted-foreground">
+              Questions each entrant answers when they submit. Prefilled with the classic
+              "for the record" questions — edit, reorder, or remove as you like.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {questions.map((q, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-border/20 px-3 py-2"
+              >
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => moveQuestion(i, -1)}
+                    disabled={i === 0}
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  >
+                    <ArrowUp className="size-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveQuestion(i, 1)}
+                    disabled={i === questions.length - 1}
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  >
+                    <ArrowDown className="size-3" />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={q.prompt}
+                  onChange={(e) => updateQuestion(i, { prompt: e.target.value })}
+                  placeholder="Question prompt"
+                  className="flex-1 rounded-md bg-transparent border border-border/20 px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <select
+                  value={q.question_type}
+                  onChange={(e) =>
+                    updateQuestion(i, { question_type: e.target.value as QuestionType })
+                  }
+                  className="rounded-md bg-white/[0.03] border border-border/20 px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {QUESTION_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={q.required}
+                    onChange={(e) => updateQuestion(i, { required: e.target.checked })}
+                  />
+                  Required
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeQuestion(i)}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addQuestion}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="size-4" />
+            Add question
+          </button>
+        </div>
+
         <div className="flex items-center gap-3">
           <button
             onClick={handleCreatePool}
-            disabled={!name.trim() || createPool.isPending}
+            disabled={!name.trim() || isSavingStep1}
             className="btn-primary px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {createPool.isPending && <Loader2 className="size-4 animate-spin" />}
+            {isSavingStep1 && <Loader2 className="size-4 animate-spin" />}
             Next: Select Games
           </button>
           <button

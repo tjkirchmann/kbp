@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from app.core.auth import require_admin
 from app.core.database import get_db
 from app.models.cfbd import CfbdGame
-from app.models.pool import Pool, PoolGame, PoolSubmission
+from app.models.pool import Pool, PoolGame, PoolQuestion, PoolSubmission, QuestionType
 from app.schemas.pool import (
     CfbdGameSchema,
     PoolCreate,
@@ -19,6 +19,8 @@ from app.schemas.pool import (
     PoolGameSchema,
     PoolGamesMultiplierUpdate,
     PoolPatch,
+    PoolQuestionSchema,
+    PoolQuestionsUpdate,
     PoolSchema,
 )
 
@@ -107,6 +109,13 @@ async def get_pool(pool_id: int, db: AsyncSession = Depends(get_db)):
     )
     games = list(games_result.scalars().all())
 
+    questions_result = await db.execute(
+        select(PoolQuestion)
+        .where(PoolQuestion.pool_id == pool_id, PoolQuestion.deleted_at.is_(None))
+        .order_by(PoolQuestion.sort_order)
+    )
+    questions = list(questions_result.scalars().all())
+
     return PoolDetailSchema(
         id=pool.id,
         name=pool.name,
@@ -117,6 +126,7 @@ async def get_pool(pool_id: int, db: AsyncSession = Depends(get_db)):
         game_count=len(games),
         created_at=pool.created_at,
         games=[PoolGameSchema.model_validate(g) for g in games],
+        questions=[PoolQuestionSchema.model_validate(q) for q in questions],
     )
 
 
@@ -334,6 +344,50 @@ async def update_bracket(
     return [
         PoolGameSchema.model_validate(pg) for pg in all_games_result.scalars().all()
     ]
+
+
+@router.put("/{pool_id}/questions", response_model=list[PoolQuestionSchema])
+async def update_pool_questions(
+    pool_id: int, body: PoolQuestionsUpdate, db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Pool).where(Pool.id == pool_id, Pool.deleted_at.is_(None))
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Pool not found")
+
+    valid_types = {t.value for t in QuestionType}
+    for q in body.questions:
+        if q.question_type not in valid_types:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid question_type: {q.question_type}"
+            )
+
+    # Replace-all: soft-delete existing active questions, then insert the new set.
+    now = datetime.now(UTC).replace(tzinfo=None)
+    await db.execute(
+        update(PoolQuestion)
+        .where(PoolQuestion.pool_id == pool_id, PoolQuestion.deleted_at.is_(None))
+        .values(deleted_at=now)
+    )
+    for i, q in enumerate(body.questions):
+        db.add(
+            PoolQuestion(
+                pool_id=pool_id,
+                prompt=q.prompt,
+                question_type=QuestionType(q.question_type),
+                sort_order=i,
+                required=q.required,
+            )
+        )
+    await db.commit()
+
+    out_result = await db.execute(
+        select(PoolQuestion)
+        .where(PoolQuestion.pool_id == pool_id, PoolQuestion.deleted_at.is_(None))
+        .order_by(PoolQuestion.sort_order)
+    )
+    return [PoolQuestionSchema.model_validate(q) for q in out_result.scalars().all()]
 
 
 @router.patch("/{pool_id}/games/multipliers", response_model=list[PoolGameSchema])
