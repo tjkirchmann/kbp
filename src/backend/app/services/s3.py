@@ -106,6 +106,18 @@ def create_presigned_get(key: str, download_name: str) -> str:
     )
 
 
+def create_internal_presigned_get(key: str) -> str:
+    """Short-lived GET URL for *server-side* consumers (e.g. ffprobe running in
+    the backend container). Signed against the internal endpoint the container
+    can resolve — unlike ``create_presigned_get``, which targets the browser
+    host. Plain object fetch, no content-disposition override."""
+    return _internal_client().generate_presigned_url(
+        "get_object",
+        Params={"Bucket": settings.s3_bucket_name, "Key": key},
+        ExpiresIn=300,
+    )
+
+
 def delete_object(key: str) -> None:
     """Hard delete (purge only)."""
     _internal_client().delete_object(Bucket=settings.s3_bucket_name, Key=key)

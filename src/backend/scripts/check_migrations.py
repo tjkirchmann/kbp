@@ -26,19 +26,26 @@ from pathlib import Path
 VERSIONS_DIR = Path(__file__).resolve().parent.parent / "alembic" / "versions"
 
 REVISION_RE = re.compile(r'^revision(?:\s*:\s*[^=]+)?\s*=\s*["\']([^"\']+)["\']', re.M)
-DOWN_RE = re.compile(
-    r'^down_revision(?:\s*:\s*[^=]+)?\s*=\s*(?:["\']([^"\']+)["\']|None)', re.M
-)
+# Capture the whole RHS of down_revision so we can handle three forms:
+#   None                     -> base migration
+#   "abc"                    -> single parent
+#   ('abc', 'def')           -> merge migration with multiple parents
+DOWN_RE = re.compile(r"^down_revision(?:\s*:\s*[^=]+)?\s*=\s*(.+)$", re.M)
 
 
-def parse_file(path: Path) -> tuple[str | None, str | None]:
+def parse_file(path: Path) -> tuple[str | None, list[str]]:
+    """Return (revision, parents). parents is a list of down_revision ids
+    (empty for a base migration, one for a normal one, several for a merge)."""
     text = path.read_text()
     rev_m = REVISION_RE.search(text)
     down_m = DOWN_RE.search(text)
     revision = rev_m.group(1) if rev_m else None
-    # down_m matches even for `None` (group(1) is None in that case)
-    down = down_m.group(1) if down_m else None
-    return revision, down
+    parents: list[str] = []
+    if down_m:
+        rhs = down_m.group(1).strip().rstrip(",")
+        # rhs is one of: None | "abc" | ('abc', 'def') | ('abc',)
+        parents = re.findall(r'["\']([^"\']+)["\']', rhs)
+    return revision, parents
 
 
 def collect() -> dict[str, dict]:
@@ -46,7 +53,7 @@ def collect() -> dict[str, dict]:
     for path in sorted(VERSIONS_DIR.glob("*.py")):
         if path.name == "__init__.py":
             continue
-        revision, down = parse_file(path)
+        revision, parents = parse_file(path)
         if revision is None:
             fail(f"{path.name}: could not find a `revision = ...` declaration")
         if revision in nodes:
@@ -54,7 +61,7 @@ def collect() -> dict[str, dict]:
                 f"duplicate revision id {revision!r}: "
                 f"{nodes[revision]['file']} and {path.name}"
             )
-        nodes[revision] = {"down": down, "file": path.name}
+        nodes[revision] = {"parents": parents, "file": path.name}
     return nodes
 
 
@@ -68,25 +75,26 @@ def check_chain(nodes: dict[str, dict]) -> None:
     if not nodes:
         fail("no migration files found in alembic/versions/")
 
-    # 2a. every down_revision must reference a known revision (or None for base)
+    # 2a. every parent must reference a known revision (a merge migration has
+    #     several parents; a base migration has none).
     for rev, info in nodes.items():
-        down = info["down"]
-        if down is not None and down not in nodes:
-            fail(
-                f"{info['file']}: down_revision {down!r} does not exist "
-                f"(orphaned/deleted revision — broken chain)"
-            )
+        for parent in info["parents"]:
+            if parent not in nodes:
+                fail(
+                    f"{info['file']}: down_revision {parent!r} does not exist "
+                    f"(orphaned/deleted revision — broken chain)"
+                )
 
-    # 2b. exactly one base (down_revision is None)
-    bases = [r for r, i in nodes.items() if i["down"] is None]
+    # 2b. exactly one base (no parents)
+    bases = [r for r, i in nodes.items() if not i["parents"]]
     if len(bases) != 1:
         fail(
             f"expected exactly one base migration (down_revision = None), "
             f"found {len(bases)}: {', '.join(nodes[b]['file'] for b in bases) or '(none)'}"
         )
 
-    # 1. single head — a head is a revision that nobody points to as down_revision
-    referenced = {i["down"] for i in nodes.values() if i["down"]}
+    # 1. single head — a head is a revision no other revision lists as a parent.
+    referenced = {p for i in nodes.values() for p in i["parents"]}
     heads = [r for r in nodes if r not in referenced]
     if len(heads) != 1:
         listing = "\n      ".join(f"{h}  ({nodes[h]['file']})" for h in heads)
@@ -95,21 +103,36 @@ def check_chain(nodes: dict[str, dict]) -> None:
             f"(multiple heads — chains diverged and never merged):\n      {listing}"
         )
 
-    # 2c. walk base→head to detect cycles / unreachable nodes
-    seen = set()
-    cur = heads[0]
-    while cur is not None:
-        if cur in seen:
-            fail(f"cycle detected in migration chain at {cur!r}")
-        seen.add(cur)
-        cur = nodes[cur]["down"]
+    # 2c. walk head→base over the parent graph to detect cycles and confirm
+    #     every revision is reachable (merge migrations make this a DAG, not a
+    #     simple line, so follow all parents).
+    seen: set[str] = set()
+    stack = [heads[0]]
+    in_progress: set[str] = set()
+
+    def visit(rev: str) -> None:
+        if rev in seen:
+            return
+        if rev in in_progress:
+            fail(f"cycle detected in migration chain at {rev!r}")
+        in_progress.add(rev)
+        for parent in nodes[rev]["parents"]:
+            visit(parent)
+        in_progress.discard(rev)
+        seen.add(rev)
+
+    while stack:
+        visit(stack.pop())
+
     if len(seen) != len(nodes):
         unreachable = set(nodes) - seen
         listing = ", ".join(nodes[r]["file"] for r in unreachable)
         fail(f"revisions not reachable from head (broken chain): {listing}")
 
+    merges = sum(1 for i in nodes.values() if len(i["parents"]) > 1)
+    merge_note = f", {merges} merge" if merges else ""
     print(f"  ✓ single head: {heads[0]} ({nodes[heads[0]]['file']})")
-    print(f"  ✓ chain intact: {len(nodes)} migrations, base→head linear")
+    print(f"  ✓ chain intact: {len(nodes)} migrations{merge_note}, all reachable from head")
 
 
 def check_one_per_pr(base_ref: str) -> None:

@@ -1,4 +1,7 @@
-"""add submitted_at to pool_submissions
+"""add week column to cfbd_games
+
+Adds a nullable `week` column to cfbd_games so the pool-create game finder can
+filter by week. Populated from the CFBD games API (`week` field) on upsert.
 
 Revision ID: x3a4b5c6d7e8
 Revises: w2f3a4b5c6d7
@@ -20,11 +23,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "pool_submissions",
-        sa.Column("submitted_at", sa.DateTime(), nullable=True),
-    )
+    op.add_column("cfbd_games", sa.Column("week", sa.Integer(), nullable=True))
 
 
 def downgrade() -> None:
-    op.drop_column("pool_submissions", "submitted_at")
+    op.drop_column("cfbd_games", "week")

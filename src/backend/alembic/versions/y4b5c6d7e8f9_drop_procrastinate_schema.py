@@ -15,7 +15,7 @@ job of its own ``schema --apply`` CLI, not this migration. Procrastinate has bee
 removed from the project, so there is nothing to downgrade to.
 
 Revision ID: y4b5c6d7e8f9
-Revises: x3a4b5c6d7e8
+Revises: 6138e8c55fa3
 Create Date: 2026-06-26 00:00:00.000000
 
 """
@@ -26,7 +26,7 @@ from typing import Union
 from alembic import op
 
 revision: str = "y4b5c6d7e8f9"
-down_revision: str | None = "x3a4b5c6d7e8"
+down_revision: str | None = "6138e8c55fa3"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

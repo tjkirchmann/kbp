@@ -34,6 +34,7 @@ from app.models.cfbd import (
     CfbdTeamTalent,
     CfbdVenue,
 )
+from app.models.clip import Clip, ClipStatus
 from app.models.entity_tag import EntityTag
 from app.models.espn import EspnGame
 from app.models.event_log import EventLog
@@ -96,4 +97,6 @@ __all__ = [
     "EventLog",
     "EntityTag",
     "LibraryFile",
+    "Clip",
+    "ClipStatus",
 ]
