@@ -40,32 +40,6 @@ services:
       - db
       - minio
 
-  procrastinate_worker:
-    build:
-      context: ./src/backend
-      dockerfile: Dockerfile
-    # Apply Procrastinate's schema only if it isn't there yet (schema --apply is
-    # not idempotent and errors on a second run), then run the worker — a custom
-    # entrypoint (app/worker.py) that drives CFBD/ESPN schedules from DB-configured
-    # crons and re-syncs them on NOTIFY + a poll fallback.
-    command:
-      - sh
-      - -c
-      - |
-        APP=app.core.procrastinate.procrastinate_app
-        if ! procrastinate --app=$$APP healthchecks 2>/dev/null | grep -q 'procrastinate_jobs table: OK'; then
-          procrastinate --app=$$APP schema --apply
-        fi
-        exec python -m app.worker
-    volumes:
-      - ./src/backend:/app
-      - /app/.venv
-    env_file: .env
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/app
-    depends_on:
-      - db
-
   discord_bot:
     build:
       context: ./src/backend
@@ -110,7 +84,8 @@ services:
       retries: 30
       start_period: 20s
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   temporal-ui:
     image: temporalio/ui:2.51.0
@@ -134,9 +109,9 @@ services:
     depends_on:
       - temporal
 
-  # Python worker that polls the Temporal task queue and runs our workflows +
-  # activities (app/temporal/). Mirrors procrastinate_worker. DATABASE_URL is kept
-  # for parity so activities can hit the app DB later.
+  # Python worker that polls the Temporal task queues and runs our workflows +
+  # activities (app/temporal/) — the sole background-work entrypoint. DATABASE_URL
+  # is passed so activities can hit the app DB.
   temporal_worker:
     build:
       context: ./src/backend
@@ -163,6 +138,11 @@ services:
       POSTGRES_DB: app
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # Local S3-compatible storage (the "SQLite of S3"). API on :9000, console on :9001.
   minio:

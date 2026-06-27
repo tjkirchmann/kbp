@@ -46,7 +46,6 @@ from app.models.pool import (
     PoolSubmissionGameItem,
     ScoringStrategy,
 )
-from app.models.rate_limit import EspnRateToken
 from app.models.sync import SyncSnapshot
 from app.models.user import User
 
@@ -94,7 +93,6 @@ __all__ = [
     "AdminNotifyConfig",
     "NotificationChannel",
     "SyncSnapshot",
-    "EspnRateToken",
     "EventLog",
     "EntityTag",
     "LibraryFile",

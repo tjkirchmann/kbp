@@ -3,7 +3,6 @@ import { NavLink, Link, useLocation } from 'react-router-dom'
 import {
   MessageSquare,
   Plug,
-  RefreshCw,
   Users,
   Trophy,
   Shield,
@@ -36,7 +35,6 @@ const groups: Group[] = [
         icon: Plug,
         children: [{ id: 'espn', label: 'ESPN', icon: Activity }],
       },
-      { id: 'sync', label: 'Sync', icon: RefreshCw },
       { id: 'library', label: 'Library', icon: FolderOpen },
     ],
   },

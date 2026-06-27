@@ -37,6 +37,20 @@ class Settings(BaseSettings):
     # Cron (5-field, UTC) for the CFBD facts Temporal Schedule. Default: daily at
     # 08:00 UTC. See app/temporal/cfbd_facts/schedule.py.
     temporal_cfbd_facts_cron: str = "0 8 * * *"
+    # Cron (5-field, UTC) for the CFBD games Temporal Schedule. Default: every 15
+    # minutes (games are a fact table — scores change). Ported from the former
+    # DB cron (admin_notify_config). See app/temporal/cfbd_games/schedule.py.
+    temporal_cfbd_games_cron: str = "*/15 * * * *"
+    # Dedicated task queue for ESPN poll activities. Per Temporal's guidance, one
+    # rate-limited downstream API gets its own queue so its throughput limit is
+    # isolated from the rest of the workers. See app/temporal/espn/.
+    temporal_espn_task_queue: str = "kbp-espn"
+    # Global ESPN request budget (requests/minute), enforced by Temporal as a
+    # task-queue activity rate limit (max_task_queue_activities_per_second =
+    # this / 60) across ALL workers on the espn queue — replaces the old DB token
+    # bucket (app/core/rate_limiter.py). Code-defined (boot-time), consistent with
+    # the schedules-in-code decision; no longer live-editable from the admin panel.
+    espn_rate_limit_per_minute: int = 60
 
     class Config:
         env_file = ".env"

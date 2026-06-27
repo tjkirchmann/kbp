@@ -1,7 +1,7 @@
 """add submitted_at to pool_submissions
 
-Revision ID: w2f3a4b5c6d7
-Revises: v1e2f3a4b5c6
+Revision ID: x3a4b5c6d7e8
+Revises: w2f3a4b5c6d7
 Create Date: 2026-06-20 00:00:00.000000
 
 """
@@ -13,8 +13,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "w2f3a4b5c6d7"
-down_revision: str | None = "v1e2f3a4b5c6"
+revision: str = "x3a4b5c6d7e8"
+down_revision: str | None = "w2f3a4b5c6d7"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

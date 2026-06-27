@@ -18,10 +18,38 @@ The backend uses **uv** (not pip). `pyproject.toml` and `uv.lock` are source of 
 ## Running migrations locally
 `make migrate` (or `cd src/backend && ./migrate.sh`) will:
 1. Load `.env` from repo root
-2. Print a dry-run SQL preview
+2. Resolve the DB's current revision and print a dry-run SQL preview of **only the pending** migrations (`current:head`) — not the whole history
 3. Ask for confirmation before applying
 
 Connects directly to local dev DB (`localhost:5432`) using psycopg2 (strips `+asyncpg` from `DATABASE_URL` automatically).
+
+## One migration per PR (squash before merge)
+Keep history **linear and one-file-per-PR**. During a feature branch you'll often generate several migrations as the schema evolves — before merging, squash them into a single migration named for the PR.
+
+How to squash a branch's migrations into one:
+1. Identify the migrations added on this branch: `git diff --name-only main... -- src/backend/alembic/versions/`
+2. Note the `down_revision` of the **oldest** new migration (the last one from `main`) and the `revision` of the **newest** (your branch head).
+3. Delete all the new migration files.
+4. Generate one replacement: `make migrate-new` with a name describing the whole PR, then hand-edit so its `down_revision` points at the last `main` revision. Fill `upgrade()`/`downgrade()` with the combined net schema change (use autogenerate against a clean DB to get the SQL, then verify by hand).
+5. Re-stamp your local dev DB to the new revision (see recovery below) or recreate the DB and `upgrade head`.
+
+Rule of thumb: **the file count in `versions/` should grow by exactly one per merged PR.** Never edit a migration already merged to `main`.
+
+## Recovering from an orphaned / unknown revision
+Symptom: `alembic current` errors with `Can't locate revision identified by '<hash>'`. This happens when the DB is stamped at a revision whose file was deleted (e.g. squashed away or from abandoned branch work). Even `alembic stamp` fails because it resolves the current revision first.
+
+Fix — overwrite the `alembic_version` row directly with the real revision that matches the DB's actual schema, then upgrade:
+```python
+# determine the right target by checking which columns/tables actually exist,
+# then point alembic_version at that real revision
+import asyncio, asyncpg, os
+async def m():
+    c = await asyncpg.connect(os.environ['DATABASE_URL'])
+    await c.execute("update alembic_version set version_num='<REAL_REVISION>'")
+    await c.close()
+asyncio.run(m())
+```
+Then `alembic upgrade head` to apply anything still pending. If unsure which revision matches, the safe alternative (when data is disposable) is to drop all tables and `alembic upgrade head` from zero.
 
 ## Running migrations in prod / Docker
 `src/backend/start.sh` runs `alembic upgrade head` on container startup before uvicorn. No manual step needed.

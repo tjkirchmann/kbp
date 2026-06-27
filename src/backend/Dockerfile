@@ -7,8 +7,8 @@ COPY . .
 RUN uv sync --no-dev
 RUN chmod +x start.sh
 
-# /app on the path so the `procrastinate --app=app.core...` CLI can import the
-# app package (its console_script, unlike uvicorn, doesn't add cwd).
+# /app on the path so `python -m app.temporal.worker` / `app.bot` can import the
+# app package from any working directory.
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"
 CMD ["./start.sh"]

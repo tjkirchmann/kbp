@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
+import { apiFetch } from '../lib/api'
 
-const API = import.meta.env.VITE_API_URL
 
 export interface CfbdTeam {
   id: number
@@ -23,26 +23,13 @@ export interface SyncResult {
   last_synced_at: string
 }
 
-async function authFetch(token: string, path: string, init?: RequestInit) {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  })
-  if (!res.ok) throw new Error(`${res.status}`)
-  return res.json()
-}
-
 export function useAdminTeams() {
   const { getToken } = useAuth()
   return useQuery<CfbdTeam[]>({
     queryKey: ['admin', 'teams'],
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, '/admin/teams')
+      return apiFetch(token!, '/admin/teams')
     },
   })
 }
@@ -53,7 +40,7 @@ export function useSyncTeams() {
   return useMutation<SyncResult>({
     mutationFn: async () => {
       const token = await getToken()
-      return authFetch(token!, '/admin/teams/sync', { method: 'POST' })
+      return apiFetch(token!, '/admin/teams/sync', { method: 'POST' })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'teams'] }),
   })
