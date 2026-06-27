@@ -35,6 +35,14 @@ How to squash a branch's migrations into one:
 
 Rule of thumb: **the file count in `versions/` should grow by exactly one per merged PR.** Never edit a migration already merged to `main`.
 
+### CI guard (blocks the PR)
+`.github/workflows/migrations.yml` runs `src/backend/scripts/check_migrations.py` on any PR touching `alembic/versions/**` and **fails the check** (blocking merge) when:
+- there is more than one head (diverged chains),
+- a `down_revision` points at a missing revision, or the chain has cycles / unreachable nodes (broken history),
+- the PR adds more than one migration file vs the base branch (squash-to-one rule).
+
+It's a pure static parse — no DB, no app deps. Run it locally before pushing with `make migrate-check` (omit the one-per-PR rule) or directly with `--base-ref origin/main` to mimic CI.
+
 ## Recovering from an orphaned / unknown revision
 Symptom: `alembic current` errors with `Can't locate revision identified by '<hash>'`. This happens when the DB is stamped at a revision whose file was deleted (e.g. squashed away or from abandoned branch work). Even `alembic stamp` fails because it resolves the current revision first.
 

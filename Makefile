@@ -1,4 +1,4 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-cfbd-facts temporal-cfbd-dims temporal-cfbd-games temporal-cfbd-plays temporal-espn-seed deploy migrate frontend-component backend frontend-logic frontend-organize lint test install-hooks
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-cfbd-facts temporal-cfbd-dims temporal-cfbd-games temporal-cfbd-plays temporal-espn-seed deploy migrate migrate-new migrate-down migrate-check frontend-component backend frontend-logic frontend-organize lint test install-hooks
 
 # ── Lint ─────────────────────────────────────────────────────────────────────
 # One-time setup: install the git pre-commit hook.
@@ -91,6 +91,9 @@ migrate-new:
 
 migrate-down:
 	docker compose exec backend alembic downgrade -1
+
+migrate-check:
+	python3 src/backend/scripts/check_migrations.py
 
 # ── Agent skills ─────────────────────────────────────────────────────────────
 
