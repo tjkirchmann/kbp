@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.admin_config import AdminConfig
 
-_ESPN_RATE_LIMIT_KEY = "espn_rate_limit_per_minute"
 _ESPN_ALERT_CHANNEL_KEY = (
     "espn_alert_channel"  # notification_channels.name; "" = none channel (silence)
 )
@@ -29,14 +28,6 @@ async def set_config(db: AsyncSession, key: str, value: str) -> None:
     )
     await db.execute(stmt)
     await db.commit()
-
-
-async def get_espn_rate_limit(db: AsyncSession) -> int:
-    val = await get_config(db, _ESPN_RATE_LIMIT_KEY, default="60")
-    try:
-        return max(1, int(val))
-    except (ValueError, TypeError):
-        return 60
 
 
 async def get_espn_alert_channel(db: AsyncSession) -> str:

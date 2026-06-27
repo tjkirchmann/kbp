@@ -45,8 +45,9 @@ CFBD fact-table coverage roadmap (✅ done · ⬜ planned)
   /plays, /plays/stats    play                     cfbd_plays, cfbd_play_stats  ✅ (cfbd_plays, manual/cron-less)
 """
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from sqlalchemy import select
 

@@ -155,7 +155,7 @@ class CfbdFactsWorkflow:
                 ),
                 return_exceptions=True,
             )
-            for endpoint, res in zip(batch, results):
+            for endpoint, res in zip(batch, results, strict=False):
                 if isinstance(res, BaseException):  # whole endpoint failed
                     workflow.logger.exception(
                         "cfbd_facts endpoint %s failed", endpoint, exc_info=res

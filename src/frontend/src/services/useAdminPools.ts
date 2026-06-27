@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
+import { apiFetch } from '../lib/api'
 
-const API = import.meta.env.VITE_API_URL
 
 export interface AdminPool {
   id: number
@@ -33,26 +33,13 @@ export interface CfbdGame {
   away_score: number | null
 }
 
-async function authFetch(token: string, path: string, init?: RequestInit) {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  })
-  if (!res.ok) throw new Error(`${res.status}`)
-  return res.json()
-}
-
 export function useAdminPools() {
   const { getToken } = useAuth()
   return useQuery<AdminPool[]>({
     queryKey: ['admin', 'pools'],
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, '/admin/pools')
+      return apiFetch(token!, '/admin/pools')
     },
   })
 }
@@ -63,7 +50,7 @@ export function useCreatePool() {
   return useMutation({
     mutationFn: async (body: { name: string; season_year: number }) => {
       const token = await getToken()
-      return authFetch(token!, '/admin/pools', {
+      return apiFetch(token!, '/admin/pools', {
         method: 'POST',
         body: JSON.stringify(body),
       }) as Promise<AdminPool>
@@ -78,7 +65,7 @@ export function useCfbdGames(year: number | null) {
     queryKey: ['admin', 'cfbd-games', year],
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, `/admin/pools/cfbd-games/${year}`)
+      return apiFetch(token!, `/admin/pools/cfbd-games/${year}`)
     },
     enabled: year !== null,
   })
@@ -119,7 +106,7 @@ export function usePoolDetail(poolId: number | null) {
     queryKey: ['admin', 'pools', poolId],
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, `/admin/pools/${poolId}`)
+      return apiFetch(token!, `/admin/pools/${poolId}`)
     },
     enabled: poolId !== null,
   })
@@ -137,7 +124,7 @@ export function usePatchPool() {
       patch: { is_featured?: boolean; submissions_open?: boolean }
     }) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/pools/${poolId}`, {
+      return apiFetch(token!, `/admin/pools/${poolId}`, {
         method: 'PATCH',
         body: JSON.stringify(patch),
       })
@@ -155,7 +142,7 @@ export function useDeletePool() {
   return useMutation({
     mutationFn: async (poolId: number) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/pools/${poolId}`, { method: 'DELETE' })
+      return apiFetch(token!, `/admin/pools/${poolId}`, { method: 'DELETE' })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'pools'] }),
   })
@@ -167,7 +154,7 @@ export function useAddPoolGames() {
   return useMutation({
     mutationFn: async ({ poolId, cfbdGameIds }: { poolId: number; cfbdGameIds: number[] }) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/pools/${poolId}/games`, {
+      return apiFetch(token!, `/admin/pools/${poolId}/games`, {
         method: 'POST',
         body: JSON.stringify({ cfbd_game_ids: cfbdGameIds }),
       }) as Promise<PoolGameDetail[]>
@@ -182,7 +169,7 @@ export function useRemovePoolGame() {
   return useMutation({
     mutationFn: async ({ poolId, poolGameId }: { poolId: number; poolGameId: number }) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/pools/${poolId}/games/${poolGameId}`, { method: 'DELETE' })
+      return apiFetch(token!, `/admin/pools/${poolId}/games/${poolGameId}`, { method: 'DELETE' })
     },
     onSuccess: (_data, { poolId }) => {
       qc.invalidateQueries({ queryKey: ['admin', 'pools'] })
@@ -208,7 +195,7 @@ export function useUpdateBracket() {
       assignments: BracketAssignmentItem[]
     }) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/pools/${poolId}/games/bracket`, {
+      return apiFetch(token!, `/admin/pools/${poolId}/games/bracket`, {
         method: 'PATCH',
         body: JSON.stringify({ assignments }),
       }) as Promise<PoolGameDetail[]>
@@ -236,7 +223,7 @@ export function useUpdateMultipliers() {
       multipliers: MultiplierItem[]
     }) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/pools/${poolId}/games/multipliers`, {
+      return apiFetch(token!, `/admin/pools/${poolId}/games/multipliers`, {
         method: 'PATCH',
         body: JSON.stringify({ multipliers }),
       }) as Promise<PoolGameDetail[]>

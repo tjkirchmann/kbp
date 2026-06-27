@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
+import { apiFetch } from '../lib/api'
 
-const API = import.meta.env.VITE_API_URL
 
 export interface LibraryFile {
   id: number
@@ -20,19 +20,6 @@ interface PresignResult {
   upload: { url: string; fields: Record<string, string> }
 }
 
-async function authFetch(token: string, path: string, init?: RequestInit) {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  })
-  if (!res.ok) throw new Error(`${res.status}`)
-  return res.json()
-}
-
 const filesKey = (includeDeleted: boolean) => ['admin', 'library', 'files', includeDeleted]
 
 export function useLibraryFiles(includeDeleted: boolean) {
@@ -41,7 +28,7 @@ export function useLibraryFiles(includeDeleted: boolean) {
     queryKey: filesKey(includeDeleted),
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, `/admin/library/files?include_deleted=${includeDeleted}`)
+      return apiFetch(token!, `/admin/library/files?include_deleted=${includeDeleted}`)
     },
   })
 }
@@ -53,7 +40,7 @@ export function useUploadFile() {
   return useMutation({
     mutationFn: async (file: File) => {
       const token = await getToken()
-      const presign: PresignResult = await authFetch(token!, '/admin/library/presign', {
+      const presign: PresignResult = await apiFetch(token!, '/admin/library/presign', {
         method: 'POST',
         body: JSON.stringify({ original_name: file.name, content_type: file.type || null }),
       })
@@ -66,7 +53,7 @@ export function useUploadFile() {
       const s3res = await fetch(presign.upload.url, { method: 'POST', body: form })
       if (!s3res.ok) throw new Error(`upload failed: ${s3res.status}`)
 
-      return authFetch(token!, `/admin/library/${presign.file_id}/confirm`, { method: 'POST' })
+      return apiFetch(token!, `/admin/library/${presign.file_id}/confirm`, { method: 'POST' })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'library', 'files'] }),
   })
@@ -77,7 +64,7 @@ export function useDownloadFile() {
   return useMutation({
     mutationFn: async (fileId: number) => {
       const token = await getToken()
-      const { url } = await authFetch(token!, `/admin/library/files/${fileId}/download`)
+      const { url } = await apiFetch(token!, `/admin/library/files/${fileId}/download`)
       window.open(url, '_blank')
     },
   })
@@ -89,7 +76,7 @@ export function useDeleteFile() {
   return useMutation({
     mutationFn: async (fileId: number) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/library/files/${fileId}`, { method: 'DELETE' })
+      return apiFetch(token!, `/admin/library/files/${fileId}`, { method: 'DELETE' })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'library', 'files'] }),
   })
@@ -101,7 +88,7 @@ export function useRestoreFile() {
   return useMutation({
     mutationFn: async (fileId: number) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/library/files/${fileId}/restore`, { method: 'POST' })
+      return apiFetch(token!, `/admin/library/files/${fileId}/restore`, { method: 'POST' })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'library', 'files'] }),
   })
@@ -113,7 +100,7 @@ export function usePurgeFile() {
   return useMutation({
     mutationFn: async (fileId: number) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/library/files/${fileId}/purge`, { method: 'DELETE' })
+      return apiFetch(token!, `/admin/library/files/${fileId}/purge`, { method: 'DELETE' })
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'library', 'files'] }),
   })

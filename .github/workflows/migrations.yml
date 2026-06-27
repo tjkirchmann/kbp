@@ -1,0 +1,31 @@
+name: Migration history
+
+# Blocks PRs whose Alembic migration history is broken:
+#   - multiple heads (diverged chains)
+#   - orphaned/missing down_revision (broken chain)
+#   - more than one new migration file (enforces squash-to-one-per-PR)
+# Lightweight: pure static parse of alembic/versions/, no DB, no app deps.
+
+on:
+  pull_request:
+    paths:
+      - "src/backend/alembic/versions/**"
+      - "src/backend/scripts/check_migrations.py"
+      - ".github/workflows/migrations.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need base branch history for the one-per-PR diff
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate migration history
+        run: |
+          python3 src/backend/scripts/check_migrations.py \
+            --base-ref "origin/${{ github.base_ref }}"

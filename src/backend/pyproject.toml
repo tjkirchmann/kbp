@@ -16,12 +16,21 @@ dependencies = [
     "psycopg2-binary==2.9.9",
     "passlib[bcrypt]==1.7.4",
     "supervisor==4.2.5",
-    "procrastinate==3.8.1",
-    "psycopg[binary,pool]==3.2.3",
     "discord-py==2.6.4",
     "boto3==1.35.0",
     "temporalio==1.29.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.2",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
 
 [tool.ruff]
 target-version = "py312"

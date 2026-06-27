@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
-
-const API = import.meta.env.VITE_API_URL
+import { apiFetch } from '../lib/api'
 
 export interface OpenPool {
   id: number
@@ -57,14 +56,6 @@ export interface MySubmission {
   created_at: string
   is_locked: boolean
   submitted_at: string | null
-}
-
-async function apiFetch(token: string | null, path: string, init?: RequestInit) {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch(`${API}${path}`, { ...init, headers: { ...headers, ...init?.headers } })
-  if (!res.ok) throw new Error(`${res.status}`)
-  return res.json()
 }
 
 export function useOpenPools() {

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
+import { apiFetch } from '../lib/api'
 
-const API = import.meta.env.VITE_API_URL
 
 export interface AdminConfig {
   espn_rate_limit_per_minute: number
@@ -11,26 +11,13 @@ export interface AdminConfig {
   discord_bot_command_channel: string
 }
 
-async function authFetch(token: string, path: string, init?: RequestInit) {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  })
-  if (!res.ok) throw new Error(`${res.status}`)
-  return res.json()
-}
-
 export function useAdminConfig() {
   const { getToken } = useAuth()
   return useQuery<AdminConfig>({
     queryKey: ['admin', 'config'],
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, '/admin/config')
+      return apiFetch(token!, '/admin/config')
     },
   })
 }
@@ -40,7 +27,7 @@ export function useTestDiscordBot() {
   return useMutation({
     mutationFn: async () => {
       const token = await getToken()
-      return authFetch(token!, '/admin/config/test-bot', { method: 'POST' })
+      return apiFetch(token!, '/admin/config/test-bot', { method: 'POST' })
     },
   })
 }
@@ -51,7 +38,7 @@ export function useUpdateAdminConfig() {
   return useMutation({
     mutationFn: async (body: Partial<AdminConfig>) => {
       const token = await getToken()
-      return authFetch(token!, '/admin/config', {
+      return apiFetch(token!, '/admin/config', {
         method: 'PUT',
         body: JSON.stringify(body),
       })

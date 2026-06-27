@@ -1,9 +1,9 @@
 """Slash command interface (primary inbound surface).
 
-Commands are thin adapters: authorize → call a service / defer a Procrastinate
-job → reply. Slash commands need no privileged intent. The job-trigger path
-reuses the exact defer mechanism the admin endpoints use
-(procrastinate_app.tasks[name].defer_async()), so the existing worker runs them.
+Commands are thin adapters: authorize → start a Temporal workflow / query Temporal
+visibility → reply. Slash commands need no privileged intent. The trigger path
+reuses the shared registry in app.temporal.triggers (the same workflows the
+schedules drive), replacing the old Procrastinate defer.
 """
 
 import logging
@@ -11,36 +11,24 @@ import logging
 import discord
 from discord import app_commands
 from discord.ext import commands
-from sqlalchemy import text
 
 from app.core.database import TaskSessionLocal
-from app.core.procrastinate import procrastinate_app
+from app.core.temporal import get_temporal_client
 from app.services.admin_config import get_bot_command_channel, get_bot_enabled
+from app.temporal.triggers import TRIGGER_NAMES, TRIGGERS
 
 logger = logging.getLogger("app.bot")
 
-# Recent runs across all tasks, newest first (mirrors admin /sync/recent).
-_RECENT_SQL = text(
-    """
-    SELECT j.id, j.task_name, j.status,
-           max(e.at) FILTER (WHERE e.type IN ('succeeded','failed','aborted','cancelled')) AS ended_at
-    FROM procrastinate_jobs j
-    LEFT JOIN procrastinate_events e ON e.job_id = j.id
-    GROUP BY j.id, j.task_name, j.status
-    ORDER BY j.id DESC
-    LIMIT :limit
-    """
-)
-
-
-def _registered_tasks() -> dict:
-    """App-defined tasks by name (excludes Procrastinate builtins). Mirrors admin."""
-    procrastinate_app.perform_import_paths()
-    return {
-        name: task
-        for name, task in procrastinate_app.tasks.items()
-        if not name.startswith(("builtin:", "procrastinate."))
-    }
+# Status icons by Temporal execution status name.
+_STATUS_ICON = {
+    "COMPLETED": "✅",
+    "FAILED": "❌",
+    "TERMINATED": "⛔",
+    "CANCELED": "🚫",
+    "RUNNING": "⏳",
+    "CONTINUED_AS_NEW": "🔄",
+    "TIMED_OUT": "⌛",
+}
 
 
 class CommandsCog(commands.Cog):
@@ -65,33 +53,32 @@ class CommandsCog(commands.Cog):
         return True
 
     @app_commands.command(
-        name="sync", description="Trigger a background sync task by name."
+        name="sync", description="Trigger a background sync workflow by name."
     )
-    @app_commands.describe(task_name="The registered task to run (e.g. cfbd_sync).")
+    @app_commands.describe(
+        task_name=f"One of: {', '.join(TRIGGER_NAMES)}",
+    )
     async def sync(self, interaction: discord.Interaction, task_name: str) -> None:
         if not await self._authorized(interaction):
             return
-        from procrastinate.exceptions import AlreadyEnqueued
 
-        task = _registered_tasks().get(task_name)
-        if task is None:
+        trigger = TRIGGERS.get(task_name)
+        if trigger is None:
             await interaction.response.send_message(
-                f"Unknown task `{task_name}`.", ephemeral=True
+                f"Unknown task `{task_name}`. Options: {', '.join(TRIGGER_NAMES)}",
+                ephemeral=True,
             )
             return
         try:
-            job_id = await task.defer_async()
+            client = await get_temporal_client()
+            wf_id = await trigger(client)
             await interaction.response.send_message(
-                f"▶️ Deferred `{task_name}` (job `{job_id}`)."
-            )
-        except AlreadyEnqueued:
-            await interaction.response.send_message(
-                f"`{task_name}` is already queued.", ephemeral=True
+                f"▶️ Started `{task_name}` (workflow `{wf_id}`)."
             )
         except Exception:
-            logger.exception("Failed to defer %s from Discord", task_name)
+            logger.exception("Failed to trigger %s from Discord", task_name)
             await interaction.response.send_message(
-                f"Failed to defer `{task_name}`.", ephemeral=True
+                f"Failed to start `{task_name}`.", ephemeral=True
             )
 
     @app_commands.command(
@@ -100,15 +87,31 @@ class CommandsCog(commands.Cog):
     async def status(self, interaction: discord.Interaction) -> None:
         if not await self._authorized(interaction):
             return
-        async with TaskSessionLocal() as db:
-            rows = (await db.execute(_RECENT_SQL, {"limit": 10})).mappings().all()
-        if not rows:
+        try:
+            client = await get_temporal_client()
+            runs = []
+            async for wf in client.list_workflows(
+                query="ORDER BY StartTime DESC", limit=10
+            ):
+                runs.append(wf)
+        except Exception:
+            logger.exception("Failed to list workflows from Discord")
+            await interaction.response.send_message(
+                "Failed to fetch runs.", ephemeral=True
+            )
+            return
+
+        if not runs:
             await interaction.response.send_message("No runs yet.")
             return
-        _icon = {"succeeded": "✅", "failed": "❌", "aborted": "⛔", "cancelled": "🚫"}
-        lines = [
-            f"{_icon.get(r['status'], '⏳')} `{r['task_name']}` — {r['status']}"
-            + (f" ({r['ended_at']:%Y-%m-%d %H:%M} UTC)" if r["ended_at"] else "")
-            for r in rows
-        ]
+
+        lines = []
+        for wf in runs:
+            status_name = wf.status.name if wf.status else "RUNNING"
+            icon = _STATUS_ICON.get(status_name, "⏳")
+            when = wf.close_time or wf.start_time
+            ts = f" ({when:%Y-%m-%d %H:%M} UTC)" if when else ""
+            lines.append(
+                f"{icon} `{wf.workflow_type}` — {status_name.lower()}{ts}"
+            )
         await interaction.response.send_message("**Recent runs**\n" + "\n".join(lines))
