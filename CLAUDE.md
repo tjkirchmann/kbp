@@ -167,6 +167,7 @@ make frontend-organize    # refactor: extract inline components, remove inline s
 make backend              # new route, service, or model
 make migration            # schema change
 make data-modeling        # adding tables, columns, or relationships
+make struct-output        # LLM structured-output jobs (pydantic-ai + OpenRouter + Temporal)
 ```
 
 | Skill file | Use when |
@@ -176,6 +177,7 @@ make data-modeling        # adding tables, columns, or relationships
 | `.claude/skills/backend.md` | New FastAPI route, service, or model |
 | `.claude/skills/migration.md` | Any Alembic migration — includes the Postgres ENUM gotcha |
 | `.claude/skills/data-modeling.md` | Schema decisions — soft deletes, table conventions, CFBD API shape, all locked-in decisions |
+| `.claude/skills/struct-output/SKILL.md` | LLM structured-output jobs — registry-driven pydantic-ai + OpenRouter + Temporal pattern |
 
 ---
 

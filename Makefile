@@ -1,4 +1,4 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run temporal-cfbd-facts temporal-cfbd-dims deploy migrate frontend-component backend frontend-logic frontend-organize lint install-hooks
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run temporal-cfbd-facts temporal-cfbd-dims struct-output-run deploy migrate frontend-component backend frontend-logic frontend-organize struct-output lint install-hooks
 
 # ── Lint ─────────────────────────────────────────────────────────────────────
 # One-time setup: install the git pre-commit hook.
@@ -60,6 +60,12 @@ temporal-cfbd-facts:
 temporal-cfbd-dims:
 	docker compose run --rm temporal_worker python -m app.temporal.cfbd_dims.schedule
 
+# Trigger a structured-output batch. Populate-only by default (skips entities that
+# already have a row); pass OVERWRITE=1 to regenerate everyone.
+# Usage: make struct-output-run NAME=program_profile [OVERWRITE=1]
+struct-output-run:
+	docker compose run --rm temporal_worker python -m app.temporal.struct_output.schedule $(NAME) $(if $(OVERWRITE),--overwrite,)
+
 # ── Deploy ───────────────────────────────────────────────────────────────────
 
 deploy:
@@ -99,3 +105,7 @@ migration:
 frontend-organize:
 	@echo "Loading frontend organize skill..."
 	@cat .claude/skills/frontend-organize.md
+
+struct-output:
+	@echo "Loading structured-output skill..."
+	@cat .claude/skills/struct-output/SKILL.md

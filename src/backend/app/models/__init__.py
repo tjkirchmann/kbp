@@ -48,6 +48,7 @@ from app.models.pool import (
     ScoringStrategy,
 )
 from app.models.rate_limit import EspnRateToken
+from app.models.struct_output import StructOutputDefinition
 from app.models.sync import SyncSnapshot
 from app.models.user import User
 
@@ -101,4 +102,5 @@ __all__ = [
     "LibraryFile",
     "Clip",
     "ClipStatus",
+    "StructOutputDefinition",
 ]

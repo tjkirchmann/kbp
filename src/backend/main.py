@@ -11,6 +11,7 @@ from app.core.procrastinate import procrastinate_app
 from app.routers.admin import router as admin_router
 from app.routers.library import router as library_router
 from app.routers.pools import router as pools_router
+from app.routers.struct_output import router as struct_output_router
 from app.routers.submissions import router as submissions_router
 from app.routers.teams import router as teams_router
 
@@ -52,6 +53,7 @@ app.include_router(pools_router)
 app.include_router(submissions_router)
 app.include_router(teams_router)
 app.include_router(library_router)
+app.include_router(struct_output_router)
 
 
 @app.get("/health")

@@ -17,6 +17,9 @@ from temporalio.worker import Worker
 
 from app.core.config import settings
 from app.core.temporal import get_temporal_client
+from app.services.struct_output.seeds import (
+    seed_struct_output_definitions,
+)
 from app.temporal.activities import compose_greeting
 from app.temporal.cfbd_dims.activities import sync_coaches, sync_flat_dim
 from app.temporal.cfbd_dims.schedule import ensure_schedule
@@ -30,6 +33,17 @@ from app.temporal.cfbd_facts.schedule import ensure_cfbd_facts_schedule
 from app.temporal.cfbd_facts.workflows import (
     CfbdEndpointWorkflow,
     CfbdFactsWorkflow,
+)
+from app.temporal.struct_output.activities import (
+    generate_and_upsert,
+    resolve_targets,
+)
+from app.temporal.struct_output.schedule import (
+    reconcile_schedules as reconcile_struct_output_schedules,
+)
+from app.temporal.struct_output.workflow import (
+    StructOutputBatchWorkflow,
+    StructOutputEntityWorkflow,
 )
 from app.temporal.workflows import GreetingWorkflow
 
@@ -71,6 +85,11 @@ async def main() -> None:
     # so it's self-registering on boot the way the Procrastinate crons were.
     await ensure_cfbd_facts_schedule(client)
 
+    # Seed locked structured-output definitions (program_profile, ...), then
+    # reconcile a Temporal Schedule for each scheduled definition from the registry.
+    await seed_struct_output_definitions()
+    await reconcile_struct_output_schedules(client)
+
     worker = Worker(
         client,
         task_queue=settings.temporal_task_queue,
@@ -79,6 +98,8 @@ async def main() -> None:
             CfbdDimsWorkflow,
             CfbdFactsWorkflow,
             CfbdEndpointWorkflow,
+            StructOutputBatchWorkflow,
+            StructOutputEntityWorkflow,
         ],
         activities=[
             compose_greeting,
@@ -87,6 +108,8 @@ async def main() -> None:
             get_facts_config,
             load_fact_coverage,
             sync_fact_season,
+            resolve_targets,
+            generate_and_upsert,
         ],
     )
     await worker.run()
