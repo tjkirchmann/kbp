@@ -14,6 +14,8 @@ import IntegrationsShell from './pages/admin/IntegrationsShell'
 import EspnPanel from './pages/admin/EspnPanel'
 import SyncPanel from './pages/admin/SyncPanel'
 import LibraryPanel from './pages/admin/LibraryPanel'
+import AiStructsList from './pages/admin/AiStructsList'
+import AiStructDetail from './pages/admin/AiStructDetail'
 import RunDetail from './pages/admin/RunDetail'
 import TaskDetail from './pages/admin/TaskDetail'
 import SubmissionShell from './pages/submission/SubmissionShell'
@@ -38,6 +40,8 @@ export default function App() {
         <Route path="espn" element={<Navigate to="/admin/integrations/espn" replace />} />
         <Route path="sync" element={<SyncPanel />} />
         <Route path="library" element={<LibraryPanel />} />
+        <Route path="ai-structs" element={<AiStructsList />} />
+        <Route path="ai-structs/:name" element={<AiStructDetail />} />
         <Route path="sync/runs/:jobId" element={<RunDetail />} />
         <Route path="sync/tasks/:taskName" element={<TaskDetail />} />
         <Route path="users" element={<UsersList />} />

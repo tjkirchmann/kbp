@@ -2,14 +2,18 @@
 
 Lets admins list definitions across both tiers (static = code-tracked,
 dynamic = registry row) and inspect a definition's generated rows. Each item is
-tagged with its ``tier`` so the (future) admin UI can tell them apart. Build /
-trigger / delete endpoints are deferred to a later phase; the trigger seam already
-exists as ``app.temporal.struct_output.schedule.trigger_batch`` / ``trigger_entity``.
+tagged with its ``tier`` so the admin UI can tell them apart. The outputs endpoint
+LEFT JOINs each definition's declared source table and prepends its
+``source_label_fields`` as ``_labels``, so rows carry friendly identity values
+(e.g. a team name) alongside their generated columns. Build / trigger / delete
+endpoints are deferred to a later phase; the trigger seam already exists as
+``app.temporal.struct_output.schedule.trigger_batch`` / ``trigger_entity``.
 """
 
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,6 +58,32 @@ def _summary(defn: Any) -> dict[str, Any]:
         "enabled": row.enabled,
         "locked": row.locked,
     }
+
+
+def _source_join(defn: Any) -> tuple[str, str, list[str], str]:
+    """Resolve the source join for ``list_outputs`` (uniform across tiers).
+
+    Returns ``(source_table, source_pk, label_fields, output_entity_column)``
+    where ``output_entity_column`` is the FK column in the output table that joins
+    back to ``source_table.source_pk``. Every definition declares its source via
+    the ``BaseDefinition`` seam, so this works for static (code) and dynamic
+    (registry) definitions alike.
+    """
+    if isinstance(defn, StaticDefinition):
+        entity_col = sa_inspect(defn.output_orm).primary_key[0].name
+        return (
+            defn.source_model.__tablename__,
+            defn.source_pk,
+            list(defn.source_label_fields),
+            entity_col,
+        )
+    row = defn.row
+    return (
+        row.source_table,
+        row.source_pk,
+        list(row.source_label_fields),
+        table._entity_col(row),
+    )
 
 
 @router.get("/")
@@ -104,19 +134,40 @@ async def get_definition(
 @router.get("/{name}/outputs")
 async def list_outputs(
     name: str, limit: int = 200, db: AsyncSession = Depends(get_db)
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     defn = await base.get_definition(db, name)
     if defn is None:
         raise HTTPException(status_code=404, detail=f"Unknown definition {name!r}")
-    # Both tiers materialize a struct_output_{name} table, so a raw SELECT works
-    # uniformly. A dynamic definition that has never run has no table yet → [].
+
+    # LEFT JOIN the source table and prepend the definition's declared label
+    # fields so rows read "Alabama" instead of a bare entity-id integer. Works for
+    # both tiers — every definition declares its source via the BaseDefinition seam.
+    src_table, src_pk, label_fields, entity_col = _source_join(defn)
     tbl = table.output_table_name(defn.name)
+
+    # Quote every identifier. Label fields are aliased ``__label_<name>`` so they
+    # can't collide with an output column of the same name; they're re-nested into
+    # ``_labels`` in the response below.
+    label_select = ", ".join(
+        f'{table._ident(lf, "label field")} AS "__label_{lf}"' for lf in label_fields
+    )
+    select_clause = "o.*" + (", " + label_select if label_select else "")
+    sql = (
+        f"SELECT {select_clause} "
+        f"FROM {table._ident(tbl, 'output table')} AS o "
+        f"LEFT JOIN {table._ident(src_table, 'source table')} AS s "
+        f"ON s.{table._ident(src_pk, 'source pk')} = o.{table._ident(entity_col, 'entity column')} "
+        f"ORDER BY o.generated_at DESC LIMIT :lim"
+    )
     try:
-        rows = await db.execute(
-            text(f'SELECT * FROM "{tbl}" ORDER BY generated_at DESC LIMIT :lim'),
-            {"lim": min(limit, 1000)},
-        )
+        rows = await db.execute(text(sql), {"lim": min(limit, 1000)})
     except ProgrammingError:
-        # Table doesn't exist yet (dynamic definition that has never run).
-        return []
-    return [dict(r) for r in rows.mappings().all()]
+        # Dynamic definition that has never run has no table yet.
+        return {"label_fields": label_fields, "rows": []}
+
+    out: list[dict[str, Any]] = []
+    for mapping in rows.mappings().all():
+        row = dict(mapping)
+        labels = {lf: row.pop(f"__label_{lf}", None) for lf in label_fields}
+        out.append({**row, "_labels": labels})
+    return {"label_fields": label_fields, "rows": out}
