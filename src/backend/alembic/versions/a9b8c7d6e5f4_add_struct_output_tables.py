@@ -1,41 +1,72 @@
-"""add struct_output_program_profile table
+"""add structured-output tables (registry + program_profile)
 
-Creates the static (code-tracked) ``struct_output_program_profile`` table — one
-LLM-generated program-profile ranking per FBS team (``cfbd_teams``), produced by
-the ``ProgramProfileDefinition`` static definition. PK ``cfbd_team_id`` is the FK
-to ``cfbd_teams.id`` (one row per source entity, the convention static output
-tables follow).
+Creates the two structured-output tables:
 
-Hand-written (rather than ``alembic revision --autogenerate``) because the dev DB
-was stamped at a removed revision at the time; the schema is a straight mirror of
-the ``StructOutputProgramProfile`` ORM model.
+- ``struct_output_definitions`` — the registry of structured-output jobs. Each
+  row describes one job (source entity, output field specs, prompt, model,
+  schedule, lifecycle flags). The per-definition ``struct_output_{name}`` data
+  tables for *dynamic* definitions are NOT created here; they are created on
+  demand at runtime from the field spec (see
+  ``app/services/struct_output/table.py``), since definitions are DB-driven and
+  admin-buildable.
 
-NOTE: if you previously ran the *dynamic* ``program_profile`` definition on this
-branch, a same-named table created via ``CREATE TABLE IF NOT EXISTS`` already
-exists locally — drop it once (``DROP TABLE struct_output_program_profile;``)
-before running this migration. Pre-merge, no real data to preserve.
+- ``struct_output_program_profile`` — the static (code-tracked) output table:
+  one LLM-generated program-profile ranking per FBS team (``cfbd_teams``),
+  produced by the ``ProgramProfileDefinition`` static definition. PK
+  ``cfbd_team_id`` is the FK to ``cfbd_teams.id`` (one row per source entity,
+  the convention static output tables follow). Hand-written mirror of the
+  ``StructOutputProgramProfile`` ORM model.
 
-Revision ID: f0e1d2c3b4a5
-Revises: 7f239d840e5c
+Revision ID: a9b8c7d6e5f4
+Revises: y4b5c6d7e8f9
 Create Date: 2026-07-02 00:00:00.000000
 
 """
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "f0e1d2c3b4a5"
-down_revision: str | None = "7f239d840e5c"
+revision: str = "a9b8c7d6e5f4"
+down_revision: str | None = "y4b5c6d7e8f9"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    op.create_table(
+        "struct_output_definitions",
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("source_table", sa.String(), nullable=False),
+        sa.Column("source_pk", sa.String(), server_default="id", nullable=False),
+        sa.Column("source_label_fields", JSONB(), nullable=False),
+        sa.Column("source_filter", sa.String(), server_default="", nullable=False),
+        sa.Column("fields", JSONB(), nullable=False),
+        sa.Column("prompt_template", sa.String(), nullable=False),
+        sa.Column("model", sa.String(), server_default="", nullable=False),
+        sa.Column("cron", sa.String(), nullable=True),
+        sa.Column("enabled", sa.Boolean(), server_default="true", nullable=False),
+        sa.Column("locked", sa.Boolean(), server_default="false", nullable=False),
+        sa.Column("deleted_at", sa.DateTime(), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.PrimaryKeyConstraint("name"),
+    )
+
     op.create_table(
         "struct_output_program_profile",
         sa.Column("cfbd_team_id", sa.Integer(), nullable=False),
@@ -89,3 +120,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("struct_output_program_profile")
+    op.drop_table("struct_output_definitions")
