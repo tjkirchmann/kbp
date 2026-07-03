@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Trophy, TrendingUp, TrendingDown } from 'lucide-react'
 import Header from '@/components/Header'
 import { cn } from '@/lib/utils'
+import { usePageTitle } from '@/lib/usePageTitle'
 
 const ALL_TIME_BEST = [
   { rank: '1', name: "Connie '08", ppg: 5.23 },
@@ -166,6 +167,7 @@ function ChampionRow({
 
 export default function RecordBook() {
   const [tab, setTab] = useState<Tab>('best')
+  usePageTitle('Record Book')
 
   return (
     <div className="min-h-screen">

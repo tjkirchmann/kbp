@@ -5,6 +5,11 @@ class Settings(BaseSettings):
     database_url: str
     clerk_secret_key: str = ""
     openai_api_key: str = ""
+    # OpenRouter — used by the structured-output runner (pydantic-ai). The model
+    # is per-definition (struct_output_definitions.model); this is the default
+    # used when a definition leaves it blank.
+    openrouter_api_key: str = ""
+    openrouter_default_model: str = "openai/gpt-4o"
     cfbd_api_key: str = ""
     # Earliest season cfbd_facts backfills. CFBD betting lines begin ~2013.
     cfbd_facts_start_year: int = 2013

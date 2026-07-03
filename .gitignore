@@ -21,3 +21,9 @@ src/frontend/vite.config.ts.timestamp-*.mjs
 
 # Local scratch / reports
 temp/
+
+# Playwright Attachments
+.playwright-mcp/
+
+# Pi Plans
+.plans/

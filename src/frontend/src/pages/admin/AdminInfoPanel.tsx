@@ -101,6 +101,28 @@ const INFO: Record<string, SectionInfo> = {
       },
     ],
   },
+  'ai structs': {
+    title: 'AI Structs',
+    description:
+      'LLM-generated, typed outputs produced for each entity in a source table (e.g. a per-team program profile). Definitions run on a schedule via Temporal and store their results in a dedicated table.',
+    features: [
+      {
+        name: 'Definitions',
+        description:
+          'Each definition declares a source table, the fields the LLM should produce, and a prompt. This list shows every definition across both tiers along with its schedule and model.',
+      },
+      {
+        name: 'Static vs Dynamic tiers',
+        description:
+          'Static definitions are tracked in code (a type-safe Pydantic schema and an Alembic-migrated table, e.g. program_profile). Dynamic definitions are configured at runtime as registry rows and derive their schema and table on the fly.',
+      },
+      {
+        name: 'Results table',
+        description:
+          'Click a definition to inspect its generated rows. The table shows the source identity (e.g. school and conference) first, followed by every output field. Click any row to open a side panel with its full detail.',
+      },
+    ],
+  },
 }
 
 export default function AdminInfoPanel({ section }: { section: string }) {

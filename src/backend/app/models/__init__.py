@@ -47,6 +47,8 @@ from app.models.pool import (
     PoolSubmissionGameItem,
     ScoringStrategy,
 )
+from app.models.struct_output import StructOutputDefinition
+from app.models.struct_output_program_profile import StructOutputProgramProfile
 from app.models.sync import SyncSnapshot
 from app.models.user import User
 
@@ -99,4 +101,6 @@ __all__ = [
     "LibraryFile",
     "Clip",
     "ClipStatus",
+    "StructOutputDefinition",
+    "StructOutputProgramProfile",
 ]

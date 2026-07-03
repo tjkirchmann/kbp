@@ -52,6 +52,17 @@ from app.temporal.espn.activities import (
 from app.temporal.espn.game_workflow import EspnGameWorkflow
 from app.temporal.espn.schedule import ensure_espn_seeder_schedule
 from app.temporal.espn.seeder_workflow import EspnSeederWorkflow
+from app.temporal.struct_output.activities import (
+    generate_and_upsert,
+    resolve_targets,
+)
+from app.temporal.struct_output.schedule import (
+    reconcile_schedules as reconcile_struct_output_schedules,
+)
+from app.temporal.struct_output.workflow import (
+    StructOutputBatchWorkflow,
+    StructOutputEntityWorkflow,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app.temporal.worker")
@@ -99,6 +110,12 @@ async def main() -> None:
     # replacing the former DB-cron Procrastinate espn_poll task.
     await ensure_espn_seeder_schedule(client)
 
+    # Reconcile a Temporal Schedule for each scheduled structured-output
+    # definition (static, from code ∪ dynamic, from the registry) — static
+    # definitions register themselves at import via the definitions package,
+    # which the resolver imports lazily.
+    await reconcile_struct_output_schedules(client)
+
     # Default-queue worker: every workflow plus the cheap (non-rate-limited)
     # activities. The ESPN game/seeder workflows live here too — they only sleep
     # and dispatch; the rate-limited poll runs on the dedicated espn queue below.
@@ -114,6 +131,8 @@ async def main() -> None:
             CfbdPlaysEndpointWorkflow,
             EspnSeederWorkflow,
             EspnGameWorkflow,
+            StructOutputBatchWorkflow,
+            StructOutputEntityWorkflow,
         ],
         activities=[
             sync_flat_dim,
@@ -129,6 +148,8 @@ async def main() -> None:
             seed_missing_games,
             find_live_game_ids,
             prune_event_log,
+            resolve_targets,
+            generate_and_upsert,
         ],
     )
 

@@ -203,6 +203,18 @@
   }
 }
 
+/* Admin backdrop — vivid blue-led gradient the admin shell floats on */
+@layer utilities {
+  .admin-bg {
+    background-color: #0a0c11;
+    background-image:
+      radial-gradient(ellipse 70% 55% at 12% 0%, rgba(0, 156, 222, 0.38) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 45% at 88% 12%, rgba(38, 166, 154, 0.22) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 50% at 70% 100%, rgba(0, 90, 170, 0.3) 0%, transparent 70%),
+      radial-gradient(ellipse 45% 40% at 0% 100%, rgba(240, 164, 41, 0.1) 0%, transparent 70%);
+  }
+}
+
 /* Glass panel — subtle top-to-bottom gradient for depth */
 @layer utilities {
   .glass-panel {

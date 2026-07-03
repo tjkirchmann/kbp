@@ -12,6 +12,7 @@ import {
   LogOut,
   PanelLeft,
   ArrowLeft,
+  BrainCircuit,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useClerk } from '@clerk/react'
@@ -36,6 +37,7 @@ const groups: Group[] = [
         children: [{ id: 'espn', label: 'ESPN', icon: Activity }],
       },
       { id: 'library', label: 'Library', icon: FolderOpen },
+      { id: 'ai-structs', label: 'AI Structs', icon: BrainCircuit },
     ],
   },
   {
@@ -58,8 +60,8 @@ const itemClasses = (isActive: boolean, collapsed: boolean, indented = false) =>
     'flex items-center gap-3 rounded-full text-sm font-medium transition-colors',
     collapsed ? 'justify-center px-0 py-2.5' : indented ? 'px-3 py-1.5' : 'px-3 py-2',
     isActive
-      ? 'bg-primary/15 text-primary'
-      : 'text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)]',
+      ? 'bg-[rgba(10,12,17,0.7)] text-foreground'
+      : 'text-muted-foreground hover:text-foreground hover:bg-[rgba(10,12,17,0.4)]',
   )
 
 // Floating label shown beside an icon-only row when the sidebar is collapsed.
@@ -165,12 +167,12 @@ export default function AdminSidebar({
     <aside
       className={cn('shrink-0 transition-[width] duration-200', collapsed ? 'w-[60px]' : 'w-60')}
     >
-      <div className="flex h-full flex-col border-r border-border/40 bg-[rgba(16,18,24,0.62)] shadow-xl shadow-black/30 backdrop-blur-xl">
+      <div className="flex h-full flex-col">
         {/* Brand lockup + collapse toggle. Fixed height + centered so it lines up
             with the page header bar (h-16) in AdminShell. */}
         <div
           className={cn(
-            'flex shrink-0 border-b border-border/40 px-3',
+            'flex shrink-0 px-3',
             collapsed ? 'flex-col items-center gap-2 py-3' : 'h-16 items-center gap-2',
           )}
         >
@@ -190,7 +192,7 @@ export default function AdminSidebar({
             aria-label="Toggle sidebar"
             title="Toggle sidebar"
             className={cn(
-              'shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-[rgba(26,30,42,0.6)] hover:text-foreground',
+              'shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-[rgba(10,12,17,0.4)] hover:text-foreground',
               !collapsed && 'ml-auto',
             )}
           >
@@ -203,7 +205,7 @@ export default function AdminSidebar({
           {groups.map((group, gi) => (
             <div key={group.label} className="flex flex-col gap-1">
               {collapsed ? (
-                gi > 0 && <div className="mx-1 my-1.5 border-t border-border/40" />
+                gi > 0 && <div className="mx-1 my-1.5 border-t border-white/10" />
               ) : (
                 <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   {group.label}
@@ -215,7 +217,7 @@ export default function AdminSidebar({
         </nav>
 
         {/* Back to site */}
-        <div className="shrink-0 border-t border-border/40 px-2 pt-2">
+        <div className="shrink-0 border-t border-white/10 px-2 pt-2">
           {collapsed ? (
             <Tooltip label="Back to site">
               <Link to="/" className={itemClasses(false, true)}>

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { BookOpen, LogIn, Newspaper, ChevronRight } from 'lucide-react'
+import { usePageTitle } from '@/lib/usePageTitle'
 import heroJpeg896 from '@/assets/images/main-home-picture-896w.jpg'
 import heroJpeg1792 from '@/assets/images/main-home-picture-1792w.jpg'
 import galleryGrandpa from '@/assets/images/gallery-grandpa.webp'
@@ -23,7 +24,7 @@ function WelcomeCard() {
           alt="Kirchmann Bowl Pool group photo"
           width={896}
           height={595}
-          fetchPriority="high"
+          fetchpriority="high"
           decoding="async"
           className="w-full object-cover max-h-80 sm:max-h-96"
         />
@@ -230,6 +231,7 @@ export default function Home() {
   const { isSignedIn } = useAuth()
   const navigate = useNavigate()
   useMe()
+  usePageTitle()
   const mainRef = useReveal()
 
   return (

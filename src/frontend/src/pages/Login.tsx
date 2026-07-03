@@ -1,4 +1,5 @@
 import { SignIn } from '@clerk/react'
+import { usePageTitle } from '@/lib/usePageTitle'
 
 const appearance = {
   variables: {
@@ -38,6 +39,7 @@ const appearance = {
 }
 
 export default function Login() {
+  usePageTitle('Sign In')
   return (
     <div className="min-h-screen flex items-center justify-center">
       <SignIn routing="path" path="/login" fallbackRedirectUrl="/" appearance={appearance} />

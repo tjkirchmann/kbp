@@ -1,4 +1,4 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-cfbd-facts temporal-cfbd-dims temporal-cfbd-games temporal-cfbd-plays temporal-espn-seed deploy migrate migrate-new migrate-down migrate-check frontend-component backend frontend-logic frontend-organize lint test install-hooks
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-cfbd-facts temporal-cfbd-dims temporal-cfbd-games temporal-cfbd-plays temporal-espn-seed struct-output-run deploy migrate migrate-new migrate-down migrate-check frontend-component backend frontend-logic frontend-organize struct-output lint test install-hooks
 
 # ── Lint ─────────────────────────────────────────────────────────────────────
 # One-time setup: install the git pre-commit hook.
@@ -59,6 +59,12 @@ temporal-cfbd-facts:
 temporal-cfbd-dims:
 	docker compose run --rm temporal_worker python -m app.temporal.cfbd_dims.schedule
 
+# Trigger a structured-output batch. Populate-only by default (skips entities that
+# already have a row); pass OVERWRITE=1 to regenerate everyone.
+# Usage: make struct-output-run NAME=program_profile [OVERWRITE=1]
+struct-output-run:
+	docker compose run --rm temporal_worker python -m app.temporal.struct_output.schedule $(NAME) $(if $(OVERWRITE),--overwrite,)
+
 # Trigger an immediate one-off CFBD-games run (the 'Run now' for the games fact
 # table). The frequent run is driven by a Temporal Schedule registered on boot.
 temporal-cfbd-games:
@@ -116,3 +122,7 @@ migration:
 frontend-organize:
 	@echo "Loading frontend organize skill..."
 	@cat .claude/skills/frontend-organize.md
+
+struct-output:
+	@echo "Loading structured-output skill..."
+	@cat .claude/skills/struct-output/SKILL.md
