@@ -1,10 +1,11 @@
 """Temporal Schedules for structured-output definitions.
 
-Each active+enabled definition with a ``cron`` gets a Temporal Schedule that runs
-its ``StructOutputBatchWorkflow`` in *populate-only* mode (scheduled runs never
-overwrite — overwrite is a manual/explicit action). Schedules are reconciled at
-worker boot from the registry (``reconcile_schedules``), the same self-registering
-pattern the CFBD workflows use.
+Each scheduled definition (static or dynamic) with a ``cron`` gets a Temporal
+Schedule that runs its ``StructOutputBatchWorkflow`` in *populate-only* mode
+(scheduled runs never overwrite — overwrite is a manual/explicit action).
+Schedules are reconciled at worker boot across both tiers via the combined
+resolver (``reconcile_schedules``), the same self-registering pattern the CFBD
+workflows use.
 
 Manual control:
   * ``trigger_batch(client, name, overwrite)`` — start a one-off batch now
@@ -30,7 +31,7 @@ from temporalio.client import (
 )
 
 from app.core.config import settings
-from app.models.struct_output import StructOutputDefinition
+from app.services.struct_output.base import BaseDefinition, all_scheduled
 from app.temporal.struct_output.workflow import (
     BatchInput,
     StructOutputBatchWorkflow,
@@ -44,7 +45,7 @@ def schedule_id(name: str) -> str:
     return f"struct-output-{name}"
 
 
-def _desired_schedule(defn: StructOutputDefinition) -> Schedule:
+def _desired_schedule(defn: BaseDefinition) -> Schedule:
     return Schedule(
         action=ScheduleActionStartWorkflow(
             StructOutputBatchWorkflow.run,
@@ -58,7 +59,7 @@ def _desired_schedule(defn: StructOutputDefinition) -> Schedule:
     )
 
 
-async def ensure_schedule(client: Client, defn: StructOutputDefinition) -> None:
+async def ensure_schedule(client: Client, defn: BaseDefinition) -> None:
     sid = schedule_id(defn.name)
     try:
         await client.create_schedule(sid, _desired_schedule(defn))
@@ -84,14 +85,14 @@ async def delete_schedule(client: Client, name: str) -> None:
 async def reconcile_schedules(client: Client) -> None:
     """Boot-time reconcile: create/update schedules for all scheduled definitions.
 
-    Reads the registry directly (no Temporal->DB coupling concern; this runs in
-    the worker, which already owns DB access).
+    Covers both tiers via the combined resolver (``all_scheduled``): static
+    definitions (code, cron set) ∪ dynamic definitions (registry, enabled). Static
+    wins on name collisions. Runs in the worker, which already owns DB access.
     """
     from app.core.database import TaskSessionLocal as SessionLocal
-    from app.services.struct_output import registry
 
     async with SessionLocal() as db:
-        scheduled = await registry.list_scheduled(db)
+        scheduled = await all_scheduled(db)
     for defn in scheduled:
         await ensure_schedule(client, defn)
     logger.info("Reconciled %d struct-output schedule(s)", len(scheduled))

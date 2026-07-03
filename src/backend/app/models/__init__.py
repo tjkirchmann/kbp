@@ -49,6 +49,7 @@ from app.models.pool import (
 )
 from app.models.rate_limit import EspnRateToken
 from app.models.struct_output import StructOutputDefinition
+from app.models.struct_output_program_profile import StructOutputProgramProfile
 from app.models.sync import SyncSnapshot
 from app.models.user import User
 
@@ -103,4 +104,5 @@ __all__ = [
     "Clip",
     "ClipStatus",
     "StructOutputDefinition",
+    "StructOutputProgramProfile",
 ]

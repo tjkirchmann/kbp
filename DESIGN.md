@@ -124,14 +124,43 @@ Decorative fill — placed next to labels or headings to add texture without vis
 ## Admin Shell Layout
 
 The admin shell (`AdminShell.tsx`) is the layout wrapper for all `/admin/*` routes.
+Auth-gated: redirects to `/login` if not signed in; redirects to `/` if signed in but not admin.
 
-- Outer `<main>`: `pt-24 pb-12 px-4 max-w-4xl mx-auto`
-- Panel: `glass-panel rounded-2xl w-full flex min-h-[calc(100vh-9rem)]`
-  - `min-h` fills the viewport on short pages; tall pages scroll the whole page (not the inner panel)
-- Left sidebar: `w-40 shrink-0 border-r border-border/40` — NavLink buttons
-- Right content: `flex-1 flex flex-col` — breadcrumb header strip + `<Outlet />`
+### Overall structure
 
-Page content is dropped into the `<Outlet />` slot — each admin page exports a default component and `App.tsx` wires it in.
+- **Outer shell**: `h-screen overflow-hidden flex flex-col` — full viewport, no body scroll
+- **Body row**: `flex flex-1 min-h-0` — sidebar + content side by side
+
+### Sidebar (`AdminSidebar.tsx`)
+
+- Collapsible; state persisted to `localStorage` under key `admin-sidebar-collapsed`
+- Collapsed on mount on narrow viewports (`< 640px`)
+- Nav items are `<NavLink>` elements — active item gets the blue highlight
+- Grouped sections: **PLATFORM** (Comms, Integrations, Sync, Library) and **POOLS** (Users, Pools, Teams)
+- Footer: "Back to site" link + Account / sign-out button
+
+### Content area
+
+- **Header strip**: `h-16 flex items-center border-b border-border/40 bg-[rgba(16,18,24,0.62)] backdrop-blur-xl`
+  - Left: `hatch` fill (decorative diagonal texture)
+  - Right: info-panel toggle button (`Info` icon)
+- **Breadcrumbs**: rendered below the header strip via `AdminBreadcrumbs`
+- **Page content**: `<Outlet />` — each admin page exports a default component
+
+### Page titles
+
+`AdminShell` sets `document.title` via `usePageTitle` using the active breadcrumb section label,
+e.g. `KBP | Admin | Comms`, `KBP | Admin | Users`.
+
+### Auth pattern
+
+All hooks run unconditionally first; guards are placed after the last `useEffect`:
+
+```tsx
+if (!isLoaded || meLoading) return null          // wait for Clerk + /me
+if (!isSignedIn) return <Navigate to="/login" /> // not authenticated
+if (me && !me.is_admin) return <Navigate to="/" /> // authenticated but not admin
+```
 
 ---
 

@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import app.models  # noqa: F401 — registers models with Base.metadata
 from app.core.auth import get_current_user
 from app.core.config import settings
-from app.core.database import Base, engine
 from app.core.procrastinate import procrastinate_app
 from app.routers.admin import router as admin_router
 from app.routers.library import router as library_router
@@ -18,8 +17,8 @@ from app.routers.teams import router as teams_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Schema is owned by Alembic (make migrate) — no create_all here, so the DB
+    # never drifts ahead of the migration chain.
     # Ensure the built-in "none" channel exists so any consumer can be silenced
     # without first hand-creating one. It's protected from deletion (see admin
     # router); idempotent on every boot.
@@ -38,7 +37,7 @@ async def lifespan(app: FastAPI):
         yield
 
 
-app = FastAPI(title="App API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="KBP API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

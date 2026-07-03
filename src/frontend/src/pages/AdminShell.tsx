@@ -8,6 +8,10 @@ import AdminSidebar from '@/pages/admin/AdminSidebar'
 import AdminBreadcrumbs from '@/pages/admin/AdminBreadcrumbs'
 import { prettyTaskName } from '@/pages/admin/syncUtils'
 import { useRunDetail } from '@/services/useAdminSync'
+import { usePageTitle } from '@/lib/usePageTitle'
+import { useAuth } from '@clerk/react'
+import { useMe } from '@/services/useMe'
+import { Navigate } from 'react-router-dom'
 
 const COLLAPSE_KEY = 'admin-sidebar-collapsed'
 
@@ -72,6 +76,8 @@ function useBreadcrumbs() {
 }
 
 export default function AdminShell() {
+  const { isSignedIn, isLoaded } = useAuth()
+  const { data: me, isLoading: meLoading } = useMe()
   const breadcrumbs = useBreadcrumbs()
   const { pathname } = useLocation()
   const [infoOpen, setInfoOpen] = useState(false)
@@ -86,6 +92,7 @@ export default function AdminShell() {
   const sectionCrumb =
     breadcrumbs[0].label === 'Integrations' ? breadcrumbs[breadcrumbs.length - 1] : breadcrumbs[0]
   const currentSection = sectionCrumb.label.toLowerCase()
+  usePageTitle(`Admin | ${sectionCrumb.label}`)
 
   useEffect(() => {
     setInfoOpen(false)
@@ -94,6 +101,11 @@ export default function AdminShell() {
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0')
   }, [collapsed])
+
+  // Auth guards — after all hooks, before render
+  if (!isLoaded || meLoading) return null
+  if (!isSignedIn) return <Navigate to="/login" replace />
+  if (me && !me.is_admin) return <Navigate to="/" replace />
 
   return (
     <div className="h-screen overflow-hidden flex flex-col">

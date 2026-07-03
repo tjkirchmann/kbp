@@ -12,10 +12,9 @@ From a row we derive everything else at runtime:
   * a Temporal batch/entity workflow + optional Schedule — see
     ``app/temporal/struct_output/``.
 
-Definitions are DB-driven (admin-buildable in a later phase). The one we code
-off of (``program_profile``) is *seeded* as a locked row from
-``app/services/struct_output/seeds.py``; ``locked`` rows can't be deleted via the
-API and are re-seeded idempotently on boot.
+These rows are the **dynamic** tier — admin-buildable (a later phase). Code-tracked
+("static") definitions live in ``app/services/struct_output/definitions/`` and are
+not stored as registry rows. ``locked`` dynamic rows can't be deleted via the API.
 
 ``fields`` JSON shape — a list of:
     {"name": str, "type": <FieldType>, "description": str,

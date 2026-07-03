@@ -17,9 +17,6 @@ from temporalio.worker import Worker
 
 from app.core.config import settings
 from app.core.temporal import get_temporal_client
-from app.services.struct_output.seeds import (
-    seed_struct_output_definitions,
-)
 from app.temporal.activities import compose_greeting
 from app.temporal.cfbd_dims.activities import sync_coaches, sync_flat_dim
 from app.temporal.cfbd_dims.schedule import ensure_schedule
@@ -85,9 +82,10 @@ async def main() -> None:
     # so it's self-registering on boot the way the Procrastinate crons were.
     await ensure_cfbd_facts_schedule(client)
 
-    # Seed locked structured-output definitions (program_profile, ...), then
-    # reconcile a Temporal Schedule for each scheduled definition from the registry.
-    await seed_struct_output_definitions()
+    # Reconcile a Temporal Schedule for each scheduled structured-output
+    # definition (static, from code ∪ dynamic, from the registry) — static
+    # definitions register themselves at import via the definitions package,
+    # which the resolver imports lazily.
     await reconcile_struct_output_schedules(client)
 
     worker = Worker(

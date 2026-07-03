@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import cronstrue from 'cronstrue'
 import { useSetCron } from '@/services/useAdminSync'
+import { ApiError } from '@/lib/apiError'
 
 // Human-readable cron (e.g. every-15-min -> "Every 15 minutes"), or null if unparseable.
 function describeCron(cron: string): string | null {
@@ -44,7 +45,8 @@ export default function CronField({
         setEditing(false)
         setError(null)
       },
-      onError: (e) => setError(e.message === '400' ? 'Invalid cron' : 'Failed to save'),
+      onError: (e) =>
+        setError(e instanceof ApiError && e.status === 400 ? 'Invalid cron' : 'Failed to save'),
     })
   }
 

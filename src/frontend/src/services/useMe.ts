@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
+import { ApiError } from '@/lib/apiError'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -14,7 +15,7 @@ export function useMe() {
       const res = await fetch(`${API}/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error('Unauthorized')
+      if (!res.ok) throw new ApiError(res.status)
       return res.json() as Promise<{
         id: number
         email: string

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
+import { ApiError } from '@/lib/apiError'
 
 const API = import.meta.env.VITE_API_URL
 
@@ -7,7 +8,7 @@ async function authFetch(token: string, path: string) {
   const res = await fetch(`${API}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
-  if (!res.ok) throw new Error(`${res.status}`)
+  if (!res.ok) throw new ApiError(res.status)
   return res.json()
 }
 

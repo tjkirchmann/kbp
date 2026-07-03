@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, ChevronLeft, Lock } from 'lucide-react'
 import { useOpenPools, usePoolGames, useSubmissionPicks } from '@/services/useSubmission'
+import { usePageTitle } from '@/lib/usePageTitle'
 import StepRail, { type Step } from './StepRail'
 import PasswordStep from './PasswordStep'
 import EntryMetaStep from './EntryMetaStep'
@@ -17,6 +18,7 @@ export default function SubmissionWorkspace() {
 
   const { data: pools = [], isLoading } = useOpenPools()
   const pool = pools.find((p) => p.id === poolId)
+  usePageTitle(pool ? pool.name : 'Enter a Pool')
 
   const [passwordVerified, setPasswordVerified] = useState(false)
   const [currentStep, setCurrentStep] = useState<StepId | null>(null)

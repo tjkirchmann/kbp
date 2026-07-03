@@ -1,7 +1,15 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
+import { useAuth } from '@clerk/react'
 import Header from '@/components/Header'
+import { usePageTitle } from '@/lib/usePageTitle'
 
 export default function SubmissionShell() {
+  const { isSignedIn, isLoaded } = useAuth()
+  usePageTitle('Enter a Pool')
+
+  if (!isLoaded) return null
+  if (!isSignedIn) return <Navigate to="/login" replace />
+
   return (
     <div className="min-h-screen">
       <Header />

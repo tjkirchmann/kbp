@@ -36,7 +36,6 @@ _ENTITY_RETRY = RetryPolicy(
     maximum_attempts=4,
 )
 _ENTITY_TIMEOUT = timedelta(minutes=5)
-_ENTITY_HEARTBEAT = timedelta(minutes=2)
 _RESOLVE_TIMEOUT = timedelta(minutes=2)
 
 
@@ -65,7 +64,6 @@ class StructOutputEntityWorkflow:
             generate_and_upsert,
             args=[name, entity_id, run_id],
             start_to_close_timeout=_ENTITY_TIMEOUT,
-            heartbeat_timeout=_ENTITY_HEARTBEAT,
             retry_policy=_ENTITY_RETRY,
         )
 

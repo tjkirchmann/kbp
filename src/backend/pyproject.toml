@@ -21,7 +21,7 @@ dependencies = [
     "discord-py==2.6.4",
     "boto3==1.35.0",
     "temporalio==1.29.0",
-    "pydantic-ai-slim[openrouter]==1.22.0",
+    "pydantic-ai-slim[openrouter]==1.50.0",
 ]
 
 [tool.ruff]
