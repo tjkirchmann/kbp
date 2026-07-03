@@ -1,21 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
-import { ApiError } from '@/lib/apiError'
+import { apiFetch } from '../lib/api'
 
-const API = import.meta.env.VITE_API_URL
-
-async function authFetch(token: string, path: string, init?: RequestInit) {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  })
-  if (!res.ok) throw new ApiError(res.status)
-  return res.json()
-}
 
 /** A tag applied to an entity. `color` is a .tag-* CSS class derived server-side. */
 export interface Tag {
@@ -34,7 +20,7 @@ export function useTags(entityType: string, entityId: string) {
     enabled: !!entityId,
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, `/admin/tags/${entityType}/${encodeURIComponent(entityId)}`)
+      return apiFetch(token!, `/admin/tags/${entityType}/${encodeURIComponent(entityId)}`)
     },
   })
 }
@@ -51,7 +37,7 @@ export function useEntityTagsBatch(entityType: string, entityIds: string[]) {
       queryKey: tagsKey(entityType, id),
       queryFn: async (): Promise<Tag[]> => {
         const token = await getToken()
-        return authFetch(token!, `/admin/tags/${entityType}/${encodeURIComponent(id)}`)
+        return apiFetch(token!, `/admin/tags/${entityType}/${encodeURIComponent(id)}`)
       },
     })),
   })
@@ -70,7 +56,7 @@ export function useTagSuggestions(entityType: string, entityId: string, enabled:
     enabled: enabled && !!entityId,
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(
+      return apiFetch(
         token!,
         `/admin/tags/${entityType}/${encodeURIComponent(entityId)}/suggestions`,
       )
@@ -85,7 +71,7 @@ export function useAddTag(entityType: string, entityId: string) {
   return useMutation<Tag, Error, string>({
     mutationFn: async (name) => {
       const token = await getToken()
-      return authFetch(token!, `/admin/tags/${entityType}/${encodeURIComponent(entityId)}`, {
+      return apiFetch(token!, `/admin/tags/${entityType}/${encodeURIComponent(entityId)}`, {
         method: 'POST',
         body: JSON.stringify({ name }),
       })
@@ -104,7 +90,7 @@ export function useRemoveTag(entityType: string, entityId: string) {
   return useMutation<{ ok: boolean }, Error, string>({
     mutationFn: async (name) => {
       const token = await getToken()
-      return authFetch(
+      return apiFetch(
         token!,
         `/admin/tags/${entityType}/${encodeURIComponent(entityId)}?name=${encodeURIComponent(name)}`,
         { method: 'DELETE' },

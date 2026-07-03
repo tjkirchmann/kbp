@@ -1,21 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
-import { ApiError } from '@/lib/apiError'
-
-const API = import.meta.env.VITE_API_URL
-
-async function authFetch<T>(token: string, path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
-  })
-  if (!res.ok) throw new ApiError(res.status)
-  return res.json() as Promise<T>
-}
+import { apiFetch } from '@/lib/api'
 
 export type StructTier = 'static' | 'dynamic'
 
@@ -76,7 +61,7 @@ export function useStructDefinitions() {
     queryKey: ['admin', 'struct-output', 'definitions'],
     queryFn: async () => {
       const token = await getToken()
-      return authFetch<StructDefinitionSummary[]>(token!, '/admin/struct-output/')
+      return apiFetch(token, '/admin/struct-output/')
     },
   })
 }
@@ -89,10 +74,7 @@ export function useStructDefinition(name: string | undefined) {
     enabled: !!name,
     queryFn: async () => {
       const token = await getToken()
-      return authFetch<StructDefinitionDetail>(
-        token!,
-        `/admin/struct-output/${encodeURIComponent(name!)}`,
-      )
+      return apiFetch(token, `/admin/struct-output/${encodeURIComponent(name!)}`)
     },
   })
 }
@@ -105,10 +87,7 @@ export function useStructOutputs(name: string | undefined) {
     enabled: !!name,
     queryFn: async () => {
       const token = await getToken()
-      return authFetch<StructOutputs>(
-        token!,
-        `/admin/struct-output/${encodeURIComponent(name!)}/outputs`,
-      )
+      return apiFetch(token, `/admin/struct-output/${encodeURIComponent(name!)}/outputs`)
     },
   })
 }

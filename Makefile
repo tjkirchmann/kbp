@@ -1,4 +1,4 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-run temporal-cfbd-facts temporal-cfbd-dims struct-output-run deploy migrate frontend-component backend frontend-logic frontend-organize struct-output lint install-hooks
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-cfbd-facts temporal-cfbd-dims temporal-cfbd-games temporal-cfbd-plays temporal-espn-seed struct-output-run deploy migrate migrate-new migrate-down migrate-check frontend-component backend frontend-logic frontend-organize struct-output lint test install-hooks
 
 # ── Lint ─────────────────────────────────────────────────────────────────────
 # One-time setup: install the git pre-commit hook.
@@ -8,6 +8,11 @@ install-hooks:
 # Lint + format the whole repo (backend via Ruff, frontend via ESLint+Prettier).
 lint:
 	uvx pre-commit run --all-files
+
+# Backend tests: Temporal workflow behavior via the time-skipping test server
+# (mocked activities, no DB/HTTP). Runs from src/backend.
+test:
+	cd src/backend && uv run pytest
 
 # ── Dev ──────────────────────────────────────────────────────────────────────
 
@@ -32,7 +37,7 @@ logs-backend:
 	docker compose logs -f backend
 
 logs-worker:
-	docker compose logs -f procrastinate_worker
+	docker compose logs -f temporal_worker
 
 logs-db:
 	docker compose logs -f db
@@ -44,12 +49,6 @@ logs-temporal-worker:
 	docker compose logs -f temporal_worker
 
 # ── Temporal ─────────────────────────────────────────────────────────────────
-# Kick off the sample workflow end-to-end. UI: http://localhost:8080
-# Usage: make temporal-run        (greets "KBP")
-#        make temporal-run NAME=Ty
-temporal-run:
-	docker compose run --rm temporal_worker python -m app.temporal.starter $(NAME)
-
 # Kick off a one-off CFBD facts ingest (replaces the admin "Run now" button).
 # The daily run is driven by a Temporal Schedule registered on worker boot.
 temporal-cfbd-facts:
@@ -65,6 +64,21 @@ temporal-cfbd-dims:
 # Usage: make struct-output-run NAME=program_profile [OVERWRITE=1]
 struct-output-run:
 	docker compose run --rm temporal_worker python -m app.temporal.struct_output.schedule $(NAME) $(if $(OVERWRITE),--overwrite,)
+
+# Trigger an immediate one-off CFBD-games run (the 'Run now' for the games fact
+# table). The frequent run is driven by a Temporal Schedule registered on boot.
+temporal-cfbd-games:
+	docker compose run --rm temporal_worker python -m app.temporal.cfbd_games.starter
+
+# Trigger an immediate CFBD play-by-play backfill/refresh. Run-only (no schedule)
+# — this is the sole trigger for the high-volume /plays + /plays/stats endpoints.
+temporal-cfbd-plays:
+	docker compose run --rm temporal_worker python -m app.temporal.cfbd_plays.starter
+
+# Trigger an immediate ESPN seeder tick: seeds stub rows and spawns per-game
+# pollers. The seeder otherwise runs every minute via a Temporal Schedule.
+temporal-espn-seed:
+	docker compose run --rm temporal_worker python -m app.temporal.espn.starter
 
 # ── Deploy ───────────────────────────────────────────────────────────────────
 
@@ -83,6 +97,9 @@ migrate-new:
 
 migrate-down:
 	docker compose exec backend alembic downgrade -1
+
+migrate-check:
+	python3 src/backend/scripts/check_migrations.py
 
 # ── Agent skills ─────────────────────────────────────────────────────────────
 

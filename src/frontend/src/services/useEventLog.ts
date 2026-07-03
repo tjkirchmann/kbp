@@ -1,16 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
-import { ApiError } from '@/lib/apiError'
-
-const API = import.meta.env.VITE_API_URL
-
-async function authFetch(token: string, path: string) {
-  const res = await fetch(`${API}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  if (!res.ok) throw new ApiError(res.status)
-  return res.json()
-}
+import { apiFetch } from '../lib/api'
 
 export interface EventPayload {
   [key: string]: unknown
@@ -42,7 +32,7 @@ export function useEventLog(source?: string, minutes = 30) {
     queryKey: ['admin', 'events', source, minutes],
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, `/admin/events?${params}`)
+      return apiFetch(token!, `/admin/events?${params}`)
     },
     refetchInterval: 30_000,
   })
@@ -54,7 +44,7 @@ export function useEspnStatus() {
     queryKey: ['admin', 'espn', 'status'],
     queryFn: async () => {
       const token = await getToken()
-      return authFetch(token!, '/admin/espn/status')
+      return apiFetch(token!, '/admin/espn/status')
     },
     refetchInterval: 10_000,
   })

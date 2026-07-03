@@ -6,8 +6,6 @@ import { useAdminPools } from '@/services/useAdminPools'
 import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
 import AdminSidebar from '@/pages/admin/AdminSidebar'
 import AdminBreadcrumbs from '@/pages/admin/AdminBreadcrumbs'
-import { prettyTaskName } from '@/pages/admin/syncUtils'
-import { useRunDetail } from '@/services/useAdminSync'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useAuth } from '@clerk/react'
 import { useMe } from '@/services/useMe'
@@ -16,7 +14,7 @@ import { Navigate } from 'react-router-dom'
 const COLLAPSE_KEY = 'admin-sidebar-collapsed'
 
 function useBreadcrumbs() {
-  const { pathname, state } = useLocation()
+  const { pathname } = useLocation()
   const { data: users = [] } = useAdminUsers()
   const { data: pools = [] } = useAdminPools()
 
@@ -24,12 +22,6 @@ function useBreadcrumbs() {
     .replace(/^\/admin\/?/, '')
     .split('/')
     .filter(Boolean)
-
-  // On a run page, derive the parent task crumb. Prefer the task name passed via
-  // link state (available on first render, no flash); fall back to the cached run.
-  const runJobId = parts[0] === 'sync' && parts[1] === 'runs' ? parts[2] : undefined
-  const { data: run } = useRunDetail(runJobId)
-  const runTaskName = (state as { taskName?: string } | null)?.taskName ?? run?.task_name
 
   if (parts[0] === 'users') {
     const crumbs = [{ label: 'Users', to: '/admin/users' }]
@@ -64,19 +56,6 @@ function useBreadcrumbs() {
     if (parts[1] === 'espn') crumbs.push({ label: 'ESPN', to: '/admin/integrations/espn' })
     return crumbs
   }
-  if (parts[0] === 'sync') {
-    const crumbs = [{ label: 'Sync', to: '/admin/sync' }]
-    if (parts[1] === 'runs' && parts[2]) {
-      if (runTaskName) {
-        crumbs.push({ label: prettyTaskName(runTaskName), to: `/admin/sync/tasks/${runTaskName}` })
-      }
-      crumbs.push({ label: `Run ${parts[2]}`, to: '' })
-    } else if (parts[1] === 'tasks' && parts[2]) {
-      crumbs.push({ label: prettyTaskName(parts[2]), to: '' })
-    }
-    return crumbs
-  }
-
   return [{ label: 'Admin', to: '/admin' }]
 }
 

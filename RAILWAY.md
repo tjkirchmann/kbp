@@ -1,14 +1,16 @@
 # Railway Deployment
 
-This project runs 3 services on Railway. The backend API, the Procrastinate worker, and the Discord bot all run inside the single `backend` service managed by supervisord. Background jobs (CFBD + ESPN sync) run on Procrastinate, backed by Postgres — there is no Redis or Celery. The Discord bot is a long-lived gateway connection that listens for slash commands / messages and posts; it stays dormant (exits cleanly, no restart loop) until `DISCORD_BOT_TOKEN` is set.
+This project runs 3 services on Railway. The backend API, the Temporal worker, and the Discord bot all run inside the single `backend` service managed by supervisord. Background jobs (CFBD + ESPN sync) run on Temporal as durable workflows + schedules (`app/temporal/`). The Discord bot is a long-lived gateway connection that listens for slash commands / messages and posts; it stays dormant (exits cleanly, no restart loop) until `DISCORD_BOT_TOKEN` is set.
+
+> **Deployment gap (TODO):** the Temporal worker needs a Temporal **server** to connect to. Locally that's the `temporal` compose service; in prod it must be Temporal Cloud (set `TEMPORAL_API_KEY` + `TEMPORAL_ADDRESS`/`TEMPORAL_NAMESPACE`) or a self-hosted Temporal service on Railway. This is not yet provisioned — `app/core/temporal.py` reads the connection from env and supports both, but the prod target must be stood up before the worker will run.
 
 ## Services
 
 | Service | Root Directory | Notes |
 |---------|---------------|-------|
 | `frontend` | `src/frontend` | nginx, serves built React app |
-| `backend` | `src/backend` | uvicorn + procrastinate worker + discord bot via supervisord |
-| `postgres` | Railway managed | also backs the Procrastinate job queue |
+| `backend` | `src/backend` | uvicorn + temporal worker + discord bot via supervisord |
+| `postgres` | Railway managed | app data (Temporal state lives in the Temporal server's own store) |
 
 ## Setting Up a New Environment
 
@@ -21,7 +23,7 @@ Create two services pointing at this repo:
 - `frontend` → Root Directory: `src/frontend`
 - `backend` → Root Directory: `src/backend`
 
-Both have `railway.toml` files that tell Railway which Dockerfile to use and how to health-check them. No start command override needed — `backend` runs `./start.sh` which runs migrations, applies the Procrastinate schema, then starts supervisord (which manages uvicorn and the procrastinate worker).
+Both have `railway.toml` files that tell Railway which Dockerfile to use and how to health-check them. No start command override needed — `backend` runs `./start.sh` which runs migrations, then starts supervisord (which manages uvicorn and the temporal worker).
 
 ### 3. Set environment variables
 
@@ -52,7 +54,7 @@ Deploy `postgres` first (Railway resolves `${{...}}` references automatically). 
 
 ## Local Development
 
-Local dev uses `docker compose up --build` from the repo root. The Procrastinate worker runs as a separate container locally (better log isolation, can restart independently). supervisord is only used in the production container.
+Local dev uses `docker compose up --build` from the repo root. The Temporal worker runs as a separate `temporal_worker` container locally (better log isolation, can restart independently), against the local `temporal` server service. supervisord is only used in the production container.
 
 Copy `.env.example` to `.env` and fill in your secrets — that's the only setup required.
 
