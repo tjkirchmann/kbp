@@ -53,6 +53,11 @@ function useBreadcrumbs() {
 
   if (parts[0] === 'teams') return [{ label: 'Teams', to: '/admin/teams' }]
   if (parts[0] === 'library') return [{ label: 'Library', to: '/admin/library' }]
+  if (parts[0] === 'ai-structs') {
+    const crumbs = [{ label: 'AI Structs', to: '/admin/ai-structs' }]
+    if (parts[1]) crumbs.push({ label: parts[1], to: '' })
+    return crumbs
+  }
   if (parts[0] === 'comms') return [{ label: 'Comms', to: '/admin/comms' }]
   if (parts[0] === 'integrations') {
     const crumbs = [{ label: 'Integrations', to: '/admin/integrations' }]
@@ -108,13 +113,13 @@ export default function AdminShell() {
   if (me && !me.is_admin) return <Navigate to="/" replace />
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col">
+    <div className="admin-bg h-screen overflow-hidden flex flex-col">
       <div className="flex flex-1 min-h-0">
         <AdminSidebar collapsed={collapsed} onToggleSidebar={() => setCollapsed((c) => !c)} />
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          {/* Header: flush glass bar with just the diagonal hatch + info toggle. */}
-          <div className="shrink-0 flex h-16 items-center gap-6 px-6 border-b border-border/40 bg-[rgba(16,18,24,0.62)] shadow-xl shadow-black/30 backdrop-blur-xl">
-            <div className="hatch flex-1 h-8 rounded" />
+          {/* Header: sits directly on the gradient — just the info toggle, right-aligned. */}
+          <div className="shrink-0 flex h-16 items-center gap-6 px-6">
+            <div className="flex-1" />
             <button
               onClick={() => setInfoOpen((v) => !v)}
               className={`p-1.5 rounded-full transition-colors shrink-0 ${
@@ -126,13 +131,15 @@ export default function AdminShell() {
               <Info className="size-4" />
             </button>
           </div>
-          {/* Breadcrumbs live on the naked background, below the header. */}
-          <AdminBreadcrumbs crumbs={breadcrumbs} />
-          <div
-            key={pathname}
-            className="px-6 pb-6 flex-1 min-h-0 overflow-y-auto animate-view-fade-in"
-          >
-            {infoOpen ? <AdminInfoPanel section={currentSection} /> : <Outlet />}
+          {/* Dark content panel floating on the gradient; breadcrumbs live inside it. */}
+          <div className="mx-4 mb-4 flex-1 min-h-0 flex flex-col rounded-2xl border border-white/10 bg-[#14161d]/95 shadow-2xl shadow-black/40 overflow-hidden">
+            <AdminBreadcrumbs crumbs={breadcrumbs} />
+            <div
+              key={pathname}
+              className="px-6 pb-6 flex-1 min-h-0 overflow-y-auto animate-view-fade-in"
+            >
+              {infoOpen ? <AdminInfoPanel section={currentSection} /> : <Outlet />}
+            </div>
           </div>
         </div>
       </div>
