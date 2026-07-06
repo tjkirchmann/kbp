@@ -17,6 +17,7 @@ CLI:  python -m app.temporal.struct_output.schedule <name> [--overwrite]
 """
 
 import logging
+from datetime import timedelta
 
 from temporalio.client import (
     Client,
@@ -29,6 +30,7 @@ from temporalio.client import (
     ScheduleUpdate,
     ScheduleUpdateInput,
 )
+from temporalio.service import RPCError, RPCStatusCode
 
 from app.core.config import settings
 from app.services.struct_output.base import BaseDefinition, all_scheduled
@@ -45,6 +47,11 @@ def schedule_id(name: str) -> str:
     return f"struct-output-{name}"
 
 
+# Bound how far back a restarted Temporal server will backfill missed runs; one
+# day comfortably covers a daily schedule without replaying ancient slots.
+_CATCHUP_WINDOW = timedelta(days=1)
+
+
 def _desired_schedule(defn: BaseDefinition) -> Schedule:
     return Schedule(
         action=ScheduleActionStartWorkflow(
@@ -55,19 +62,29 @@ def _desired_schedule(defn: BaseDefinition) -> Schedule:
             task_queue=settings.temporal_task_queue,
         ),
         spec=ScheduleSpec(cron_expressions=[defn.cron]),
-        policy=SchedulePolicy(overlap=ScheduleOverlapPolicy.SKIP),
+        policy=SchedulePolicy(
+            overlap=ScheduleOverlapPolicy.SKIP,
+            catchup_window=_CATCHUP_WINDOW,
+        ),
     )
 
 
 async def ensure_schedule(client: Client, defn: BaseDefinition) -> None:
     sid = schedule_id(defn.name)
+    schedule = _desired_schedule(defn)
     try:
-        await client.create_schedule(sid, _desired_schedule(defn))
+        await client.create_schedule(sid, schedule)
         logger.info("Created struct-output schedule %s (cron %s)", sid, defn.cron)
-    except ScheduleAlreadyRunningError:
+    except (ScheduleAlreadyRunningError, RPCError) as err:
+        # The SDK raises the typed ScheduleAlreadyRunningError when the schedule
+        # exists; older/other paths surface a raw RPCError(ALREADY_EXISTS). Treat
+        # both as "exists → update" so worker reboots are idempotent. Anything
+        # else is a real error and propagates.
+        if isinstance(err, RPCError) and err.status != RPCStatusCode.ALREADY_EXISTS:
+            raise
 
         def _update(_input: ScheduleUpdateInput) -> ScheduleUpdate:
-            return ScheduleUpdate(schedule=_desired_schedule(defn))
+            return ScheduleUpdate(schedule=schedule)
 
         await client.get_schedule_handle(sid).update(_update)
         logger.info("Updated struct-output schedule %s (cron %s)", sid, defn.cron)

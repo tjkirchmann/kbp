@@ -4,7 +4,7 @@ import { useVerifyPassword } from '@/services/useSubmission'
 
 interface Props {
   poolId: number
-  onComplete: () => void
+  onComplete: (password: string) => void
 }
 
 export default function PasswordStep({ poolId, onComplete }: Props) {
@@ -17,7 +17,7 @@ export default function PasswordStep({ poolId, onComplete }: Props) {
     setError(null)
     try {
       await verify.mutateAsync(password)
-      onComplete()
+      onComplete(password)
     } catch {
       setError('Incorrect password. Please try again.')
     }

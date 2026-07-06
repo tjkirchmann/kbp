@@ -12,6 +12,7 @@ Driven by a Temporal Schedule (every ~1 min). Each run:
 The seeder is cheap and short-lived; the per-game workflows do the actual fast
 polling and outlive any single seeder run (``ParentClosePolicy.ABANDON``).
 """
+
 from datetime import timedelta
 
 from temporalio import workflow

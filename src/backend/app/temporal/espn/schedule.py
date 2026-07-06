@@ -10,6 +10,7 @@ worker boot, so the schedule is declared in code and self-heals.
 Overlap policy is SKIP: seeder ticks never stack — a slow tick is simply dropped,
 and the next minute's tick re-derives live games from scratch anyway.
 """
+
 import logging
 
 from temporalio.client import (

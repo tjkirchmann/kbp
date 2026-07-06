@@ -7,6 +7,7 @@ the workflow boundary, keeping workflow history small. The workflow only ever
 sees small typed results. Transform logic lives in
 ``app.services.sync.cfbd_plays_syncers``.
 """
+
 from dataclasses import dataclass, field
 
 from temporalio import activity

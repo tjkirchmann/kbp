@@ -9,6 +9,7 @@ aggregate shape the former Procrastinate task returned.
 Durability: the workflow remembers which activities have completed, so a worker
 crash mid-run resumes only the unfinished ones rather than redoing everything.
 """
+
 import asyncio
 from datetime import timedelta
 

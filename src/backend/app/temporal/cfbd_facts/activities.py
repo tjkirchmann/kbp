@@ -7,6 +7,7 @@ and committed entirely *inside* ``sync_fact_season`` — it never crosses the
 workflow boundary, keeping workflow history small and within Temporal's payload
 limits. The workflow only ever sees small typed results.
 """
+
 from dataclasses import dataclass, field
 
 from temporalio import activity

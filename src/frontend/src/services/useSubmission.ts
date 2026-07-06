@@ -54,8 +54,11 @@ export interface MySubmission {
   id: number
   on_behalf_of_name: string // '' = self-submission
   created_at: string
-  is_locked: boolean
   submitted_at: string | null
+}
+
+export function isSubmitted(sub: MySubmission): boolean {
+  return sub.submitted_at !== null
 }
 
 export function useOpenPools() {
@@ -89,7 +92,11 @@ export function useVerifyPassword(poolId: number) {
 export function useEnterPool(poolId: number) {
   const { getToken } = useAuth()
   return useMutation({
-    mutationFn: async (body: { on_behalf_of_name: string; on_behalf_of_email: string | null }) => {
+    mutationFn: async (body: {
+      on_behalf_of_name: string
+      on_behalf_of_email: string | null
+      password: string | null
+    }) => {
       const token = await getToken()
       return apiFetch(token, `/submission/pools/${poolId}/enter`, {
         method: 'POST',

@@ -9,6 +9,7 @@ Each entry starts a fresh workflow run with a timestamped id so manual triggers
 never collide with scheduled runs. Scheduled jobs (games/dims/facts) and run-only
 jobs (plays) are triggered the same way here — start the workflow directly.
 """
+
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 

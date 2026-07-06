@@ -90,9 +90,7 @@ class BaseDefinition(ABC):
         """Entity ids already stored in this definition's output table."""
 
     @abstractmethod
-    async def fetch_source_row(
-        self, db: AsyncSession, entity_id: int
-    ) -> dict | None:
+    async def fetch_source_row(self, db: AsyncSession, entity_id: int) -> dict | None:
         """One source row as {pk + label_fields} for prompt rendering. None if gone."""
 
     @abstractmethod
@@ -163,9 +161,7 @@ class StaticDefinition(BaseDefinition):
         rows = await db.execute(select(pk_col))
         return {r[0] for r in rows.all()}
 
-    async def fetch_source_row(
-        self, db: AsyncSession, entity_id: int
-    ) -> dict | None:
+    async def fetch_source_row(self, db: AsyncSession, entity_id: int) -> dict | None:
         obj = await db.get(self.source_model, entity_id)
         if obj is None:
             return None
@@ -233,9 +229,7 @@ class DynamicDefinition(BaseDefinition):
     async def fetch_source_ids(self, db: AsyncSession) -> list[int]:
         return await registry.fetch_source_ids(db, self.row)
 
-    async def fetch_source_row(
-        self, db: AsyncSession, entity_id: int
-    ) -> dict | None:
+    async def fetch_source_row(self, db: AsyncSession, entity_id: int) -> dict | None:
         return await registry.fetch_source_row(db, self.row, entity_id)
 
     async def existing_entity_ids(self, db: AsyncSession) -> set[int]:

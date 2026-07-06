@@ -91,7 +91,9 @@ class PoolSubmission(Base):
     submitted_by_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), nullable=False, index=True
     )
-    on_behalf_of_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    on_behalf_of_name: Mapped[str] = mapped_column(
+        String, nullable=False, server_default=""
+    )
     on_behalf_of_email: Mapped[str | None] = mapped_column(String, nullable=True)
     is_locked: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="false"

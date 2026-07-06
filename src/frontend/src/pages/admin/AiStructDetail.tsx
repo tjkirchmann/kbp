@@ -65,7 +65,10 @@ export default function AiStructDetail() {
                 {def.data.tier}
               </span>
               <span className="whitespace-nowrap text-xs text-muted-foreground">
-                source <span className="font-mono text-foreground/90">{def.data.source ?? def.data.source_table}</span>
+                source{' '}
+                <span className="font-mono text-foreground/90">
+                  {def.data.source ?? def.data.source_table}
+                </span>
               </span>
               <span className="whitespace-nowrap text-xs text-muted-foreground">
                 model <span className="font-mono text-foreground/90">{def.data.model}</span>
@@ -157,10 +160,7 @@ export default function AiStructDetail() {
                             </td>
                           ))}
                           {columns.map((c) => (
-                            <td
-                              key={c}
-                              className="whitespace-nowrap px-3 py-2 text-foreground/80"
-                            >
+                            <td key={c} className="whitespace-nowrap px-3 py-2 text-foreground/80">
                               {fmt(row[c])}
                             </td>
                           ))}

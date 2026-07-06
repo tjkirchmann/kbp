@@ -89,6 +89,16 @@
 }
 
 @layer base {
+  /* Hide native number input spinners — design language uses custom styling only. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
   * {
     border-color: var(--color-border);
   }
@@ -134,6 +144,26 @@
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Themed thin scrollbar — light track, border-colored thumb */
+  .scrollbar-themed {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-themed::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .scrollbar-themed::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-themed::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  .scrollbar-themed::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border) / 0.8);
   }
 }
 
@@ -400,4 +430,30 @@
 
 .cl-formFieldInput::placeholder {
   color: #4a5068;
+}
+
+/* ─── Modal animations ──────────────────────────── */
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-modal-overlay-in {
+  animation: modal-overlay-in 150ms ease-out both;
+}
+.animate-modal-panel-in {
+  animation: modal-panel-in 200ms ease-out both;
 }

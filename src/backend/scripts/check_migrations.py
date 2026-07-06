@@ -132,7 +132,9 @@ def check_chain(nodes: dict[str, dict]) -> None:
     merges = sum(1 for i in nodes.values() if len(i["parents"]) > 1)
     merge_note = f", {merges} merge" if merges else ""
     print(f"  ✓ single head: {heads[0]} ({nodes[heads[0]]['file']})")
-    print(f"  ✓ chain intact: {len(nodes)} migrations{merge_note}, all reachable from head")
+    print(
+        f"  ✓ chain intact: {len(nodes)} migrations{merge_note}, all reachable from head"
+    )
 
 
 def check_one_per_pr(base_ref: str) -> None:

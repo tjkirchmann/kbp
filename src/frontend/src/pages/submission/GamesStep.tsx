@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useToast } from '@/components/toast/ToastContext'
+import { ApiError } from '@/lib/apiError'
 import {
   usePoolGames,
   useSubmissionPicks,
@@ -27,11 +29,33 @@ function teamBg(meta: TeamMeta | null): string {
     : 'linear-gradient(160deg, #1a1d24 0%, #0d0f13 100%)'
 }
 
-function gameTitle(game: PoolGame): string {
+function formatGameDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function GameHeader({ game }: { game: PoolGame }) {
   const matchup = game.neutral_site
     ? `${game.away_team} vs. ${game.home_team}`
     : `${game.away_team} at ${game.home_team}`
-  return game.bowl_name ? `${game.bowl_name}, ${matchup}` : matchup
+  const date = formatGameDate(game.start_date)
+
+  return (
+    <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-sm font-medium text-foreground truncate">{matchup}</span>
+        {game.bowl_name && (
+          <span className="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary">
+            {game.bowl_name}
+          </span>
+        )}
+      </div>
+      <span className="shrink-0 text-xs text-muted-foreground">{date}</span>
+    </div>
+  )
 }
 
 function PlaceholderSections() {
@@ -85,12 +109,14 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
 
   return (
     <div
-      className="flex-1 relative overflow-hidden rounded-xl flex flex-col cursor-pointer select-none"
+      className={`flex-1 relative overflow-hidden rounded-xl flex flex-col cursor-pointer select-none transition-shadow ${
+        isSelected ? 'ring-[3px] ring-white/90' : ''
+      }`}
       style={{ background: teamBg(meta) }}
       onClick={onSelect}
     >
-      {/* Top ~33%: logo ring pinned to top-center, name below, margin controls when selected */}
-      <div className="h-[33%] shrink-0 flex flex-col items-center gap-1 pt-3">
+      {/* Logo ring, name, and margin controls */}
+      <div className="shrink-0 flex flex-col items-center gap-1 pt-3 pb-2">
         {/* Logo ring — always at top, no layout shift on select */}
         <div
           className={`rounded-full p-1.5 border-2 transition-all ${
@@ -115,36 +141,37 @@ function TeamCard({ team, meta, isSelected, pick, onSelect, onMarginChange }: Te
         {/* Team name */}
         <p className="text-sm font-bold text-white text-center px-2 leading-tight">{team}</p>
 
-        {/* Inline margin controls — only when selected */}
-        {isSelected && (
-          <div className="flex flex-col items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <input
-              type="number"
-              min={1}
-              value={pick?.margin ?? 1}
-              onChange={handleMarginInput}
-              className="w-12 text-center bg-white/10 border border-white/20 rounded text-white text-sm py-0.5 focus:outline-none focus:border-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <div className="flex gap-1">
-              {[-7, -3, -1, 1, 3, 7].map((n) => (
-                <button
-                  key={n}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onMarginChange(Math.max(1, (pick?.margin ?? 1) + n))
-                  }}
-                  className="px-1.5 py-0.5 rounded-full bg-white/15 text-white text-xs font-medium hover:bg-white/30 transition-colors tabular-nums"
-                >
-                  {n > 0 ? `+${n}` : n}
-                </button>
-              ))}
-            </div>
+        {/* Margin controls — space reserved always to prevent layout jank */}
+        <div
+          className={`flex flex-col items-center gap-1 ${isSelected ? '' : 'invisible'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="number"
+            min={1}
+            value={pick?.margin ?? 1}
+            onChange={handleMarginInput}
+            className="w-12 text-center bg-white/10 border border-white/20 rounded text-white text-sm py-0.5 focus:outline-none focus:border-white/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="flex gap-1">
+            {[-7, -3, -1, 1, 3, 7].map((n) => (
+              <button
+                key={n}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onMarginChange(Math.max(1, (pick?.margin ?? 1) + n))
+                }}
+                className="px-1.5 py-0.5 rounded-full bg-white/15 text-white text-xs font-medium hover:bg-white/30 transition-colors tabular-nums"
+              >
+                {n > 0 ? `+${n}` : n}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Bottom ~67%: placeholder sections */}
+      {/* Placeholder sections for future team stats */}
       <PlaceholderSections />
 
       {/* Non-selected but has pick: margin badge */}
@@ -167,6 +194,7 @@ export default function GamesStep({
   const { data: games = [] } = usePoolGames(poolId)
   const { data: existingPicks = [] } = useSubmissionPicks(submissionId)
   const savePick = useSavePick(submissionId)
+  const { toast } = useToast()
 
   const [picks, setPicks] = useState<Record<number, Pick>>({})
   const [savedFlash, setSavedFlash] = useState(false)
@@ -197,9 +225,31 @@ export default function GamesStep({
   function scheduleAutosave(poolGameId: number, winner: string, margin: number) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
-      await savePick.mutateAsync({ poolGameId, pickedWinner: winner, pickedMargin: margin })
-      setSavedFlash(true)
-      setTimeout(() => setSavedFlash(false), 2000)
+      try {
+        await savePick.mutateAsync({ poolGameId, pickedWinner: winner, pickedMargin: margin })
+        setSavedFlash(true)
+        setTimeout(() => setSavedFlash(false), 2000)
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 403) {
+          toast({
+            variant: 'error',
+            title: 'Submissions are closed',
+            description: 'This pool is no longer accepting entries.',
+          })
+        } else if (err instanceof ApiError && err.status === 400) {
+          toast({
+            variant: 'warning',
+            title: 'Past the deadline',
+            description: 'The submission deadline has passed.',
+          })
+        } else {
+          toast({
+            variant: 'error',
+            title: 'Save failed',
+            description: 'Something went wrong. Please try again.',
+          })
+        }
+      }
     }, 1500)
   }
 
@@ -220,10 +270,8 @@ export default function GamesStep({
 
   return (
     <div className="flex flex-col h-full gap-3">
-      {/* Title */}
-      <p className="text-sm text-white/80 font-medium text-right leading-tight shrink-0">
-        {gameTitle(game)}
-      </p>
+      {/* Game header */}
+      <GameHeader game={game} />
 
       {/* Cards */}
       <div className="flex gap-3 flex-1 min-h-0">

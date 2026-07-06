@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import RecordBook from './pages/RecordBook'
@@ -8,13 +8,14 @@ import UserDetail from './pages/admin/UserDetail'
 import PoolsList from './pages/admin/PoolsList'
 import PoolCreate from './pages/admin/PoolCreate'
 import PoolDetail from './pages/admin/PoolDetail'
-import TeamsList from './pages/admin/TeamsList'
 import CommsPanel from './pages/admin/CommsPanel'
 import IntegrationsShell from './pages/admin/IntegrationsShell'
 import EspnPanel from './pages/admin/EspnPanel'
 import LibraryPanel from './pages/admin/LibraryPanel'
 import AiStructsList from './pages/admin/AiStructsList'
 import AiStructDetail from './pages/admin/AiStructDetail'
+import CfbdWorkspace from './pages/admin/cfbd/CfbdWorkspace'
+import CoverageDashboard from './pages/admin/cfbd/CoverageDashboard'
 import SubmissionShell from './pages/submission/SubmissionShell'
 import PoolSelectStep from './pages/submission/PoolSelectStep'
 import SubmissionWorkspace from './pages/submission/SubmissionWorkspace'
@@ -36,6 +37,11 @@ export default function App() {
         {/* Back-compat: the old top-level ESPN route now lives under Integrations. */}
         <Route path="espn" element={<Navigate to="/admin/integrations/espn" replace />} />
         <Route path="library" element={<LibraryPanel />} />
+        <Route path="cfbd" element={<Outlet />}>
+          <Route index element={<Navigate to="coverage" replace />} />
+          <Route path="coverage" element={<CoverageDashboard />} />
+          <Route path=":tableSlug" element={<CfbdWorkspace />} />
+        </Route>
         <Route path="ai-structs" element={<AiStructsList />} />
         <Route path="ai-structs/:name" element={<AiStructDetail />} />
         <Route path="users" element={<UsersList />} />
@@ -43,7 +49,6 @@ export default function App() {
         <Route path="pools" element={<PoolsList />} />
         <Route path="pools/new" element={<PoolCreate />} />
         <Route path="pools/:poolId" element={<PoolDetail />} />
-        <Route path="teams" element={<TeamsList />} />
       </Route>
       <Route path="/submission" element={<SubmissionShell />}>
         <Route index element={<PoolSelectStep />} />

@@ -111,7 +111,5 @@ class CommandsCog(commands.Cog):
             icon = _STATUS_ICON.get(status_name, "⏳")
             when = wf.close_time or wf.start_time
             ts = f" ({when:%Y-%m-%d %H:%M} UTC)" if when else ""
-            lines.append(
-                f"{icon} `{wf.workflow_type}` — {status_name.lower()}{ts}"
-            )
+            lines.append(f"{icon} `{wf.workflow_type}` — {status_name.lower()}{ts}")
         await interaction.response.send_message("**Recent runs**\n" + "\n".join(lines))

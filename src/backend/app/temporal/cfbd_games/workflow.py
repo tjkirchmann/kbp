@@ -8,6 +8,7 @@ deterministic.
 Durability: a worker crash mid-run resumes the activity rather than losing the
 run; the activity is idempotent, so a partial run re-converges on retry.
 """
+
 from datetime import timedelta
 
 from temporalio import workflow

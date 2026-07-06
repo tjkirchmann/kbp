@@ -5,7 +5,6 @@ import {
   Plug,
   Users,
   Trophy,
-  Shield,
   FolderOpen,
   ChevronDown,
   Activity,
@@ -13,6 +12,8 @@ import {
   PanelLeft,
   ArrowLeft,
   BrainCircuit,
+  Database,
+  BarChart3,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useClerk } from '@clerk/react'
@@ -41,11 +42,17 @@ const groups: Group[] = [
     ],
   },
   {
-    label: 'Pools',
+    label: 'CFBD',
+    items: [
+      { id: 'cfbd/coverage', label: 'Coverage', icon: BarChart3 },
+      { id: 'cfbd/rankings', label: 'Data Explorer', icon: Database },
+    ],
+  },
+  {
+    label: 'Admin',
     items: [
       { id: 'users', label: 'Users', icon: Users },
       { id: 'pools', label: 'Pools', icon: Trophy },
-      { id: 'teams', label: 'Teams', icon: Shield },
     ],
   },
 ]

@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createPortal } from 'react-dom'
 import { Plus, Trophy, Loader2, Trash2 } from 'lucide-react'
 import { useAdminPools, useDeletePool, type AdminPool } from '@/services/useAdminPools'
-import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
-import AdminVirtualTable, { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
+import AdminListTable from '@/components/admin/AdminListTable'
+import { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
+import Modal from '@/components/ui/Modal'
 
 const ROW_HEIGHT = 48
 
@@ -18,16 +18,9 @@ const COLUMNS: AdminTableColumn[] = [
 
 export default function PoolsList() {
   const navigate = useNavigate()
-  const { data: pools = [], isLoading } = useAdminPools()
+  const { data: pools = [], isLoading, error } = useAdminPools()
   const deletePool = useDeletePool()
   const [confirmDelete, setConfirmDelete] = useState<AdminPool | null>(null)
-  const [search, setSearch] = useState('')
-
-  const filtered = useMemo(() => {
-    if (!search) return pools
-    const q = search.toLowerCase()
-    return pools.filter((p) => p.name.toLowerCase().includes(q))
-  }, [pools, search])
 
   function renderRow(pool: AdminPool) {
     return (
@@ -70,15 +63,27 @@ export default function PoolsList() {
   }
 
   return (
-    <div className="h-full flex flex-col gap-3">
-      <AdminTableToolbar
-        count={filtered.length}
-        total={pools.length}
-        noun="pool"
-        search={search}
-        onSearch={setSearch}
-        searchPlaceholder="Search pools…"
-      >
+    <AdminListTable<AdminPool>
+      data={pools}
+      isLoading={isLoading}
+      error={error as Error | null}
+      columns={COLUMNS}
+      rowKey={(p) => p.id}
+      rowHeight={ROW_HEIGHT}
+      renderRow={renderRow}
+      noun="pool"
+      searchKeys={['name']}
+      searchPlaceholder="Search pools…"
+      emptyState={
+        <div className="flex flex-col items-center justify-center flex-1 gap-3 text-muted-foreground">
+          <Trophy className="size-8 opacity-30" />
+          <p className="text-sm">No pools yet. Create one to get started.</p>
+        </div>
+      }
+      noMatchState={
+        <p className="text-sm text-muted-foreground py-4">No pools match your search.</p>
+      }
+      toolbarChildren={
         <button
           onClick={() => navigate('/admin/pools/new')}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
@@ -86,60 +91,40 @@ export default function PoolsList() {
           <Plus className="size-4" />
           New Pool
         </button>
-      </AdminTableToolbar>
-
-      <AdminVirtualTable
-        columns={COLUMNS}
-        rows={filtered}
-        rowKey={(p) => p.id}
-        rowHeight={ROW_HEIGHT}
-        isLoading={isLoading}
-        isFiltered={search !== ''}
-        renderRow={renderRow}
-        emptyState={
-          <div className="flex flex-col items-center justify-center flex-1 gap-3 text-muted-foreground">
-            <Trophy className="size-8 opacity-30" />
-            <p className="text-sm">No pools yet. Create one to get started.</p>
-          </div>
+      }
+    >
+      <Modal
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        title="Delete this pool?"
+        size="sm"
+        footer={
+          <>
+            <button
+              onClick={() => setConfirmDelete(null)}
+              className="px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirmDelete) return
+                await deletePool.mutateAsync(confirmDelete.id)
+                setConfirmDelete(null)
+              }}
+              disabled={deletePool.isPending}
+              className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
+            >
+              {deletePool.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
+            </button>
+          </>
         }
-        noMatchState={
-          <p className="text-sm text-muted-foreground py-4">No pools match your search.</p>
-        }
-      />
-
-      {confirmDelete &&
-        createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-            <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
-              <div className="space-y-1.5">
-                <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  <span className="text-foreground font-medium">{confirmDelete.name}</span> and all
-                  its games will be permanently deleted. This cannot be undone.
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="flex-1 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={async () => {
-                    await deletePool.mutateAsync(confirmDelete.id)
-                    setConfirmDelete(null)
-                  }}
-                  disabled={deletePool.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
-                >
-                  {deletePool.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-    </div>
+      >
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          <span className="text-foreground font-medium">{confirmDelete?.name}</span> and all its
+          games will be permanently deleted. This cannot be undone.
+        </p>
+      </Modal>
+    </AdminListTable>
   )
 }

@@ -70,9 +70,7 @@ def _extract_metadata(probe: dict) -> dict:
 async def create_clip_from_library_file(db: AsyncSession, file_id: int) -> Clip:
     """Create a :class:`Clip` from an uploaded video ``LibraryFile``."""
     row = (
-        await db.execute(
-            select(LibraryFile).where(LibraryFile.id == file_id)
-        )
+        await db.execute(select(LibraryFile).where(LibraryFile.id == file_id))
     ).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="File not found")

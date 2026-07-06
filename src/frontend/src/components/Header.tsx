@@ -112,11 +112,19 @@ export default function Header() {
             <BookOpen className="size-4" />
             Record Book
           </button>
-          <button className={`${navBtn} opacity-40 cursor-not-allowed`} disabled title="Coming soon">
+          <button
+            className={`${navBtn} opacity-40 cursor-not-allowed`}
+            disabled
+            title="Coming soon"
+          >
             <Newspaper className="size-4" />
             Updates
           </button>
-          <button className={`${navBtn} opacity-40 cursor-not-allowed`} disabled title="Coming soon">
+          <button
+            className={`${navBtn} opacity-40 cursor-not-allowed`}
+            disabled
+            title="Coming soon"
+          >
             <Trophy className="size-4" />
             Standings
           </button>
@@ -156,11 +164,19 @@ export default function Header() {
             <BookOpen className="size-4" />
             Record Book
           </button>
-          <button className={`${mobileNavBtn} opacity-40 cursor-not-allowed`} disabled title="Coming soon">
+          <button
+            className={`${mobileNavBtn} opacity-40 cursor-not-allowed`}
+            disabled
+            title="Coming soon"
+          >
             <Newspaper className="size-4" />
             Updates
           </button>
-          <button className={`${mobileNavBtn} opacity-40 cursor-not-allowed`} disabled title="Coming soon">
+          <button
+            className={`${mobileNavBtn} opacity-40 cursor-not-allowed`}
+            disabled
+            title="Coming soon"
+          >
             <Trophy className="size-4" />
             Standings
           </button>

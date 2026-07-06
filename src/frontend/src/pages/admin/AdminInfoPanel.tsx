@@ -84,23 +84,6 @@ const INFO: Record<string, SectionInfo> = {
       },
     ],
   },
-  teams: {
-    title: 'Teams',
-    description:
-      'Read-only view of the college football team dataset synced from the CFBD (College Football Data) API. Teams are used to populate game matchups.',
-    features: [
-      {
-        name: 'Team List',
-        description:
-          'Virtualized table of all synced teams showing school name, mascot, abbreviation, conference, division, classification, and team colors.',
-      },
-      {
-        name: 'Sync Teams',
-        description:
-          'Triggers a full re-fetch from the CFBD API and upserts the results into the database. Run this at the start of each season or after conference realignment.',
-      },
-    ],
-  },
   'ai structs': {
     title: 'AI Structs',
     description:

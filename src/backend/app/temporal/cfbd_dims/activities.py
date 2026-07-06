@@ -209,6 +209,7 @@ def _coach_hash(c: dict) -> dict:
 class _DimSpec:
     """How to sync one single-PK dimension: fetch key, snapshot type, PK column,
     ORM model, and the row/hash mapping functions."""
+
     endpoint: str
     entity_type: str
     pk: str
@@ -220,22 +221,44 @@ class _DimSpec:
 # entity_key -> spec. The five single-PK dims; coaches is handled separately.
 _DIM_SPECS: dict[str, _DimSpec] = {
     "teams": _DimSpec(
-        "teams", "cfbd_team", "id", CfbdTeam, _team_row, _team_hash,
+        "teams",
+        "cfbd_team",
+        "id",
+        CfbdTeam,
+        _team_row,
+        _team_hash,
     ),
     "conferences": _DimSpec(
-        "conferences", "cfbd_conference", "id", CfbdConference,
-        _conference_row, _conference_hash,
+        "conferences",
+        "cfbd_conference",
+        "id",
+        CfbdConference,
+        _conference_row,
+        _conference_hash,
     ),
     "venues": _DimSpec(
-        "venues", "cfbd_venue", "id", CfbdVenue, _venue_row, _venue_hash,
+        "venues",
+        "cfbd_venue",
+        "id",
+        CfbdVenue,
+        _venue_row,
+        _venue_hash,
     ),
     "draft_positions": _DimSpec(
-        "draft_positions", "cfbd_draft_position", "name", CfbdDraftPosition,
-        _draft_position_row, lambda x: {"abbreviation": x.get("abbreviation")},
+        "draft_positions",
+        "cfbd_draft_position",
+        "name",
+        CfbdDraftPosition,
+        _draft_position_row,
+        lambda x: {"abbreviation": x.get("abbreviation")},
     ),
     "draft_teams": _DimSpec(
-        "draft_teams", "cfbd_draft_team", "display_name", CfbdDraftTeam,
-        _draft_team_row, lambda x: {k: x.get(k) for k in ("location", "nickname", "logo")},
+        "draft_teams",
+        "cfbd_draft_team",
+        "display_name",
+        CfbdDraftTeam,
+        _draft_team_row,
+        lambda x: {k: x.get(k) for k in ("location", "nickname", "logo")},
     ),
 }
 
@@ -275,7 +298,10 @@ async def sync_flat_dim(entity_key: str) -> dict[str, Any]:
         values = list(rows.values())
         if values:
             await batch_upsert(
-                db, spec.model, values, _BATCH(len(values[0])),
+                db,
+                spec.model,
+                values,
+                _BATCH(len(values[0])),
                 index_elements=(spec.pk,),
             )
         await db.commit()
@@ -319,14 +345,20 @@ async def sync_coaches() -> dict[str, Any]:
         coaches_v = list(coach_rows.values())
         if coaches_v:
             await batch_upsert(
-                db, CfbdCoach, coaches_v, _BATCH(len(coaches_v[0])),
+                db,
+                CfbdCoach,
+                coaches_v,
+                _BATCH(len(coaches_v[0])),
                 index_elements=("coach_id",),
             )
         activity.heartbeat("coaches upserted; upserting seasons")
         seasons_v = list(season_rows.values())
         if seasons_v:
             await batch_upsert(
-                db, CfbdCoachSeason, seasons_v, _BATCH(len(seasons_v[0])),
+                db,
+                CfbdCoachSeason,
+                seasons_v,
+                _BATCH(len(seasons_v[0])),
                 index_elements=("coach_id", "school", "year"),
             )
         await db.commit()

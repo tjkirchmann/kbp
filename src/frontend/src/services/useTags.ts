@@ -2,7 +2,6 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import { useAuth } from '@clerk/react'
 import { apiFetch } from '../lib/api'
 
-
 /** A tag applied to an entity. `color` is a .tag-* CSS class derived server-side. */
 export interface Tag {
   name: string

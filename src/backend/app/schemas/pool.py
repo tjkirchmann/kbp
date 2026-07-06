@@ -139,6 +139,7 @@ class PublicPoolSchema(BaseModel):
 class SubmissionCreate(BaseModel):
     on_behalf_of_name: str
     on_behalf_of_email: str | None = None
+    password: str | None = None
 
 
 class PasswordVerify(BaseModel):
@@ -175,7 +176,6 @@ class MySubmissionSchema(BaseModel):
     id: int
     on_behalf_of_name: str
     created_at: datetime
-    is_locked: bool
     submitted_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 

@@ -21,6 +21,7 @@ export default function SubmissionWorkspace() {
   usePageTitle(pool ? pool.name : 'Enter a Pool')
 
   const [passwordVerified, setPasswordVerified] = useState(false)
+  const [poolPassword, setPoolPassword] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<StepId | null>(null)
   const [completedSteps, setCompletedSteps] = useState<Set<StepId>>(new Set())
   const [submissionId, setSubmissionId] = useState<number | null>(null)
@@ -84,7 +85,8 @@ export default function SubmissionWorkspace() {
     setCurrentStep(next)
   }
 
-  function handlePasswordComplete() {
+  function handlePasswordComplete(password: string) {
+    setPoolPassword(password)
     setPasswordVerified(true)
     advance('password', 'entry')
   }
@@ -98,18 +100,30 @@ export default function SubmissionWorkspace() {
   return (
     <div className="space-y-4">
       <div>
-        <button
-          onClick={() => navigate('/submission')}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
-        >
-          <ChevronLeft className="size-4" />
-          All Pools
-        </button>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
-          {pool.requires_password && <Lock className="size-5 text-muted-foreground shrink-0" />}
-          {pool.name}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{pool.season_year} season</p>
+        <div className="flex items-center gap-3 text-sm">
+          <button
+            onClick={() => navigate('/submission')}
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          >
+            <ChevronLeft className="size-4" />
+            All Pools
+          </button>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {pool.requires_password && (
+              <Lock className="size-5 text-muted-foreground shrink-0 inline mr-1.5" />
+            )}
+            {pool.name}
+          </h1>
+          <span className="text-lg text-muted-foreground">{pool.season_year}</span>
+          {entryName && (
+            <>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="text-muted-foreground">
+                Entry for <span className="font-medium text-foreground">{entryName}</span>
+              </span>
+            </>
+          )}
+        </div>
       </div>
       <div className="flex gap-6">
         <StepRail
@@ -137,7 +151,11 @@ export default function SubmissionWorkspace() {
             <PasswordStep poolId={pool.id} onComplete={handlePasswordComplete} />
           )}
           {activeStep === 'entry' && (
-            <EntryMetaStep poolId={pool.id} onComplete={handleEntryComplete} />
+            <EntryMetaStep
+              poolId={pool.id}
+              poolPassword={poolPassword}
+              onComplete={handleEntryComplete}
+            />
           )}
           {activeStep === 'games' && submissionId && (
             <GamesStep

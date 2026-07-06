@@ -6,6 +6,7 @@ trigger. Uses a timestamped id so manual runs never collide.
 
 Run as: python -m app.temporal.cfbd_plays.starter
 """
+
 import asyncio
 import json
 from datetime import UTC, datetime

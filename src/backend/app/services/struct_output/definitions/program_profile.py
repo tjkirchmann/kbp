@@ -235,7 +235,9 @@ class ProgramProfileDefinition(StaticDefinition):
     output_orm = StructOutputProgramProfile
     source_model = CfbdTeam
     source_label_fields = ["school", "mascot", "conference"]
-    cron = "0 4 * * *"  # nightly 04:00 UTC; populate-only (scheduled runs never overwrite)
+    cron = (
+        "0 4 * * *"  # nightly 04:00 UTC; populate-only (scheduled runs never overwrite)
+    )
     model = ""  # blank → settings.openrouter_default_model
     prompt_template = _build_prompt()
 

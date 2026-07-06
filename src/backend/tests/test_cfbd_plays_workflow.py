@@ -4,6 +4,7 @@ Verifies the smart-sync coverage logic: completed (endpoint, year) pairs are
 skipped, missing/in-progress ones are synced, and per-season results aggregate
 into the parent's per-endpoint summary. This is the same topology cfbd_facts uses.
 """
+
 import uuid
 
 from temporalio import activity

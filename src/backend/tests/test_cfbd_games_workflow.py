@@ -4,6 +4,7 @@ The games workflow is the simplest: derive the current year from workflow.now()
 and run one sync activity for it. Verifies the year passed to the activity matches
 the workflow clock and the activity result is returned verbatim.
 """
+
 import uuid
 
 from temporalio import activity
