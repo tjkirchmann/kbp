@@ -9,6 +9,7 @@ Overlap policy is SKIP: if a run is still going when the next fires, the new one
 is dropped rather than stacked — the same guarantee Procrastinate's
 ``queueing_lock`` gave the old task.
 """
+
 import logging
 
 from temporalio.client import (

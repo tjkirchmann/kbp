@@ -6,6 +6,7 @@ timestamped id so manual runs don't collide with the scheduled one.
 
 Run as: python -m app.temporal.cfbd_games.starter
 """
+
 import asyncio
 import json
 from datetime import UTC, datetime

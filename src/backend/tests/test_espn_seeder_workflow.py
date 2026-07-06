@@ -4,6 +4,7 @@ Verifies the seeder spawns one EspnGameWorkflow per live game with the fixed id
 ``espn:{id}``, and that a second tick over the same still-running game dedups
 (WorkflowAlreadyStartedError → counted as already_running, not duplicated).
 """
+
 import uuid
 
 from temporalio import activity
@@ -36,7 +37,12 @@ def _seeder_activities(live_ids: list[int]):
     async def prune_event_log() -> None:
         return None
 
-    return [seed_missing_games, get_espn_poll_task_queue, find_live_game_ids, prune_event_log]
+    return [
+        seed_missing_games,
+        get_espn_poll_task_queue,
+        find_live_game_ids,
+        prune_event_log,
+    ]
 
 
 @activity.defn(name="poll_espn_game")

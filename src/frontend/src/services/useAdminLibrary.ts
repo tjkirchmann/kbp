@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
 import { apiFetch } from '../lib/api'
 
-
 export interface LibraryFile {
   id: number
   original_name: string

@@ -14,6 +14,7 @@ make up   # starts frontend (:5173), backend (:8000), db, workers
 ```
 
 Confirm it's live before navigating:
+
 ```bash
 curl -s -o /dev/null -w "%{http_code}" http://localhost:5173
 # expect: 200
@@ -23,14 +24,14 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:5173
 
 ## When to use Playwright
 
-| Situation | What to do |
-|---|---|
-| Just built or changed a UI component | Screenshot + snapshot it before calling it done |
-| Reviewing a page against `DESIGN.md` | Navigate, screenshot, compare visually |
-| Verifying a user flow works end-to-end | Navigate through the steps, snapshot each state |
-| Checking responsive behaviour | Resize the viewport, re-screenshot |
-| Debugging a layout bug | Screenshot to see the actual render, not just the code |
-| Catching regressions after a refactor | Screenshot before and after |
+| Situation                              | What to do                                             |
+| -------------------------------------- | ------------------------------------------------------ |
+| Just built or changed a UI component   | Screenshot + snapshot it before calling it done        |
+| Reviewing a page against `DESIGN.md`   | Navigate, screenshot, compare visually                 |
+| Verifying a user flow works end-to-end | Navigate through the steps, snapshot each state        |
+| Checking responsive behaviour          | Resize the viewport, re-screenshot                     |
+| Debugging a layout bug                 | Screenshot to see the actual render, not just the code |
+| Catching regressions after a refactor  | Screenshot before and after                            |
 
 ---
 

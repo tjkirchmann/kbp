@@ -73,7 +73,5 @@ async def generate_and_upsert(name: str, entity_id: int, run_id: str) -> dict:
             raise ValueError(f"{name}: source entity {entity_id} not found")
         activity.heartbeat(f"generating {name} for {entity_id}")
         output, model_name = await generate(defn, entity)
-        await defn.upsert(
-            db, entity_id, output, model=model_name, run_id=run_id
-        )
+        await defn.upsert(db, entity_id, output, model=model_name, run_id=run_id)
     return {"entity_id": entity_id, "model": model_name}

@@ -1,13 +1,7 @@
-import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  useAdminUsers,
-  useBanUser,
-  useSetAdmin,
-  type AdminUser,
-} from '@/services/useAdminUsers'
-import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
-import AdminVirtualTable, { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
+import { useAdminUsers, useBanUser, useSetAdmin, type AdminUser } from '@/services/useAdminUsers'
+import AdminListTable from '@/components/admin/AdminListTable'
+import { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
 
 const ROW_HEIGHT = 52
 
@@ -21,17 +15,6 @@ export default function UsersList() {
   const { data: users = [], isLoading, error } = useAdminUsers()
   const banUser = useBanUser()
   const setAdmin = useSetAdmin()
-  const [search, setSearch] = useState('')
-
-  const filtered = useMemo(() => {
-    if (!search) return users
-    const q = search.toLowerCase()
-    return users.filter(
-      (u) => u.email.toLowerCase().includes(q) || (u.name ?? '').toLowerCase().includes(q),
-    )
-  }, [users, search])
-
-  if (error) return <p className="text-destructive text-sm">Failed to load users.</p>
 
   function renderRow(user: AdminUser) {
     return (
@@ -89,28 +72,21 @@ export default function UsersList() {
   }
 
   return (
-    <div className="h-full flex flex-col gap-3">
-      <AdminTableToolbar
-        count={filtered.length}
-        total={users.length}
-        noun="user"
-        search={search}
-        onSearch={setSearch}
-        searchPlaceholder="Search by email or name…"
-      />
-      <AdminVirtualTable
-        columns={COLUMNS}
-        rows={filtered}
-        rowKey={(u) => u.id}
-        rowHeight={ROW_HEIGHT}
-        isLoading={isLoading}
-        isFiltered={search !== ''}
-        renderRow={renderRow}
-        emptyState={<p className="text-sm text-muted-foreground py-4">No users yet.</p>}
-        noMatchState={
-          <p className="text-sm text-muted-foreground py-4">No users match your search.</p>
-        }
-      />
-    </div>
+    <AdminListTable<AdminUser>
+      data={users}
+      isLoading={isLoading}
+      error={error as Error | null}
+      columns={COLUMNS}
+      rowKey={(u) => u.id}
+      rowHeight={ROW_HEIGHT}
+      renderRow={renderRow}
+      noun="user"
+      searchKeys={['email', 'name']}
+      searchPlaceholder="Search by email or name…"
+      emptyState={<p className="text-sm text-muted-foreground py-4">No users yet.</p>}
+      noMatchState={
+        <p className="text-sm text-muted-foreground py-4">No users match your search.</p>
+      }
+    />
   )
 }

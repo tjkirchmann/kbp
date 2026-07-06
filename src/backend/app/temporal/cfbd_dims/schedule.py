@@ -11,6 +11,7 @@ Schedule is the native Temporal analogue of the old Procrastinate knobs:
 worker at startup, so deploying the worker reconciles the schedule — mirroring
 how the Procrastinate worker reconciles crons on boot.
 """
+
 import logging
 from datetime import timedelta
 
@@ -25,6 +26,7 @@ from temporalio.client import (
     ScheduleUpdate,
     ScheduleUpdateInput,
 )
+from temporalio.service import RPCError, RPCStatusCode
 
 from app.core.config import settings
 from app.temporal.cfbd_dims.workflow import CfbdDimsWorkflow
@@ -57,15 +59,25 @@ def _desired_schedule() -> Schedule:
 
 async def ensure_schedule(client: Client) -> None:
     """Create the nightly schedule, or update it in place if it already exists."""
+    schedule = _desired_schedule()
     try:
-        await client.create_schedule(SCHEDULE_ID, _desired_schedule())
+        await client.create_schedule(SCHEDULE_ID, schedule)
         logger.info("Created Temporal schedule %s (cron %s)", SCHEDULE_ID, CRON)
-    except ScheduleAlreadyRunningError:
+    except (ScheduleAlreadyRunningError, RPCError) as err:
+        # The SDK raises the typed ScheduleAlreadyRunningError when the schedule
+        # exists; older/other paths surface a raw RPCError(ALREADY_EXISTS). Treat
+        # both as "exists → update" so worker reboots are idempotent. Anything
+        # else is a real error and propagates.
+        if isinstance(err, RPCError) and err.status != RPCStatusCode.ALREADY_EXISTS:
+            raise
+
         def _update(_input: ScheduleUpdateInput) -> ScheduleUpdate:
-            return ScheduleUpdate(schedule=_desired_schedule())
+            return ScheduleUpdate(schedule=schedule)
 
         await client.get_schedule_handle(SCHEDULE_ID).update(_update)
-        logger.info("Updated existing Temporal schedule %s (cron %s)", SCHEDULE_ID, CRON)
+        logger.info(
+            "Updated existing Temporal schedule %s (cron %s)", SCHEDULE_ID, CRON
+        )
 
 
 async def trigger_now(client: Client) -> None:

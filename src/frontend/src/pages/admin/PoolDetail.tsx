@@ -1,8 +1,6 @@
-import { useRef, useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { createPortal } from 'react-dom'
-import { useVirtualizer } from '@tanstack/react-virtual'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Star, Flag, Calendar, Users, Building2, Trash2 } from 'lucide-react'
 import {
   useAdminPools,
   usePoolDetail,
@@ -11,6 +9,8 @@ import {
   type CfbdGame,
   type PoolGameDetail,
 } from '@/services/useAdminPools'
+import AdminVirtualTable, { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
+import Modal from '@/components/ui/Modal'
 
 const ROW_HEIGHT = 60
 
@@ -49,6 +49,13 @@ export default function PoolDetail() {
   const pool = pools.find((p) => String(p.id) === poolId)
   const live = detail ?? pool
 
+  const games = useMemo(() => detail?.games.map(gameDetailToCfbd) ?? [], [detail?.games])
+
+  const columns: AdminTableColumn[] = [
+    { key: 'status', header: '', className: 'w-8 shrink-0' },
+    { key: 'matchup', header: 'Matchup', className: 'flex-1' },
+  ]
+
   if (!live) {
     return <p className="text-sm text-muted-foreground py-8">Pool not found.</p>
   }
@@ -58,173 +65,225 @@ export default function PoolDetail() {
     deletePool.mutate(live!.id)
   }
 
-  const games = detail?.games.map(gameDetailToCfbd) ?? []
+  // ── Stat computation ──────────────────────────────────────────
+  const stats = useMemo(() => {
+    const teams = new Set<string>()
+    const conferences = new Set<string>()
+    let completed = 0
+    for (const g of games) {
+      if (g.completed) completed++
+      teams.add(g.home_team)
+      teams.add(g.away_team)
+      if (g.home_conference) conferences.add(g.home_conference)
+      if (g.away_conference) conferences.add(g.away_conference)
+    }
+    return {
+      total: games.length,
+      completed,
+      upcoming: games.length - completed,
+      teams: teams.size,
+      conferences: conferences.size,
+    }
+  }, [games])
 
+  const StatLabel = ({
+    icon: Icon,
+    value,
+    label,
+    variant = 'default',
+  }: {
+    icon: React.ComponentType<{ className?: string }>
+    value: number
+    label: string
+    variant?: 'default' | 'success' | 'amber'
+  }) => {
+    const variants = {
+      default: 'bg-white/[0.04] text-foreground',
+      success: 'bg-emerald-500/[0.08] text-emerald-400',
+      amber: 'bg-amber-500/[0.08] text-amber-400',
+    }
+    return (
+      <div className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl ${variants[variant]}`}>
+        <Icon className="size-4 opacity-60" />
+        <span className="text-lg font-semibold tabular-nums leading-none">{value}</span>
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
+    )
+  }
+
+  // ── Render ────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-foreground">{live.name}</h2>
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-              {live.season_year}
-            </span>
+    <div className="flex flex-col gap-4 h-full">
+      {/* ── Header + Stats Card ────────────────────────────────── */}
+      <div className="glass-panel rounded-2xl p-6 shrink-0">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-semibold text-foreground truncate">{live.name}</h2>
+              <span className="shrink-0 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/20">
+                {live.season_year}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Created{' '}
+              {new Date(live.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Created {new Date(live.created_at).toLocaleDateString()} · {live.game_count} game
-            {live.game_count !== 1 ? 's' : ''}
-          </p>
+
+          {/* Pool toggles */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() =>
+                patchPool.mutate({
+                  poolId: live.id,
+                  patch: { is_featured: !live.is_featured },
+                })
+              }
+              disabled={patchPool.isPending}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors disabled:opacity-50 ${
+                live.is_featured
+                  ? 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/25'
+                  : 'bg-white/[0.04] text-muted-foreground border-border/40 hover:text-foreground hover:border-border'
+              }`}
+            >
+              <Star className={`size-3.5 ${live.is_featured ? 'fill-primary/40' : ''}`} />
+              {live.is_featured ? 'Featured' : 'Feature'}
+            </button>
+            <button
+              onClick={() =>
+                patchPool.mutate({
+                  poolId: live.id,
+                  patch: { submissions_open: !live.submissions_open },
+                })
+              }
+              disabled={patchPool.isPending}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors disabled:opacity-50 ${
+                live.submissions_open
+                  ? 'bg-emerald-500/[0.12] text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/[0.20]'
+                  : 'bg-white/[0.04] text-muted-foreground border-border/40 hover:text-foreground hover:border-border'
+              }`}
+            >
+              {live.submissions_open ? 'Submissions Open' : 'Submissions Closed'}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() =>
-              patchPool.mutate({ poolId: live.id, patch: { is_featured: !live.is_featured } })
-            }
-            disabled={patchPool.isPending}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors disabled:opacity-50 ${
-              live.is_featured
-                ? 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/25'
-                : 'bg-muted/40 text-muted-foreground border-border/40 hover:text-foreground hover:border-border'
-            }`}
-          >
-            {live.is_featured ? 'Featured' : 'Not Featured'}
-          </button>
-          <button
-            onClick={() =>
-              patchPool.mutate({
-                poolId: live.id,
-                patch: { submissions_open: !live.submissions_open },
-              })
-            }
-            disabled={patchPool.isPending}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors disabled:opacity-50 ${
-              live.submissions_open
-                ? 'bg-success/15 text-success border-success/30 hover:bg-success/25'
-                : 'bg-muted/40 text-muted-foreground border-border/40 hover:text-foreground hover:border-border'
-            }`}
-          >
-            {live.submissions_open ? 'Submissions Open' : 'Submissions Closed'}
-          </button>
+
+        {/* Stat row */}
+        <div className="flex items-center gap-3 mt-5 pt-4 border-t border-border/30 overflow-x-auto">
+          <StatLabel icon={Calendar} value={stats.total} label="Games" variant="default" />
+          <StatLabel icon={Flag} value={stats.completed} label="Completed" variant="success" />
+          <StatLabel icon={Calendar} value={stats.upcoming} label="Upcoming" variant="amber" />
+          <StatLabel icon={Users} value={stats.teams} label="Teams" variant="default" />
+          <StatLabel
+            icon={Building2}
+            value={stats.conferences}
+            label="Conferences"
+            variant="default"
+          />
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 border-b border-border">
-        <button
-          onClick={() => setTab('games')}
-          className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === 'games' ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-foreground'}`}
-        >
-          Games ({live.game_count})
-        </button>
-        <button
-          onClick={() => setTab('submissions')}
-          className={`px-3 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === 'submissions' ? 'text-foreground border-primary' : 'text-muted-foreground border-transparent hover:text-foreground'}`}
-        >
-          Submissions
-        </button>
+      {/* ── Game List Card ──────────────────────────────────────── */}
+      <div className="glass-panel rounded-2xl overflow-hidden flex flex-col flex-1 min-h-0">
+        {/* Tab bar */}
+        <div className="flex items-center gap-1 border-b border-border/30 px-6">
+          <button
+            onClick={() => setTab('games')}
+            className={`px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === 'games'
+                ? 'text-foreground border-primary'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
+            }`}
+          >
+            Games ({live.game_count})
+          </button>
+          <button
+            onClick={() => setTab('submissions')}
+            className={`px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === 'submissions'
+                ? 'text-foreground border-primary'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
+            }`}
+          >
+            Submissions
+          </button>
+        </div>
+
+        {tab === 'games' && (
+          <AdminVirtualTable
+            columns={columns}
+            rows={games}
+            rowKey={(g) => g.id}
+            rowHeight={ROW_HEIGHT}
+            isLoading={isLoading}
+            emptyState={
+              <p className="text-sm text-muted-foreground py-12 text-center">
+                No games added to this pool yet.
+              </p>
+            }
+            renderRow={(game) => <GameRow game={game} />}
+          />
+        )}
+
+        {tab === 'submissions' && (
+          <div className="flex flex-col items-center justify-center py-20 gap-2 text-muted-foreground">
+            <p className="text-sm">Submissions not yet implemented.</p>
+            <p className="text-xs opacity-60">Come back soon.</p>
+          </div>
+        )}
       </div>
 
-      {tab === 'games' &&
-        (isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-            <Loader2 className="size-4 animate-spin" />
-            Loading games…
-          </div>
-        ) : games.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4">No games added to this pool yet.</p>
-        ) : (
-          <VirtualGameList games={games} />
-        ))}
-
-      {tab === 'submissions' && (
-        <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
-          <p className="text-sm">Submissions not yet implemented.</p>
-          <p className="text-xs opacity-60">Come back soon.</p>
-        </div>
-      )}
-
-      <div className="border-b border-border/40" />
-
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-foreground">Danger Zone</h3>
+      {/* ── Subtle danger zone ──────────────────────────────────── */}
+      <div className="flex justify-end shrink-0">
         <button
           onClick={() => setConfirmDelete(true)}
-          className="px-3 py-1.5 rounded-full text-xs font-medium text-destructive border border-destructive/40 hover:bg-destructive/10 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-destructive transition-colors"
         >
-          Delete Pool
+          <Trash2 className="size-3" />
+          Delete pool
         </button>
       </div>
 
-      {confirmDelete &&
-        createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-            <div className="bg-white/[0.03] border border-border/20 rounded-2xl p-7 max-w-sm w-full mx-4 space-y-5">
-              <div className="space-y-1.5">
-                <h2 className="text-base font-semibold text-foreground">Delete this pool?</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  <span className="text-foreground font-medium">{live.name}</span> and all its games
-                  will be permanently deleted. This cannot be undone.
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="flex-1 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deletePool.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
-                >
-                  {deletePool.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {/* ── Delete confirmation modal ────────────────────────────── */}
+      <Modal
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Delete this pool?"
+        size="sm"
+        footer={
+          <>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deletePool.isPending}
+              className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
+            >
+              {deletePool.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Delete'}
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          <span className="text-foreground font-medium">{live.name}</span> and all its games will
+          be permanently deleted. This cannot be undone.
+        </p>
+      </Modal>
     </div>
   )
 }
 
-function VirtualGameList({ games }: { games: CfbdGame[] }) {
-  const parentRef = useRef<HTMLDivElement>(null)
-  const virtualizer = useVirtualizer({
-    count: games.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 5,
-  })
-  return (
-    <div
-      ref={parentRef}
-      className="overflow-y-auto rounded-xl bg-white/[0.03] border border-border/20"
-      style={{ height: `${Math.min(games.length, 8) * ROW_HEIGHT}px`, scrollbarGutter: 'stable' }}
-    >
-      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-        {virtualizer.getVirtualItems().map((vRow) => {
-          const game = games[vRow.index]
-          return (
-            <div
-              key={game.id}
-              style={{
-                position: 'absolute',
-                top: vRow.start,
-                left: 0,
-                right: 0,
-                height: ROW_HEIGHT,
-              }}
-            >
-              <GameRow game={game} />
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
+// ══════════════════════════════════════════════════════════════════
+// Helpers
+// ══════════════════════════════════════════════════════════════════
 
 const CLASSIFICATION_COLORS: Record<string, string> = {
   FBS: 'tag-green',
@@ -242,7 +301,10 @@ function formatGameTime(startDate: string, timeTbd: boolean): string {
     day: 'numeric',
   })
   if (timeTbd) return `${datePart} · Time TBD`
-  return `${datePart} at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
+  return `${datePart} at ${date.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  })}`
 }
 
 function gameStatus(game: CfbdGame): 'final' | 'live' | 'upcoming' {
@@ -258,12 +320,20 @@ const STATUS_DOT: Record<string, string> = {
   upcoming: 'size-2 rounded-full bg-border shrink-0',
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  final: 'Final',
+  live: 'In Progress',
+  upcoming: 'Upcoming',
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Game row — fixture-list style
+// ══════════════════════════════════════════════════════════════════
+
 function GameRow({ game }: { game: CfbdGame }) {
-  const matchup = game.neutral_site
-    ? `${game.away_team} vs ${game.home_team}`
-    : `${game.away_team} at ${game.home_team}`
-  const title = game.bowl_name ? `${game.bowl_name}, ${matchup}` : matchup
+  const status = gameStatus(game)
   const dateTime = formatGameTime(game.start_date, game.start_time_tbd)
+
   const homeCls = game.home_classification?.toUpperCase() ?? null
   const awayCls = game.away_classification?.toUpperCase() ?? null
   const clsTags: string[] =
@@ -272,35 +342,87 @@ function GameRow({ game }: { game: CfbdGame }) {
         ? [homeCls]
         : []
       : ([awayCls, homeCls].filter(Boolean) as string[])
+
   const sameConference =
     game.home_conference && game.away_conference && game.home_conference === game.away_conference
   const conferencePillLabel = sameConference ? game.home_conference! : 'Out of Conference'
-  const status = gameStatus(game)
+
+  const hasScore = game.completed && game.home_score != null && game.away_score != null
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 h-full">
-      <div
-        className={STATUS_DOT[status]}
-        title={status === 'final' ? 'Final' : status === 'live' ? 'In Progress' : 'Upcoming'}
-      />
+    <div className="flex items-center gap-3 px-5 h-full border-b border-border/[0.15] last:border-b-0 hover:bg-white/[0.03] transition-colors">
+      {/* Status indicator */}
+      <div className={STATUS_DOT[status]} title={STATUS_LABEL[status]} />
+
+      {/* Matchup + score */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-foreground truncate">{title}</p>
-          <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-3">
+          {/* Home team */}
+          <span
+            className={`text-sm truncate min-w-0 max-w-[140px] ${
+              hasScore
+                ? game.home_score! > game.away_score!
+                  ? 'font-semibold text-foreground'
+                  : 'text-foreground/70'
+                : 'font-medium text-foreground'
+            }`}
+          >
+            {game.home_team}
+          </span>
+
+          {/* Score / vs */}
+          {hasScore ? (
+            <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground tracking-wide">
+              {game.home_score} – {game.away_score}
+            </span>
+          ) : (
+            <span className="shrink-0 text-xs text-muted-foreground/60 font-medium tracking-widest uppercase">
+              vs
+            </span>
+          )}
+
+          {/* Away team */}
+          <span
+            className={`text-sm truncate min-w-0 max-w-[140px] ${
+              hasScore
+                ? game.away_score! > game.home_score!
+                  ? 'font-semibold text-foreground'
+                  : 'text-foreground/70'
+                : 'font-medium text-foreground'
+            }`}
+          >
+            {game.away_team}
+          </span>
+
+          {/* Classification tags */}
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
             {clsTags.map((tag) => (
               <span
                 key={tag}
-                className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${CLASSIFICATION_COLORS[tag] ?? 'tag-blue'}`}
+                className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                  CLASSIFICATION_COLORS[tag] ?? 'tag-blue'
+                }`}
               >
                 {tag}
               </span>
             ))}
           </div>
         </div>
+
+        {/* Metadata row */}
         <div className="flex items-center gap-2 mt-0.5">
-          {dateTime && <span className="text-xs text-muted-foreground">{dateTime}</span>}
+          {dateTime && <span className="text-[11px] text-muted-foreground/70">{dateTime}</span>}
+          {game.bowl_name && (
+            <>
+              <span className="text-[11px] text-muted-foreground/40">·</span>
+              <span className="text-[11px] text-muted-foreground/70">{game.bowl_name}</span>
+            </>
+          )}
+          <span className="text-[11px] text-muted-foreground/40">·</span>
           <span
-            className={`text-xs px-1.5 py-0.5 rounded-full ${sameConference ? 'tag-blue' : 'bg-muted text-muted-foreground'}`}
+            className={`text-[10px] px-1.5 py-px rounded-full font-medium ${
+              sameConference ? 'tag-blue' : 'bg-white/[0.04] text-muted-foreground/60'
+            }`}
           >
             {conferencePillLabel}
           </span>

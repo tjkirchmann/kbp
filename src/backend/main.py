@@ -7,9 +7,11 @@ import app.models  # noqa: F401 — registers models with Base.metadata
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.routers.admin import router as admin_router
+from app.routers.cfbd_admin import router as cfbd_admin_router
 from app.routers.library import router as library_router
 from app.routers.pools import router as pools_router
 from app.routers.struct_output import router as struct_output_router
+from app.routers.temporal_admin import router as temporal_admin_router
 from app.routers.submissions import router as submissions_router
 from app.routers.teams import router as teams_router
 
@@ -43,11 +45,13 @@ app.add_middleware(
 )
 
 app.include_router(admin_router)
+app.include_router(cfbd_admin_router)
 app.include_router(pools_router)
 app.include_router(submissions_router)
 app.include_router(teams_router)
 app.include_router(library_router)
 app.include_router(struct_output_router)
+app.include_router(temporal_admin_router)
 
 
 @app.get("/health")

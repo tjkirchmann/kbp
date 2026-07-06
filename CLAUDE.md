@@ -135,7 +135,7 @@ Frontend tooling requires `npm install` in `src/frontend` first.
 
 - **CSS variables** are in `src/frontend/src/index.css` under `:root` and `@theme`. Do not put design tokens in `tailwind.config.ts` — Tailwind v4 reads `@theme` directly.
 - **Semantic color classes** (`bg-background`, `text-foreground`, `bg-card`, `border-border`, `text-muted-foreground`, `bg-primary`, etc.) are all wired up and ready to use.
-- **Page background** is the warm tan graph-paper grid — set on `html, body` in `index.css`. Don't apply `bg-background` to page wrappers; let it inherit.
+- **Page background** is a dark radial gradient on `html` (`bg-background` base + layered blue ellipses). `body` is transparent — don't apply `bg-background` to page wrappers; let the gradient show through.
 - **Container hierarchy**: outer panels get `bg-card border border-border rounded-xl shadow-sm`; inner cards get no border, just `rounded-lg hover:bg-muted/60`.
 - **shadcn/ui** — install components with `npx shadcn@latest add <name>`. Output goes to `src/components/ui/`.
 - **No inline styles**. No CSS modules. Tailwind classes only.
@@ -181,17 +181,6 @@ make struct-output        # LLM structured-output jobs (pydantic-ai + OpenRouter
 
 ---
 
-## Things to know that aren't obvious from the code
-
-- **Railway DATABASE_URL**: Railway's Postgres plugin injects `postgresql://` (sync scheme). `app/core/database.py` replaces it with `postgresql+asyncpg://` at engine creation time. Don't remove that line.
-- **Railway PORT**: The backend `Dockerfile` uses shell-form `CMD` so `${PORT:-8000}` expands at runtime. Don't switch it to exec form.
-- **Geist font**: Imported via `@fontsource/geist` in `index.css`. If you add a new CSS entry point, re-import it.
-- **shadcn not yet initialized**: `components.json` doesn't exist yet. Run `npx shadcn@latest init` inside the frontend container before adding components.
-- **`lucide-react` is in `package.json`** but was installed manually in the running container — it will be present after the next `make up` rebuild.
-- **No dark mode** (intentionally). Don't add `dark:` variants. The design is light-only.
-- **Logo**: Temporary KBP amber badge in `src/pages/Home.tsx`. Will be extracted to `src/components/Logo.tsx` when real pages are built. Owner will supply final logo asset.
-
----
 
 ## Temporal (durable workflows)
 
@@ -223,3 +212,32 @@ DB-cron admin panel — so it no longer appears in the admin Sync panel.
   workflow can get its own package — see `app/temporal/cfbd_dims/`
   (`activities.py` + `workflow.py` + `schedule.py`) as the worked example,
   including how to drive it with a Temporal Schedule reconciled at worker boot.
+
+## Check the logs when debugging backend, inspect the code first for frontend and if you can't figure out rendering issues, use playwright mcp
+
+Every service writes to stdout/stderr — Docker Compose captures it all. Use these
+`make` targets (or `docker compose logs` directly):
+
+```bash
+make logs                  # every service (--follow), noisy — use sparingly
+make logs-backend          # FastAPI server logs, SQLAlchemy queries, stack traces
+make logs-frontend         # Vite HMR, build warnings, console errors
+make logs-worker           # Temporal Python worker (workflow/activity logs)
+make logs-db               # Postgres startup, connections, slow queries
+make logs-temporal         # Temporal server (auto-setup schema, health checks)
+make logs-temporal-worker  # same as logs-worker
+```
+
+For the Discord bot (not covered by a `make` target):
+
+```bash
+docker compose logs -f discord_bot
+```
+
+**Tips:**
+
+- Narrow the tail: `docker compose logs --tail=100 backend`
+- Filter with `grep`: `docker compose logs backend 2>&1 | grep ERROR`
+- Time-slice: `docker compose logs --since=5m backend`
+- When the Vite HMR frontend misbehaves, check **both** `make logs-frontend` and
+  the browser's DevTools console — React errors often only surface there.

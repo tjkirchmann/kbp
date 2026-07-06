@@ -144,6 +144,20 @@ async def enter_pool(
         raise HTTPException(
             status_code=403, detail="Submissions are closed for this pool"
         )
+    if (
+        pool.submissions_due_at is not None
+        and datetime.now(UTC).replace(tzinfo=None) > pool.submissions_due_at
+    ):
+        raise HTTPException(status_code=400, detail="Submissions are past the deadline")
+
+    # Enforce password if the pool has one set
+    if pool.password_hash is not None:
+        if not body.password:
+            raise HTTPException(
+                status_code=403, detail="Password is required for this pool"
+            )
+        if not _pwd.verify(body.password, pool.password_hash):
+            raise HTTPException(status_code=403, detail="Incorrect password")
 
     # Self-submission: return existing if one already exists
     if body.on_behalf_of_name == "":
@@ -213,8 +227,22 @@ async def upsert_pick(
     user: User = Depends(get_current_user),
 ):
     sub = await _get_owned_submission(submission_id, user, db)
-    if sub.is_locked:
-        raise HTTPException(status_code=403, detail="Submission is locked")
+
+    # Gate editability on pool state, not per-entry lock
+    pool_result = await db.execute(
+        select(Pool).where(Pool.id == sub.pool_id, Pool.deleted_at.is_(None))
+    )
+    pool = pool_result.scalar_one_or_none()
+    if not pool or not pool.submissions_open:
+        raise HTTPException(
+            status_code=403, detail="Submissions are closed for this pool"
+        )
+    if (
+        pool.submissions_due_at is not None
+        and datetime.now(UTC).replace(tzinfo=None) > pool.submissions_due_at
+    ):
+        raise HTTPException(status_code=400, detail="Submissions are past the deadline")
+
     stmt = (
         pg_insert(PoolSubmissionGameItem)
         .values(
@@ -245,6 +273,23 @@ async def submit_entry(
 ):
     sub = await _get_owned_submission(submission_id, user, db)
 
+    # Re-fetch the pool to guard against closure or deadline during editing
+    pool_result = await db.execute(
+        select(Pool).where(Pool.id == sub.pool_id, Pool.deleted_at.is_(None))
+    )
+    pool = pool_result.scalar_one_or_none()
+    if not pool:
+        raise HTTPException(status_code=404, detail="Pool not found")
+    if not pool.submissions_open:
+        raise HTTPException(
+            status_code=403, detail="Submissions are closed for this pool"
+        )
+    if (
+        pool.submissions_due_at is not None
+        and datetime.now(UTC).replace(tzinfo=None) > pool.submissions_due_at
+    ):
+        raise HTTPException(status_code=400, detail="Submissions are past the deadline")
+
     games_result = await db.execute(
         select(PoolGame.id).where(
             PoolGame.pool_id == sub.pool_id, PoolGame.deleted_at.is_(None)
@@ -265,7 +310,6 @@ async def submit_entry(
             status_code=400, detail="All games must be picked before submitting"
         )
 
-    sub.is_locked = True
     sub.submitted_at = datetime.now(UTC).replace(tzinfo=None)
     await db.commit()
     await db.refresh(sub)

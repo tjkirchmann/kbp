@@ -48,7 +48,5 @@ async def generate(defn: BaseDefinition, entity: dict) -> tuple[dict, str]:
     agent, model_name = _build_agent(defn)
     prompt = defn.render_prompt(entity)
     result = await agent.run(prompt)
-    logger.info(
-        "struct_output.generate name=%s model=%s", defn.name, model_name
-    )
+    logger.info("struct_output.generate name=%s model=%s", defn.name, model_name)
     return result.output.model_dump(), model_name

@@ -6,6 +6,7 @@ seeder run both seeds stub rows and spawns pollers).
 
 Run as: python -m app.temporal.espn.starter
 """
+
 import asyncio
 import json
 from datetime import UTC, datetime

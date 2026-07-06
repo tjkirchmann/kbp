@@ -5,6 +5,7 @@ These exercise the loop/exit/continue-as-new logic that structural validation
 during the migration. No DB or HTTP: the poll activity is replaced by a stub whose
 return sequence drives the workflow.
 """
+
 import uuid
 
 from temporalio import activity

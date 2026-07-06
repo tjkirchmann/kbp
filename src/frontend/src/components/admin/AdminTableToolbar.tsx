@@ -54,7 +54,12 @@ export default function AdminTableToolbar({
           />
         </div>
       )}
-      <p className={cn('text-sm text-muted-foreground shrink-0 whitespace-nowrap', !onSearch && 'mr-auto')}>
+      <p
+        className={cn(
+          'text-sm text-muted-foreground shrink-0 whitespace-nowrap',
+          !onSearch && 'mr-auto',
+        )}
+      >
         {label}
         {countSuffix ? ` ${countSuffix}` : ''}
       </p>

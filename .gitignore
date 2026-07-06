@@ -27,3 +27,4 @@ temp/
 
 # Pi Plans
 .plans/
+.worktrees

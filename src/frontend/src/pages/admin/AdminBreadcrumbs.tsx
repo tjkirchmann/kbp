@@ -9,9 +9,9 @@ export type Crumb = { label: string; to: string }
 const SECTIONS: { label: string; path: string }[] = [
   { label: 'Comms', path: '/admin/comms' },
   { label: 'Integrations', path: '/admin/integrations' },
+  { label: 'CFBD', path: '/admin/cfbd' },
   { label: 'Users', path: '/admin/users' },
   { label: 'Pools', path: '/admin/pools' },
-  { label: 'Teams', path: '/admin/teams' },
 ]
 
 const crumbText = (leaf: boolean) =>

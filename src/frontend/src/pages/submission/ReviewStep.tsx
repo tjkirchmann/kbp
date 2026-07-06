@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, Check, Clock } from 'lucide-react'
+import { useToast } from '@/components/toast/ToastContext'
+import { ApiError } from '@/lib/apiError'
 import {
   usePoolGames,
   useSubmissionPicks,
   useMySubmissions,
   useSubmitEntry,
+  isSubmitted,
   type PoolGame,
   type TeamMeta,
 } from '@/services/useSubmission'
@@ -27,47 +31,102 @@ function gameMatchup(game: PoolGame): string {
     : `${game.away_team} at ${game.home_team}`
 }
 
+function formatDate(iso: string | null) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 export default function ReviewStep({ poolId, submissionId, entryName }: Props) {
   const navigate = useNavigate()
   const { data: games = [] } = usePoolGames(poolId)
   const { data: picks = [] } = useSubmissionPicks(submissionId)
   const { data: mySubmissions = [] } = useMySubmissions(poolId)
   const submit = useSubmitEntry(submissionId)
+  const { toast } = useToast()
+  const [justSubmitted, setJustSubmitted] = useState(false)
 
   const submission = mySubmissions.find((s) => s.id === submissionId)
-  const isSubmitted = submission?.is_locked || submit.isSuccess
+  const submitted = isSubmitted(submission) || submit.isSuccess
 
   const pickByGame = new Map(picks.map((p) => [p.pool_game_id, p]))
   const missingCount = games.filter((g) => !pickByGame.has(g.id)).length
   const allPicked = games.length > 0 && missingCount === 0
 
-  if (isSubmitted) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center max-w-sm mx-auto">
-        <CheckCircle2 className="size-12 text-success" />
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-foreground">Entry submitted</h2>
-          <p className="text-sm text-muted-foreground">
-            {entryName ? `${entryName}'s picks are locked in.` : 'Your picks are locked in.'} Good
-            luck!
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/submission')}
-          className="px-4 py-2.5 rounded-xl bg-primary/15 text-primary text-sm font-medium hover:bg-primary/25 transition-colors"
-        >
-          Back to Pools
-        </button>
-      </div>
-    )
+  async function handleSubmit() {
+    try {
+      await submit.mutateAsync()
+      const wasUpdate = submitted
+      setJustSubmitted(true)
+      toast({
+        variant: 'success',
+        title: wasUpdate ? 'Entry updated' : 'Entry submitted',
+        description: wasUpdate ? 'Your picks have been updated.' : 'Your picks are in. Good luck!',
+      })
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.status === 403) {
+          toast({
+            variant: 'error',
+            title: 'Submissions are closed',
+            description: 'This pool is no longer accepting entries.',
+          })
+        } else if (err.status === 400) {
+          toast({
+            variant: 'warning',
+            title: 'Past the deadline',
+            description: 'The submission deadline has passed.',
+          })
+        } else {
+          toast({
+            variant: 'error',
+            title: 'Something went wrong',
+            description: 'Please try again.',
+          })
+        }
+      } else {
+        toast({
+          variant: 'error',
+          title: 'Something went wrong',
+          description: 'Please try again.',
+        })
+      }
+    }
   }
+
+  const buttonLabel = (() => {
+    if (submit.isPending) return <Loader2 className="size-4 animate-spin" />
+    if (justSubmitted) {
+      return (
+        <span className="flex items-center gap-1.5">
+          <Check className="size-4" />
+          Submitted
+        </span>
+      )
+    }
+    return submitted ? 'Update Entry' : 'Submit Entry'
+  })()
 
   return (
     <div className="flex flex-col h-full gap-4">
       <div className="space-y-1 shrink-0">
-        <h2 className="text-base font-semibold text-foreground">Review &amp; Submit</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold text-foreground">Review &amp; Submit</h2>
+          {submitted && (
+            <span className="flex items-center gap-1 text-xs text-success font-medium bg-success/10 px-2 py-0.5 rounded-full">
+              <Clock className="size-3" />
+              Submitted {formatDate(submission?.submitted_at ?? null)}
+            </span>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
-          Confirm your picks{entryName ? ` for ${entryName}` : ''}. Submitting locks the entry.
+          Confirm your picks{entryName ? ` for ${entryName}` : ''}. You can update your entry as
+          long as the pool is open.
         </p>
       </div>
 
@@ -118,17 +177,17 @@ export default function ReviewStep({ poolId, submissionId, entryName }: Props) {
             submit.
           </p>
         )}
-        {submit.isError && (
+        {submit.isError && !justSubmitted && (
           <p className="text-xs text-destructive text-center">
             Something went wrong. Please try again.
           </p>
         )}
         <button
-          onClick={() => submit.mutate()}
+          onClick={handleSubmit}
           disabled={!allPicked || submit.isPending}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary/15 text-primary text-sm font-medium hover:bg-primary/25 transition-colors disabled:opacity-40"
         >
-          {submit.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Submit Entry'}
+          {buttonLabel}
         </button>
       </div>
     </div>

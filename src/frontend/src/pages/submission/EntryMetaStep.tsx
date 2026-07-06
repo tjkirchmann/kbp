@@ -4,6 +4,7 @@ import { useEnterPool, useMySubmissions } from '@/services/useSubmission'
 
 interface Props {
   poolId: number
+  poolPassword: string | null
   onComplete: (submissionId: number, displayName: string) => void
 }
 
@@ -18,7 +19,7 @@ function formatDate(iso: string) {
   })
 }
 
-export default function EntryMetaStep({ poolId, onComplete }: Props) {
+export default function EntryMetaStep({ poolId, poolPassword, onComplete }: Props) {
   const [mode, setMode] = useState<Mode | null>(null)
   const [otherTab, setOtherTab] = useState<OtherTab>('create')
   const [name, setName] = useState('')
@@ -63,6 +64,7 @@ export default function EntryMetaStep({ poolId, onComplete }: Props) {
       const { submission_id } = await enter.mutateAsync({
         on_behalf_of_name: mode === 'other' ? name.trim() : '',
         on_behalf_of_email: mode === 'other' ? email.trim() || null : null,
+        password: poolPassword,
       })
       onComplete(submission_id, mode === 'other' ? name.trim() : 'Me')
     } catch {

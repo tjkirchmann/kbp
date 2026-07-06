@@ -15,6 +15,7 @@ Rate limiting is the queue's job: ``poll_espn_game`` runs on the rate-limited es
 task queue, so per-game cadence here only sets the *desired* polling interval; the
 server throttles the aggregate request rate across all game workflows.
 """
+
 from datetime import timedelta
 
 from temporalio import workflow
@@ -68,7 +69,9 @@ class EspnGameWorkflow:
             )
             if result.terminal:
                 workflow.logger.info(
-                    "espn game %s reached %s — exiting", espn_game_id, result.status_state
+                    "espn game %s reached %s — exiting",
+                    espn_game_id,
+                    result.status_state,
                 )
                 return result.status_state or "post"
 

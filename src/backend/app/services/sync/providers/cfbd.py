@@ -20,7 +20,9 @@ _RATE_LIMIT_MAX_RETRIES = 4
 _RATE_LIMIT_BASE_DELAY = 2.0  # seconds
 
 
-async def _get_with_retry(client: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
+async def _get_with_retry(
+    client: httpx.AsyncClient, url: str, **kwargs: Any
+) -> httpx.Response:
     for attempt in range(_RATE_LIMIT_MAX_RETRIES + 1):
         resp = await client.get(url, **kwargs)
         if resp.status_code != 429 or attempt == _RATE_LIMIT_MAX_RETRIES:
@@ -28,14 +30,24 @@ async def _get_with_retry(client: httpx.AsyncClient, url: str, **kwargs: Any) ->
             return resp
         retry_after = resp.headers.get("Retry-After")
         try:
-            delay = float(retry_after) if retry_after else _RATE_LIMIT_BASE_DELAY * (2**attempt)
+            delay = (
+                float(retry_after)
+                if retry_after
+                else _RATE_LIMIT_BASE_DELAY * (2**attempt)
+            )
         except ValueError:
             delay = _RATE_LIMIT_BASE_DELAY * (2**attempt)
-        logger.warning("CFBD 429 on %s; retry %d/%d in %.1fs", url, attempt + 1,
-                       _RATE_LIMIT_MAX_RETRIES, delay)
+        logger.warning(
+            "CFBD 429 on %s; retry %d/%d in %.1fs",
+            url,
+            attempt + 1,
+            _RATE_LIMIT_MAX_RETRIES,
+            delay,
+        )
         await asyncio.sleep(delay)
     # Unreachable: the loop either returns or raises on the final attempt.
     raise RuntimeError("unreachable")
+
 
 _games_cache: dict[int, tuple[list[dict], float]] = {}
 GAMES_CACHE_TTL = 900  # 15 minutes

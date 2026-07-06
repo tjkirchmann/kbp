@@ -13,6 +13,7 @@ from ``workflow.now()`` and all side effects are pushed into activities. Per-sea
 failures are isolated (one bad season never fails its siblings); per-endpoint
 failures are isolated (one bad endpoint never fails the run).
 """
+
 import asyncio
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -95,9 +96,7 @@ class CfbdPlaysEndpointWorkflow:
                     retry_policy=_SEASON_RETRY,
                 )
             except Exception:  # noqa: BLE001 — isolate this season, keep going
-                workflow.logger.exception(
-                    "cfbd_plays %s %s failed", inp.endpoint, year
-                )
+                workflow.logger.exception("cfbd_plays %s %s failed", inp.endpoint, year)
                 result.errors.append(year)
                 continue
             result.synced.append(year)
