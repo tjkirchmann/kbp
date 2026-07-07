@@ -34,4 +34,4 @@ class EspnGame(Base):
         nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
-    cfbd_game: Mapped["CfbdGame"] = relationship(back_populates="espn_game")  # type: ignore[name-defined]
+    cfbd_game: Mapped["CfbdGame"] = relationship(back_populates="espn_game")

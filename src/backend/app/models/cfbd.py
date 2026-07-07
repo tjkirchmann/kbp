@@ -54,7 +54,7 @@ class CfbdGame(Base):
     pool_games: Mapped[list["PoolGame"]] = relationship(back_populates="cfbd_game")
     espn_game: Mapped[Optional["EspnGame"]] = relationship(
         back_populates="cfbd_game", uselist=False
-    )  # type: ignore[name-defined]
+    )
 
 
 class CfbdTeam(Base):

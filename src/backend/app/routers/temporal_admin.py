@@ -6,6 +6,7 @@ status, and results — for the Coverage dashboard side panel.
 
 import logging
 from datetime import UTC, datetime
+from typing import TypedDict
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -19,7 +20,15 @@ router = APIRouter(prefix="/admin/temporal", dependencies=[Depends(require_admin
 
 # ── workflow registry (declarative — add new ones here) ─────────────────────
 
-_SYNC_WORKFLOWS = [
+
+class _SyncWorkflow(TypedDict):
+    id: str
+    schedule_id: str | None
+    label: str
+    kind: str
+
+
+_SYNC_WORKFLOWS: list[_SyncWorkflow] = [
     {
         "id": "cfbd-dims",
         "schedule_id": "cfbd-dims",
@@ -122,8 +131,8 @@ async def get_cfbd_sync_status():
         # ── schedule info ──────────────────────────────────────────────
         if w["schedule_id"] is not None:
             try:
-                handle = client.get_schedule_handle(w["schedule_id"])
-                desc = await handle.describe()
+                sched_handle = client.get_schedule_handle(w["schedule_id"])
+                desc = await sched_handle.describe()
                 schedule = desc.schedule
                 if schedule and schedule.spec and schedule.spec.cron_expressions:
                     status.schedule_cron = schedule.spec.cron_expressions[0]
@@ -181,9 +190,9 @@ async def get_cfbd_sync_status():
                 if status.workflow_status == "FAILED":
                     try:
                         handle = client.get_workflow_handle(w["id"])
-                        desc = await handle.describe()
-                        if hasattr(desc, "failure") and desc.failure:
-                            status.error = desc.failure.message or "Unknown error"
+                        wf_desc = await handle.describe()
+                        if hasattr(wf_desc, "failure") and wf_desc.failure:
+                            status.error = wf_desc.failure.message or "Unknown error"
                     except Exception:
                         status.error = "Unable to retrieve error details"
 

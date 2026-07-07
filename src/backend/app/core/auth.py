@@ -13,7 +13,7 @@ from app.models import User
 
 security = HTTPBearer()
 _verify_options = None
-_clerk = None
+_clerk: Clerk | None = None
 
 
 def _get_clerk_clients():
@@ -40,7 +40,7 @@ async def get_current_user(
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
-    clerk_id: str = payload.get("sub")
+    clerk_id: str = payload.get("sub")  # type: ignore[assignment]
     if not clerk_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 

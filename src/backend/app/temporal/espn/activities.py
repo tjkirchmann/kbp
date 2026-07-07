@@ -148,7 +148,7 @@ async def prune_event_log() -> None:
     """Drop event_log rows older than the retention window (replaces Redis maxlen)."""
     async with SessionLocal() as db:
         await db.execute(
-            EventLog.__table__.delete().where(
+            EventLog.__table__.delete().where(  # type: ignore[attr-defined]
                 EventLog.at < text(f"now() - interval '{_EVENT_LOG_RETENTION}'")
             )
         )

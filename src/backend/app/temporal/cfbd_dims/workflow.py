@@ -17,8 +17,8 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
+    from app.services.sync.cfbd_dims_syncers import FLAT_DIM_KEYS
     from app.temporal.cfbd_dims.activities import (
-        FLAT_DIM_KEYS,
         sync_coaches,
         sync_flat_dim,
     )

@@ -168,7 +168,7 @@ def _apply_ilike_filter(
 def _apply_text_search(stmt: Any, model: type, term: str | None) -> Any:
     if not term:
         return stmt
-    mapper = inspect(model)
+    mapper = inspect(model)  # type: ignore[var-annotated]
     patterns = []
     for column in mapper.columns:
         try:
@@ -182,15 +182,15 @@ def _apply_text_search(stmt: Any, model: type, term: str | None) -> Any:
 
 
 def _serialize_rows(rows: list[Any], model: type) -> list[dict[str, Any]]:
-    mapper = inspect(model)
+    mapper = inspect(model)  # type: ignore[var-annotated]
     col_names = [c.key for c in mapper.columns]
     return [{col: getattr(row, col) for col in col_names} for row in rows]
 
 
 def _order_columns(model: type) -> list[Any]:
     if _has_col(model, "last_synced_at"):
-        return [model.last_synced_at.desc()]
-    pk = list(inspect(model).primary_key)
+        return [model.last_synced_at.desc()]  # type: ignore[attr-defined]
+    pk: list[Any] = list(inspect(model).primary_key)
     return pk if pk else [getattr(model, list(inspect(model).columns.keys())[0])]
 
 
@@ -206,7 +206,7 @@ async def _build_team_logos(
     db: AsyncSession, rows: list[dict[str, Any]], model: type
 ) -> dict[str, str | None]:
     """Extract team names from serialized rows and build a name → first-logo-URL map."""
-    mapper = inspect(model)
+    mapper = inspect(model)  # type: ignore[var-annotated]
     team_cols = [c.key for c in mapper.columns if c.key in TEAM_NAME_COLUMNS]
     if not team_cols:
         return {}
@@ -327,14 +327,14 @@ async def get_coverage_dashboard(db: AsyncSession = Depends(get_db)):
     ).all()
 
     games_list: list[CoverageGameSeason] = []
-    for row in games_rows:
+    for g_row in games_rows:
         games_list.append(
             CoverageGameSeason(
-                season_year=row.season_year,
-                total=row.total or 0,
-                completed=row.completed or 0,
-                last_synced_at=row.last_synced_at.isoformat()
-                if row.last_synced_at
+                season_year=g_row.season_year,
+                total=g_row.total or 0,
+                completed=g_row.completed or 0,
+                last_synced_at=g_row.last_synced_at.isoformat()
+                if g_row.last_synced_at
                 else None,
             )
         )
@@ -355,17 +355,17 @@ async def get_coverage_dashboard(db: AsyncSession = Depends(get_db)):
         result = await db.execute(
             select(
                 func.count().label("count"),
-                func.max(model.last_synced_at).label("last_synced_at"),
+                func.max(model.last_synced_at).label("last_synced_at"),  # type: ignore[attr-defined]
             )
         )
-        row = result.one()
+        d_row = result.one()
         dimensions_list.append(
             CoverageDimension(
                 name=name,
                 label=label,
-                count=row.count or 0,
-                last_synced_at=row.last_synced_at.isoformat()
-                if row.last_synced_at
+                count=d_row.count or 0,  # type: ignore[arg-type,truthy-function]
+                last_synced_at=d_row.last_synced_at.isoformat()
+                if d_row.last_synced_at
                 else None,
             )
         )
@@ -384,12 +384,12 @@ async def get_coverage_dashboard(db: AsyncSession = Depends(get_db)):
     ).all()
 
     plays_seasons: list[dict[str, Any]] = []
-    for row in plays_rows:
+    for p_row in plays_rows:
         plays_seasons.append(
             {
-                "season": row.season,
-                "play_count": row.play_count or 0,
-                "games_with_plays": row.games_with_plays or 0,
+                "season": p_row.season,
+                "play_count": p_row.play_count or 0,
+                "games_with_plays": p_row.games_with_plays or 0,
             }
         )
 
@@ -589,7 +589,7 @@ async def list_cfbd_table_rows(
     if model is None:
         raise HTTPException(status_code=404, detail=f"Unknown CFBD table: {table_slug}")
 
-    stmt = select(model)
+    stmt: Any = select(model)
     stmt = _apply_eq_filter(stmt, model, season, "season", "year", "season_year")
     stmt = _apply_eq_filter(stmt, model, season_type, "season_type")
     stmt = _apply_eq_filter(stmt, model, week, "week")
@@ -614,7 +614,7 @@ async def list_cfbd_table_rows(
         col = getattr(model, sort)
         stmt = stmt.order_by(col.desc() if order == "desc" else col.asc())
 
-    total = await db.scalar(select(func.count()).select_from(stmt.subquery()))
+    total = (await db.scalar(select(func.count()).select_from(stmt.subquery()))) or 0
     rows = (await db.execute(stmt.limit(limit).offset(offset))).scalars().all()
 
     serialized = _serialize_rows(rows, model)

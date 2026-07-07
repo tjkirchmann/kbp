@@ -43,4 +43,4 @@ class CfbdGamesWorkflow:
             retry_policy=_RETRY,
         )
         workflow.logger.info("cfbd_games workflow complete: %s", result)
-        return result
+        return result  # type: ignore[no-any-return]

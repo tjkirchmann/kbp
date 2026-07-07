@@ -61,7 +61,7 @@ def _desired_schedule(defn: BaseDefinition) -> Schedule:
             id=schedule_id(defn.name),
             task_queue=settings.temporal_task_queue,
         ),
-        spec=ScheduleSpec(cron_expressions=[defn.cron]),
+        spec=ScheduleSpec(cron_expressions=[defn.cron]),  # type: ignore[list-item]
         policy=SchedulePolicy(
             overlap=ScheduleOverlapPolicy.SKIP,
             catchup_window=_CATCHUP_WINDOW,

@@ -232,7 +232,7 @@ async def ban_user(user_id: int, db: AsyncSession = Depends(get_db)):
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404, detail="User not found")
-    await _clerk.users.ban_async(user_id=user.clerk_id)
+    await _clerk.users.ban_async(user_id=user.clerk_id)  # type: ignore[union-attr]
     await db.execute(update(User).where(User.id == user_id).values(is_banned=True))
     await db.commit()
     return {"ok": True}

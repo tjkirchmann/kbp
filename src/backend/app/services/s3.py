@@ -68,7 +68,7 @@ def create_presigned_post(key: str, content_type: str | None) -> dict:
     if content_type:
         fields["Content-Type"] = content_type
         conditions.append({"Content-Type": content_type})
-    return _public_client().generate_presigned_post(
+    return _public_client().generate_presigned_post(  # type: ignore[no-any-return]
         Bucket=settings.s3_bucket_name,
         Key=key,
         Fields=fields,
@@ -95,7 +95,7 @@ def head_object(key: str) -> dict | None:
 def create_presigned_get(key: str, download_name: str) -> str:
     """Short-lived download URL forcing a download with the original filename."""
     safe = download_name.replace('"', "")
-    return _public_client().generate_presigned_url(
+    return _public_client().generate_presigned_url(  # type: ignore[no-any-return]
         "get_object",
         Params={
             "Bucket": settings.s3_bucket_name,
@@ -111,7 +111,7 @@ def create_internal_presigned_get(key: str) -> str:
     the backend container). Signed against the internal endpoint the container
     can resolve — unlike ``create_presigned_get``, which targets the browser
     host. Plain object fetch, no content-disposition override."""
-    return _internal_client().generate_presigned_url(
+    return _internal_client().generate_presigned_url(  # type: ignore[no-any-return]
         "get_object",
         Params={"Bucket": settings.s3_bucket_name, "Key": key},
         ExpiresIn=300,
