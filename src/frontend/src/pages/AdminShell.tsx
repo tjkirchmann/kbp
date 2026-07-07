@@ -6,6 +6,7 @@ import { useAdminPools } from '@/services/useAdminPools'
 import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
 import AdminSidebar from '@/pages/admin/AdminSidebar'
 import AdminBreadcrumbs from '@/pages/admin/AdminBreadcrumbs'
+import AdminCommandPalette from '@/pages/admin/AdminCommandPalette'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useAuth } from '@clerk/react'
 import { useMe } from '@/services/useMe'
@@ -104,6 +105,7 @@ export default function AdminShell() {
   const { pathname } = useLocation()
   const [infoOpen, setInfoOpen] = useState(false)
   const [headerExtra, setHeaderExtra] = useState<ReactNode>(null)
+  const [commandOpen, setCommandOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
     if (localStorage.getItem(COLLAPSE_KEY) === '1') return true
@@ -124,6 +126,18 @@ export default function AdminShell() {
   useEffect(() => {
     localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0')
   }, [collapsed])
+
+  // ⌘K / Ctrl+K → open command palette
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCommandOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Auth guards — after all hooks, before render
   if (!isLoaded || meLoading) return null
@@ -154,7 +168,7 @@ export default function AdminShell() {
             <AdminBreadcrumbs crumbs={breadcrumbs} />
             <div
               key={pathname}
-              className="px-6 pb-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden animate-view-fade-in"
+              className="px-6 pb-3 flex-1 min-h-0 overflow-y-auto overflow-x-hidden animate-view-fade-in"
             >
               {infoOpen ? (
                 <AdminInfoPanel section={currentSection} />
@@ -165,6 +179,8 @@ export default function AdminShell() {
           </div>
         </div>
       </div>
+
+      <AdminCommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
     </div>
   )
 }

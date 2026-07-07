@@ -1,15 +1,67 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, forwardRef } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useAuth } from '@clerk/react'
+import { remoteModel, defaultOffsetViewportHandler } from '@virtuoso.dev/data-table'
 import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
-import AdminVirtualTable, { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
-import { useCfbdTable, type CfbdTableFilters } from '@/services/useCfbdAdmin'
+import { apiFetch } from '@/lib/api'
+import { DataTable, DataTableColumn, DataTableColumnHeader, DataTableCell, HeaderStart, HeaderOverlay, HeaderEdge } from '@/components/ui/data-table'
+import { ResizeHandle } from '@/components/ui/data-table/column-resize'
+import { ReorderGrip, ReorderDropZone } from '@/components/ui/data-table/column-reorder'
+import { SortableHeaderLabel } from '@/components/ui/data-table/column-sort'
+import { CfbdRenderProvider, type CfbdRenderContextValue } from '@/components/admin/CfbdRenderContext'
 import CfbdTableSelector from './CfbdTableSelector'
 import FilterBar from './FilterBar'
-import CfbdDataRow from './CfbdDataRow'
-import { CFBD_TABLES, getCfbdTableConfig, type CfbdFilterKey, type CfbdRenderContext } from './tableRegistry'
+import { CFBD_TABLES, getCfbdTableConfig, type CfbdFilterKey } from './tableRegistry'
 
-const ROW_HEIGHT = 44
+import type { Row } from '@virtuoso.dev/data-table'
+import type { CfbdTableFilters } from '@/services/useCfbdAdmin'
+
+type CfbdRow = Row<Record<string, unknown>>
+
 const PAGE_SIZE = 250
+
+/** Build default filters from table config (dropdown defaults). */
+function buildDefaultFilters(table: ReturnType<typeof getCfbdTableConfig>) {
+  const defaults: Record<string, unknown> = {}
+  for (const dd of table?.filterDropdowns ?? []) {
+    if (dd.default !== undefined) defaults[dd.key] = dd.default
+  }
+  return defaults
+}
+
+/** Build the query string from params for the API call. */
+function buildQueryString(params: Record<string, unknown>, offset: number, limit: number): string {
+  const p = new URLSearchParams()
+  p.set('offset', String(offset))
+  p.set('limit', String(limit))
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '' || key === 'slug') continue
+    p.set(key, String(value))
+  }
+  return p.toString()
+}
+
+/** Stable row key for CFBD tables. */
+function computeRowKey(row: CfbdRow | Row<unknown>) {
+  const data = row.data as Record<string, unknown> | undefined
+  if (!data) return `placeholder-${row.index}`
+  if (data.id != null) return String(data.id)
+  if (data.game_id != null) {
+    const parts = [data.game_id, data.provider, data.category, data.stat_type, data.player_id, data.drive_number, data.media_type, data.outlet].filter((v) => v != null)
+    return parts.join('-')
+  }
+  if (data.coach_id != null) {
+    const parts = [data.coach_id, data.school, data.year].filter((v) => v != null)
+    return parts.join('-')
+  }
+  return `${data.id ?? 'row'}-${row.index}`
+}
+
+function toCellValue(value: unknown): string {
+  if (value === null || value === undefined) return '\u2014'
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  return String(value)
+}
 
 export default function CfbdWorkspace() {
   const navigate = useNavigate()
@@ -17,7 +69,9 @@ export default function CfbdWorkspace() {
   const { tableSlug } = useParams<{ tableSlug: string }>()
   const activeSlug = tableSlug ?? 'rankings'
   const table = getCfbdTableConfig(activeSlug) ?? CFBD_TABLES[0]
+  const { getToken } = useAuth()
 
+  // ── Filter state (source of truth for FilterBar UI) ───────────
   const [filters, setFilters] = useState<CfbdTableFilters>(() => {
     const initial: CfbdTableFilters = {}
     const seasonParam = searchParams.get('season')
@@ -25,117 +79,168 @@ export default function CfbdWorkspace() {
       const parsed = Number(seasonParam)
       if (!Number.isNaN(parsed)) initial.season = parsed
     }
-    for (const dd of table.filterDropdowns ?? []) {
-      if (dd.default !== undefined && !initial[dd.key]) {
-        ;(initial as Record<string, unknown>)[dd.key] = dd.default
-      }
-    }
+    Object.assign(initial, buildDefaultFilters(table))
     return initial
   })
-  const [offset, setOffset] = useState(0)
-  const [accumulatedRows, setAccumulatedRows] = useState<Record<string, unknown>[]>([])
-  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null)
 
+  // Reset filters when table changes
   useEffect(() => {
-    const defaults: CfbdTableFilters = {}
-    for (const dd of table.filterDropdowns ?? []) {
-      if (dd.default !== undefined) {
-        ;(defaults as Record<string, unknown>)[dd.key] = dd.default
-      }
+    setFilters(buildDefaultFilters(table))
+  }, [table.slug])
+
+  // ── Team logos & season auto-select ───────────────────────────
+  const [teamLogos, setTeamLogos] = useState<Record<string, string | null>>({})
+  const seasonMaxRef = useRef<number | null>(null)
+  const seasonAssignedRef = useRef(false)
+
+  // ── remoteModel ───────────────────────────────────────────────
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
+
+  const modelRef = useRef<ReturnType<typeof remoteModel<Record<string, unknown>>>>(null!)
+
+  const [model] = useState(() => {
+    const m = remoteModel<Record<string, unknown>>({
+      fetch: async ({ offset, limit, params, signal }) => {
+        const token = await getToken()
+        const slug = params.slug as string
+        const qs = buildQueryString(params, offset, limit)
+        const data = await apiFetch(token, `/admin/cfbd/${slug}?${qs}`, { signal })
+
+        // Accumulate team logos across fetches
+        if (data.team_logos) {
+          setTeamLogos((prev) => ({ ...prev, ...data.team_logos }))
+        }
+
+        // Capture seasonMax for auto-select
+        if (data.season_max != null) {
+          seasonMaxRef.current = data.season_max
+        }
+
+        return { rows: data.rows as Record<string, unknown>[], totalCount: data.total as number }
+      },
+      initialParams: {
+        slug: table.slug,
+        ...buildDefaultFilters(table),
+      },
+      onViewportChange: defaultOffsetViewportHandler,
+      pageSize: PAGE_SIZE,
+      actions: {
+        setFilters: {
+          strategy: 'supersede' as const,
+          handler: ({ params, payload }) => ({ slug: params.slug, ...payload as Record<string, unknown> }),
+        },
+        sort: {
+          strategy: 'supersede' as const,
+          handler: ({ params, payload }) => {
+            if (!payload || !(payload as Record<string, unknown>).field) {
+              const { sort: _s, order: _o, ...rest } = params as Record<string, unknown>
+              return rest
+            }
+            const p = payload as Record<string, unknown>
+            return { ...params, sort: p.field, order: p.direction }
+          },
+        },
+      },
+    })
+    modelRef.current = m
+    return m
+  })
+
+  // Sync filter changes to the model (skip initial mount)
+  const filtersInitializedRef = useRef(false)
+  useEffect(() => {
+    if (!filtersInitializedRef.current) {
+      filtersInitializedRef.current = true
+      return
     }
-    setFilters(defaults)
-  }, [table.slug, table.filterDropdowns])
-
-  const filterKey = useMemo(
-    () => JSON.stringify({ slug: table.slug, ...filters, sort }),
-    [table.slug, filters, sort],
-  )
-  const previousFilterKeyRef = useRef(filterKey)
-
-  useEffect(() => {
-    if (previousFilterKeyRef.current === filterKey) return
-    previousFilterKeyRef.current = filterKey
-    setOffset(0)
-  }, [filterKey])
+    modelRef.current?.send({ action: 'setFilters', payload: filters })
+  }, [filters])
 
   const missingGameId = Boolean(table.requiresGameId && !filters.game_id)
-  const queryEnabled = !missingGameId
 
-  const queryFilters = useMemo(
-    () => ({ ...filters, offset, limit: PAGE_SIZE, sort: sort?.key, order: sort?.dir }),
-    [filters, offset, sort],
-  )
-
-  const { data, isLoading } = useCfbdTable(table.slug, queryFilters, queryEnabled)
+  // ── Table height tracking ────────────────────────────────────
+  const tableRef = useRef<HTMLDivElement>(null)
+  const [tableH, setTableH] = useState(0)
 
   useEffect(() => {
-    if (!data) return
-
-    setAccumulatedRows((prev) => (offset === 0 ? data.rows : [...prev, ...data.rows]))
-  }, [data, offset])
-
-  useEffect(() => {
-    if (!data?.seasonMax) return
-    if (!table.filters.includes('season')) return
-    if (filters.season) return
-    if (table.defaultFilters?.season !== 0) return
-    setFilters((prev) => ({ ...prev, season: data.seasonMax ?? undefined }))
-  }, [data?.seasonMax, table, filters.season])
-
-  const rows = accumulatedRows
-  const hasMore = data ? rows.length < data.total : false
-  const isLoadingMore = isLoading && offset > 0
-
-  const renderContext: CfbdRenderContext = useMemo(() => {
-    const ctx: CfbdRenderContext = { teamLogos: data?.teamLogos ?? {} }
-    const heatCols = table.heatColumns
-    if (heatCols && rows.length > 0) {
-      const ranges: Record<string, { min: number; max: number }> = {}
-      for (const col of heatCols) {
-        let min = Infinity
-        let max = -Infinity
-        for (const row of rows) {
-          const v = typeof row[col] === 'number' ? (row[col] as number) : Number(row[col])
-          if (!Number.isNaN(v)) {
-            if (v < min) min = v
-            if (v > max) max = v
-          }
-        }
-        if (min !== Infinity) ranges[col] = { min, max }
-      }
-      ctx.columnRanges = ranges
-    }
-    return ctx
-  }, [data?.teamLogos, table.heatColumns, rows])
-
-  const loadMore = () => {
-    if (!hasMore || isLoadingMore) return
-    setOffset((prev) => prev + PAGE_SIZE)
-  }
-
-  const handleSortClick = (key: string) => {
-    setSort((prev) => {
-      if (!prev || prev.key !== key) return { key, dir: 'asc' }
-      if (prev.dir === 'asc') return { key, dir: 'desc' }
-      return null
+    const el = tableRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => {
+      const h = e?.contentRect?.height ?? 0
+      if (h > 0) setTableH(h)
     })
-  }
+    ro.observe(el)
+    setTableH(el.clientHeight || 0)
+    return () => ro.disconnect()
+  }, [])
 
-  const isFiltered = Object.keys(filters).length > 0
-  const syncedValues = rows
-    .map((row) => row.last_synced_at)
-    .filter((v): v is string => typeof v === 'string')
-    .sort()
-  const latestSynced = syncedValues.length > 0 ? syncedValues[syncedValues.length - 1] : undefined
+  // ── Rendered data callbacks (heat ranges + toolbar) ──────────
+  const [columnRanges, setColumnRanges] = useState<Record<string, { min: number; max: number }>>({})
+  const [renderedCount, setRenderedCount] = useState(0)
+  const latestSyncedRef = useRef<string | undefined>()
 
-  const columns: AdminTableColumn[] = useMemo(
-    () =>
-      table.columns.map((col) => ({ key: col.key, header: col.header, className: col.className, minWidth: col.minWidth })),
-    [table],
+  const handleRenderedDataChange = useCallback(
+    (rows: CfbdRow[]) => {
+      const validRows = rows.filter(Boolean)
+      setRenderedCount(validRows.length)
+
+      // Heat column ranges
+      const heatCols = table.heatColumns
+      if (heatCols?.length) {
+        const ranges: Record<string, { min: number; max: number }> = {}
+        for (const col of heatCols) {
+          let min = Infinity
+          let max = -Infinity
+          for (const row of validRows) {
+            if (!row.data) continue
+            const v = Number(row.data[col])
+            if (!Number.isNaN(v)) {
+              if (v < min) min = v
+              if (v > max) max = v
+            }
+          }
+          if (min !== Infinity) ranges[col] = { min, max }
+        }
+        setColumnRanges(ranges)
+      }
+
+      // Latest synced timestamp
+      const synced = validRows
+        .map((r) => r.data?.last_synced_at)
+        .filter((v): v is string => typeof v === 'string')
+        .sort()
+      latestSyncedRef.current = synced.length > 0 ? synced[synced.length - 1] : undefined
+    },
+    [table.heatColumns],
   )
+
+  // Auto-assign season on first data load
+  useEffect(() => {
+    if (
+      seasonAssignedRef.current ||
+      !seasonMaxRef.current ||
+      filters.season != null ||
+      !table.filters.includes('season') ||
+      table.defaultFilters?.season !== 0
+    ) {
+      return
+    }
+    seasonAssignedRef.current = true
+    setFilters((prev) => ({ ...prev, season: seasonMaxRef.current! }))
+  }, [filters.season, table])
+
+  // ── Render context (provided via React Context to cell renderers) ──
+  const renderContext: CfbdRenderContextValue = useMemo(
+    () => ({ teamLogos, columnRanges }),
+    [teamLogos, columnRanges],
+  )
+
+  // ── Render ────────────────────────────────────────────────────
+  const columns = table.columns
 
   return (
-    <div className="h-full flex flex-col gap-3">
+    <div className="h-full flex flex-col gap-1.5">
       <CfbdTableSelector
         activeSlug={table.slug}
         onSelect={(slug) => {
@@ -151,12 +256,11 @@ export default function CfbdWorkspace() {
         filters={filters}
         onChange={(key: CfbdFilterKey, rawValue: string) => {
           setFilters((prev) => {
-            const next: CfbdTableFilters = { ...prev }
+            const next = { ...prev } as Record<string, unknown>
             if (rawValue === '') {
               delete next[key]
-              return next
+              return next as CfbdTableFilters
             }
-
             if (key === 'season' || key === 'week' || key === 'game_id' || key === 'stars') {
               const parsed = Number(rawValue.trim())
               if (Number.isNaN(parsed)) {
@@ -164,21 +268,15 @@ export default function CfbdWorkspace() {
               } else {
                 next[key] = parsed
               }
-              return next
+              return next as CfbdTableFilters
             }
-
             next[key] = rawValue
-            return next
+            return next as CfbdTableFilters
           })
         }}
         onReset={() => {
-          const defaults: CfbdTableFilters = {}
-          for (const dd of table.filterDropdowns ?? []) {
-            if (dd.default !== undefined) {
-              ;(defaults as Record<string, unknown>)[dd.key] = dd.default
-            }
-          }
-          setFilters(defaults)
+          const defaults = buildDefaultFilters(table)
+          setFilters(defaults as CfbdTableFilters)
         }}
       />
 
@@ -188,54 +286,63 @@ export default function CfbdWorkspace() {
         </div>
       )}
 
-      <AdminVirtualTable
-        columns={columns}
-        rows={rows}
-        rowHeight={ROW_HEIGHT}
-        isLoading={isLoading && offset === 0 && accumulatedRows.length === 0}
-        isFiltered={isFiltered}
-        rowKey={(row) => {
-          if (row.id != null) return String(row.id)
-          if (row.game_id != null) {
-            const parts = [row.game_id, row.provider, row.category, row.stat_type, row.player_id, row.drive_number, row.media_type, row.outlet]
-              .filter((v) => v != null)
-            return parts.join('-')
-          }
-          if (row.coach_id != null) {
-            const parts = [row.coach_id, row.school, row.year].filter((v) => v != null)
-            return parts.join('-')
-          }
-          return `${table.slug}-${rows.indexOf(row)}`
-        }}
-        renderRow={(row, meta) => (
-          <CfbdDataRow
-            columns={table.columns}
-            row={row}
-            context={renderContext}
-            columnWidths={meta?.columnWidths}
-          />
-        )}
-        emptyState={
-          <p className="text-sm text-muted-foreground py-4">No rows for this table yet.</p>
-        }
-        noMatchState={
-          <p className="text-sm text-muted-foreground py-4">No rows match the current filters.</p>
-        }
-        hasMore={hasMore}
-        isLoadingMore={isLoadingMore}
-        onLoadMore={loadMore}
-        resizable
-        sortKey={sort?.key}
-        sortDir={sort?.dir}
-        onSortClick={handleSortClick}
-      />
+      {!missingGameId && (
+        <CfbdRenderProvider value={renderContext}>
+          <div ref={tableRef} className="flex-1 min-h-0 overflow-hidden rounded-2xl">
+          <DataTable
+            key={table.slug}
+            className="bg-white/[0.03] border border-border/20 rounded-2xl"
+            style={{ height: tableH || 400 }}
+            model={model}
+            computeRowKey={computeRowKey}
+            onRenderedDataChange={handleRenderedDataChange}
+            components={{
+              Row: forwardRef<any, any>(({ style, ...props }, ref) => (
+                <div
+                  ref={ref}
+                  {...props}
+                  className="flex items-center border-t border-border/20 transition-colors hover:bg-[rgba(26,30,42,0.4)]"
+                  style={{ ...style, height: 44 }}
+                />
+              )) as any,
+            }}
+          >
+            {columns.map((col) => (
+              <DataTableColumn key={col.key} field={col.key}>
+                <DataTableColumnHeader className="px-5">
+                  <HeaderStart component={ReorderGrip} />
+                  <HeaderOverlay component={ReorderDropZone} />
+                  {() => (
+                    <SortableHeaderLabel field={col.key}>
+                      {String(col.header)}
+                    </SortableHeaderLabel>
+                  )}
+                  <HeaderEdge>
+                    {(params) => <ResizeHandle {...(params as any)} />}
+                  </HeaderEdge>
+                </DataTableColumnHeader>
+                <DataTableCell className="px-5 py-0">
+                  {({ cellValue, row }) => {
+                    if (col.render) {
+                      return col.render(cellValue, row.data as Record<string, unknown>, renderContext)
+                    }
+                    if (col.rawCell) return toCellValue(cellValue)
+                    return <span className="text-xs text-muted-foreground truncate block">{toCellValue(cellValue)}</span>
+                  }}
+                </DataTableCell>
+              </DataTableColumn>
+            ))}
+          </DataTable>
+          </div>
+        </CfbdRenderProvider>
+      )}
 
       <AdminTableToolbar
-        count={rows.length}
-        total={data?.total ?? 0}
+        count={renderedCount}
+        total={0}
         noun="row"
         countSuffix={
-          latestSynced ? `· synced ${new Date(latestSynced).toLocaleString()}` : undefined
+          latestSyncedRef.current ? `· synced ${new Date(latestSyncedRef.current).toLocaleString()}` : undefined
         }
       />
     </div>
