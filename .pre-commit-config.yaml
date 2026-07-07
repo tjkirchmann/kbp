@@ -27,6 +27,20 @@ repos:
         name: ruff-format (backend)
         files: ^src/backend/
 
+  # ── Python backend (Mypy: type check) ───────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        name: mypy (backend)
+        files: ^src/backend/
+        args: [--config-file=src/backend/pyproject.toml]
+        additional_dependencies:
+          - pydantic>=2.0
+          - sqlalchemy[mypy]>=2.0
+          - types-passlib
+          - types-python-jose
+
   # ── Frontend (ESLint + Prettier via the frontend's own npm scripts) ─────────
   - repo: local
     hooks:

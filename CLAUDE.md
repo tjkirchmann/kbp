@@ -46,7 +46,6 @@ kbp/
 │   │   │   ├── store/         ← Zustand slices (UI state only)
 │   │   │   └── lib/utils.ts   ← cn() helper
 │   │   ├── vite.config.ts
-│   │   ├── tailwind.config.ts
 │   │   └── package.json
 │   │
 │   └── backend/               ← FastAPI + SQLAlchemy 2.0 async
@@ -79,7 +78,7 @@ kbp/
 | Layer | Tech | Notes |
 |---|---|---|
 | Frontend | React 18 + TypeScript (strict) + Vite | |
-| Styling | Tailwind CSS 4 + shadcn/ui + Radix UI | v4 — `@theme` in CSS, not `tailwind.config.ts` |
+| Styling | Tailwind CSS 4 + shadcn/ui + Radix UI | v4 — `@theme` in CSS, no JS config needed |
 | Icons | Lucide React | Only icon library; see DESIGN.md for assignments |
 | Font | Geist Sans (`@fontsource/geist`) | Imported in `index.css` |
 | Data fetching | TanStack Query v5 | All server state |
@@ -133,7 +132,7 @@ Frontend tooling requires `npm install` in `src/frontend` first.
 
 ### Frontend
 
-- **CSS variables** are in `src/frontend/src/index.css` under `:root` and `@theme`. Do not put design tokens in `tailwind.config.ts` — Tailwind v4 reads `@theme` directly.
+- **CSS variables** are in `src/frontend/src/index.css` under `:root` and `@theme`. Tailwind v4 reads `@theme` directly — there is no JS config file.
 - **Semantic color classes** (`bg-background`, `text-foreground`, `bg-card`, `border-border`, `text-muted-foreground`, `bg-primary`, etc.) are all wired up and ready to use.
 - **Page background** is a dark radial gradient on `html` (`bg-background` base + layered blue ellipses). `body` is transparent — don't apply `bg-background` to page wrappers; let the gradient show through.
 - **Container hierarchy**: outer panels get `bg-card border border-border rounded-xl shadow-sm`; inner cards get no border, just `rounded-lg hover:bg-muted/60`.
