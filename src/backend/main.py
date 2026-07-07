@@ -11,9 +11,9 @@ from app.routers.cfbd_admin import router as cfbd_admin_router
 from app.routers.library import router as library_router
 from app.routers.pools import router as pools_router
 from app.routers.struct_output import router as struct_output_router
-from app.routers.temporal_admin import router as temporal_admin_router
 from app.routers.submissions import router as submissions_router
 from app.routers.teams import router as teams_router
+from app.routers.temporal_admin import router as temporal_admin_router
 
 
 @asynccontextmanager

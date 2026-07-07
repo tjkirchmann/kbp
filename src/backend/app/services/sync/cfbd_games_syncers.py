@@ -6,7 +6,6 @@ functions are shared between Temporal activities and any other caller.
 
 from datetime import UTC, datetime
 
-
 # asyncpg/psycopg cap statements at 32767 bind params; keep batches under that.
 GAME_COLS = 18
 GAME_BATCH = 32767 // GAME_COLS

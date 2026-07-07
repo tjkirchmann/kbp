@@ -77,7 +77,7 @@ def check_chain(nodes: dict[str, dict]) -> None:
 
     # 2a. every parent must reference a known revision (a merge migration has
     #     several parents; a base migration has none).
-    for rev, info in nodes.items():
+    for _rev, info in nodes.items():
         for parent in info["parents"]:
             if parent not in nodes:
                 fail(

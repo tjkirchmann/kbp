@@ -5,7 +5,7 @@ status, and results — for the Coverage dashboard side panel.
 """
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -140,9 +140,7 @@ async def get_cfbd_sync_status():
                     if status.next_run_at is None and next_actions:
                         status.next_run_at = _iso(next_actions[0])
             except Exception as exc:
-                logger.warning(
-                    "Failed to query schedule %s: %s", w["schedule_id"], exc
-                )
+                logger.warning("Failed to query schedule %s: %s", w["schedule_id"], exc)
 
         # ── last execution ─────────────────────────────────────────────
         try:
@@ -160,9 +158,7 @@ async def get_cfbd_sync_status():
                     latest = wf
 
             if latest is not None:
-                status.workflow_status = (
-                    latest.status.name if latest.status else None
-                )
+                status.workflow_status = latest.status.name if latest.status else None
                 status.last_run_at = _iso(latest.start_time)
                 status.last_run_duration_seconds = _duration_seconds(
                     latest.start_time, latest.close_time
@@ -179,9 +175,7 @@ async def get_cfbd_sync_status():
                         if isinstance(result, dict):
                             status.result = result
                     except Exception as exc:
-                        logger.warning(
-                            "Failed to get result for %s: %s", w["id"], exc
-                        )
+                        logger.warning("Failed to get result for %s: %s", w["id"], exc)
 
                 # Surface failure reason
                 if status.workflow_status == "FAILED":
@@ -198,6 +192,4 @@ async def get_cfbd_sync_status():
 
         results.append(status)
 
-    return CfbdTemporalStatusResponse(
-        temporal_reachable=True, workflows=results
-    )
+    return CfbdTemporalStatusResponse(temporal_reachable=True, workflows=results)

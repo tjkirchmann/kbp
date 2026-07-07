@@ -48,9 +48,7 @@ async def sync_games_season(year: int) -> dict[str, Any]:
             ):
                 changed += 1
 
-        await batch_upsert(
-            db, CfbdGame, [game_row(g, year) for g in games], GAME_BATCH
-        )
+        await batch_upsert(db, CfbdGame, [game_row(g, year) for g in games], GAME_BATCH)
         await db.commit()
 
     logger.info(

@@ -61,14 +61,12 @@ PROGRAM_PROFILE_CATEGORIES: list[tuple[str, str, str]] = [
     (
         "nfl_pipeline",
         "NFL Pipeline & Player Development",
-        "Draft picks produced, pro success rate, and reputation for developing "
-        "talent.",
+        "Draft picks produced, pro success rate, and reputation for developing talent.",
     ),
     (
         "recruiting_nil",
         "Recruiting Power & NIL Infrastructure",
-        "Ability to land top recruits, collective strength, and donor/booster "
-        "support.",
+        "Ability to land top recruits, collective strength, and donor/booster support.",
     ),
     (
         "academic_profile",
@@ -79,8 +77,7 @@ PROGRAM_PROFILE_CATEGORIES: list[tuple[str, str, str]] = [
     (
         "conference_strength",
         "Conference Strength & Media Value",
-        "Quality of the league, TV revenue share, and exposure from broadcast "
-        "deals.",
+        "Quality of the league, TV revenue share, and exposure from broadcast deals.",
     ),
     (
         "rivalries_culture",

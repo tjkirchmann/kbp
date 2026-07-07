@@ -128,7 +128,7 @@ async def upsert_output(
     qparams = ", ".join(f":{c}" for c in insert_cols)
     update_cols = [c for c in insert_cols if c != entity_col]
     set_clause = ", ".join(
-        f'{_ident(c, "column")} = EXCLUDED.{_ident(c, "column")}' for c in update_cols
+        f"{_ident(c, 'column')} = EXCLUDED.{_ident(c, 'column')}" for c in update_cols
     )
     set_clause += ", generated_at = now()"
 

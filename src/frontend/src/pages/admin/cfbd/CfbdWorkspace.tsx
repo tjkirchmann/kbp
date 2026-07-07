@@ -103,9 +103,10 @@ export default function CfbdWorkspace() {
     return initial
   })
 
-  // Reset filters when table changes
+  // Reset filters when table changes (slug is the stable identity)
   useEffect(() => {
     setFilters(buildDefaultFilters(table))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table.slug])
 
   // ── Team logos & season auto-select ───────────────────────────

@@ -15,8 +15,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.models.cfbd import (
-    CfbdCoach,
-    CfbdCoachSeason,
     CfbdConference,
     CfbdDraftPosition,
     CfbdDraftTeam,

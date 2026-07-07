@@ -148,7 +148,9 @@ def _apply_eq_filter(stmt: Any, model: type, param: Any, *column_names: str) -> 
     return stmt
 
 
-def _apply_ilike_filter(stmt: Any, model: type, param: str | None, *column_names: str) -> Any:
+def _apply_ilike_filter(
+    stmt: Any, model: type, param: str | None, *column_names: str
+) -> Any:
     """Partial-match filter — wraps the value in % wildcards and applies ILIKE
     across every matching column via OR (any column can match)."""
     if not param:
@@ -187,7 +189,7 @@ def _serialize_rows(rows: list[Any], model: type) -> list[dict[str, Any]]:
 
 def _order_columns(model: type) -> list[Any]:
     if _has_col(model, "last_synced_at"):
-        return [getattr(model, "last_synced_at").desc()]
+        return [model.last_synced_at.desc()]
     pk = list(inspect(model).primary_key)
     return pk if pk else [getattr(model, list(inspect(model).columns.keys())[0])]
 
@@ -223,10 +225,7 @@ async def _build_team_logos(
         CfbdTeam.school.in_(team_names)
     )
     result = await db.execute(stmt)
-    return {
-        school: (logos[0] if logos else None)
-        for school, logos in result.all()
-    }
+    return {school: (logos[0] if logos else None) for school, logos in result.all()}
 
 
 class CoverageSeasonItem(BaseModel):
@@ -285,7 +284,9 @@ async def get_coverage_dashboard(db: AsyncSession = Depends(get_db)):
 
     facts_by_endpoint: dict[str, list[CoverageSeasonItem]] = {}
     for row in coverage_rows:
-        meta = FACT_ENDPOINT_LABELS.get(row.endpoint, {"label": row.endpoint, "group": "Other"})
+        meta = FACT_ENDPOINT_LABELS.get(
+            row.endpoint, {"label": row.endpoint, "group": "Other"}
+        )
         if row.endpoint not in facts_by_endpoint:
             facts_by_endpoint[row.endpoint] = []
         facts_by_endpoint[row.endpoint].append(
@@ -293,7 +294,9 @@ async def get_coverage_dashboard(db: AsyncSession = Depends(get_db)):
                 year=row.season_year,
                 complete=row.complete if row.complete is not None else False,
                 row_count=row.row_count or 0,
-                last_synced_at=row.last_synced_at.isoformat() if row.last_synced_at else None,
+                last_synced_at=row.last_synced_at.isoformat()
+                if row.last_synced_at
+                else None,
             )
         )
 
@@ -311,20 +314,17 @@ async def get_coverage_dashboard(db: AsyncSession = Depends(get_db)):
 
     # --- Games ---
     games_rows = (
-        (
-            await db.execute(
-                select(
-                    CfbdGame.season_year,
-                    func.count().label("total"),
-                    func.count().filter(CfbdGame.completed.is_(True)).label("completed"),
-                    func.max(CfbdGame.last_synced_at).label("last_synced_at"),
-                )
-                .group_by(CfbdGame.season_year)
-                .order_by(CfbdGame.season_year)
+        await db.execute(
+            select(
+                CfbdGame.season_year,
+                func.count().label("total"),
+                func.count().filter(CfbdGame.completed.is_(True)).label("completed"),
+                func.max(CfbdGame.last_synced_at).label("last_synced_at"),
             )
+            .group_by(CfbdGame.season_year)
+            .order_by(CfbdGame.season_year)
         )
-        .all()
-    )
+    ).all()
 
     games_list: list[CoverageGameSeason] = []
     for row in games_rows:
@@ -333,7 +333,9 @@ async def get_coverage_dashboard(db: AsyncSession = Depends(get_db)):
                 season_year=row.season_year,
                 total=row.total or 0,
                 completed=row.completed or 0,
-                last_synced_at=row.last_synced_at.isoformat() if row.last_synced_at else None,
+                last_synced_at=row.last_synced_at.isoformat()
+                if row.last_synced_at
+                else None,
             )
         )
 
@@ -362,25 +364,24 @@ async def get_coverage_dashboard(db: AsyncSession = Depends(get_db)):
                 name=name,
                 label=label,
                 count=row.count or 0,
-                last_synced_at=row.last_synced_at.isoformat() if row.last_synced_at else None,
+                last_synced_at=row.last_synced_at.isoformat()
+                if row.last_synced_at
+                else None,
             )
         )
 
     # --- Plays ---
     plays_rows = (
-        (
-            await db.execute(
-                select(
-                    CfbdPlay.season,
-                    func.count().label("play_count"),
-                    func.count(func.distinct(CfbdPlay.game_id)).label("games_with_plays"),
-                )
-                .group_by(CfbdPlay.season)
-                .order_by(CfbdPlay.season)
+        await db.execute(
+            select(
+                CfbdPlay.season,
+                func.count().label("play_count"),
+                func.count(func.distinct(CfbdPlay.game_id)).label("games_with_plays"),
             )
+            .group_by(CfbdPlay.season)
+            .order_by(CfbdPlay.season)
         )
-        .all()
-    )
+    ).all()
 
     plays_seasons: list[dict[str, Any]] = []
     for row in plays_rows:
@@ -446,7 +447,9 @@ async def get_distinct_values(
         raise HTTPException(status_code=404, detail=f"Unknown CFBD table: {table_slug}")
 
     if column not in SAFE_DISTINCT_COLUMNS:
-        raise HTTPException(status_code=400, detail=f"Column not allowed for distinct query: {column}")
+        raise HTTPException(
+            status_code=400, detail=f"Column not allowed for distinct query: {column}"
+        )
 
     # Handle column groups (UNION across multiple columns)
     if column in COLUMN_GROUPS:
@@ -456,14 +459,22 @@ async def get_distinct_values(
         if len(group_cols) == 1:
             col = getattr(model, group_cols[0])
             rows = (
-                (await db.execute(select(func.distinct(col)).where(col.isnot(None)).order_by(col)))
+                (
+                    await db.execute(
+                        select(func.distinct(col)).where(col.isnot(None)).order_by(col)
+                    )
+                )
                 .scalars()
                 .all()
             )
-            return DistinctValuesResponse(values=[str(v) for v in rows if v is not None])
+            return DistinctValuesResponse(
+                values=[str(v) for v in rows if v is not None]
+            )
         # UNION distinct values from multiple columns
         queries = [
-            select(func.distinct(getattr(model, c)).label("val")).where(getattr(model, c).isnot(None))
+            select(func.distinct(getattr(model, c)).label("val")).where(
+                getattr(model, c).isnot(None)
+            )
             for c in group_cols
         ]
         union_stmt = queries[0].union(*queries[1:]).order_by("val")
@@ -482,7 +493,11 @@ async def get_distinct_values(
         return DistinctValuesResponse(values=[])
 
     rows = (
-        (await db.execute(select(func.distinct(col)).where(col.isnot(None)).order_by(col)))
+        (
+            await db.execute(
+                select(func.distinct(col)).where(col.isnot(None)).order_by(col)
+            )
+        )
         .scalars()
         .all()
     )
@@ -580,7 +595,9 @@ async def list_cfbd_table_rows(
     stmt = _apply_eq_filter(stmt, model, week, "week")
     stmt = _apply_ilike_filter(stmt, model, team, "team", "home_team", "away_team")
     stmt = _apply_ilike_filter(stmt, model, school, "school")
-    stmt = _apply_ilike_filter(stmt, model, conference, "conference", "home_conference", "away_conference")
+    stmt = _apply_ilike_filter(
+        stmt, model, conference, "conference", "home_conference", "away_conference"
+    )
     stmt = _apply_eq_filter(stmt, model, classification, "classification")
     stmt = _apply_eq_filter(stmt, model, game_id, "game_id")
     stmt = _apply_eq_filter(stmt, model, coach_id, "coach_id")
@@ -598,15 +615,7 @@ async def list_cfbd_table_rows(
         stmt = stmt.order_by(col.desc() if order == "desc" else col.asc())
 
     total = await db.scalar(select(func.count()).select_from(stmt.subquery()))
-    rows = (
-        (
-            await db.execute(
-                stmt.limit(limit).offset(offset)
-            )
-        )
-        .scalars()
-        .all()
-    )
+    rows = (await db.execute(stmt.limit(limit).offset(offset))).scalars().all()
 
     serialized = _serialize_rows(rows, model)
 
@@ -615,13 +624,12 @@ async def list_cfbd_table_rows(
         coach_ids = {row["coach_id"] for row in serialized if row.get("coach_id")}
         if coach_ids:
             coach_rows = (
-                (await db.execute(
-                    select(CfbdCoach.coach_id, CfbdCoach.first_name, CfbdCoach.last_name).where(
-                        CfbdCoach.coach_id.in_(coach_ids)
-                    )
-                ))
-                .all()
-            )
+                await db.execute(
+                    select(
+                        CfbdCoach.coach_id, CfbdCoach.first_name, CfbdCoach.last_name
+                    ).where(CfbdCoach.coach_id.in_(coach_ids))
+                )
+            ).all()
             coach_name_map = {
                 cid: f"{fn or ''} {ln or ''}".strip() or cid
                 for cid, fn, ln in coach_rows

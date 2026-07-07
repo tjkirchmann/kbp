@@ -24,7 +24,6 @@ from app.core.database import TaskSessionLocal as SessionLocal
 from app.models.cfbd import CfbdCoach, CfbdCoachSeason
 from app.services.sync.cfbd_dims_syncers import (
     DIM_SPECS,
-    FLAT_DIM_KEYS,
     coach_hash,
     coach_id,
     coach_row,
