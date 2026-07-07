@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState, forwardRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Loader2, Star, Flag, Calendar, Users, Building2, Trash2 } from 'lucide-react'
+import { localModel } from '@virtuoso.dev/data-table'
 import {
   useAdminPools,
   usePoolDetail,
@@ -9,7 +10,7 @@ import {
   type CfbdGame,
   type PoolGameDetail,
 } from '@/services/useAdminPools'
-import AdminVirtualTable, { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
+import { DataTable, DataTableColumn, DataTableColumnHeader, DataTableCell } from '@/components/ui/data-table'
 import Modal from '@/components/ui/Modal'
 
 const ROW_HEIGHT = 60
@@ -51,10 +52,10 @@ export default function PoolDetail() {
 
   const games = useMemo(() => detail?.games.map(gameDetailToCfbd) ?? [], [detail?.games])
 
-  const columns: AdminTableColumn[] = [
-    { key: 'status', header: '', className: 'w-8 shrink-0' },
-    { key: 'matchup', header: 'Matchup', className: 'flex-1' },
-  ]
+  const [model] = useState(() => localModel<CfbdGame>({ data: [] }))
+  useEffect(() => {
+    model.setData?.(games)
+  }, [model, games])
 
   if (!live) {
     return <p className="text-sm text-muted-foreground py-8">Pool not found.</p>
@@ -113,7 +114,7 @@ export default function PoolDetail() {
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-4 h-full">
+    <div className="flex flex-col gap-4 h-full overflow-hidden">
       {/* ── Header + Stats Card ────────────────────────────────── */}
       <div className="glass-panel rounded-2xl p-6 shrink-0">
         <div className="flex items-start justify-between gap-4">
@@ -137,6 +138,7 @@ export default function PoolDetail() {
           {/* Pool toggles */}
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={() =>
                 patchPool.mutate({
                   poolId: live.id,
@@ -154,6 +156,7 @@ export default function PoolDetail() {
               {live.is_featured ? 'Featured' : 'Feature'}
             </button>
             <button
+              type="button"
               onClick={() =>
                 patchPool.mutate({
                   poolId: live.id,
@@ -192,6 +195,7 @@ export default function PoolDetail() {
         {/* Tab bar */}
         <div className="flex items-center gap-1 border-b border-border/30 px-6">
           <button
+            type="button"
             onClick={() => setTab('games')}
             className={`px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === 'games'
@@ -202,6 +206,7 @@ export default function PoolDetail() {
             Games ({live.game_count})
           </button>
           <button
+            type="button"
             onClick={() => setTab('submissions')}
             className={`px-3 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === 'submissions'
@@ -213,20 +218,51 @@ export default function PoolDetail() {
           </button>
         </div>
 
-        {tab === 'games' && (
-          <AdminVirtualTable
-            columns={columns}
-            rows={games}
-            rowKey={(g) => g.id}
-            rowHeight={ROW_HEIGHT}
-            isLoading={isLoading}
-            emptyState={
-              <p className="text-sm text-muted-foreground py-12 text-center">
-                No games added to this pool yet.
-              </p>
-            }
-            renderRow={(game) => <GameRow game={game} />}
-          />
+        {tab === 'games' && games.length === 0 && !isLoading && (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground py-12 text-center">No games added to this pool yet.</p>
+          </div>
+        )}
+        {tab === 'games' && isLoading && games.length === 0 && (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+          </div>
+        )}
+        {tab === 'games' && games.length > 0 && (
+          <div className="flex-1 min-h-0 relative">
+          <DataTable
+            className="bg-transparent absolute inset-0"
+            model={model}
+            computeRowKey={({ data }) => data.id}
+            components={{
+              Row: forwardRef<any, any>(({ style, ...props }: any, ref) => (
+                <div ref={ref}
+                  {...props}
+                  className="flex items-center border-b border-border/[0.15] last:border-b-0 hover:bg-white/[0.03] transition-colors"
+                  style={{ ...style, height: ROW_HEIGHT }}
+                />
+              )) as any,
+            }}
+          >
+            <DataTableColumn id="status">
+              <DataTableColumnHeader className="w-8 justify-center" />
+              <DataTableCell className="justify-center">
+                {({ row }) => {
+                  const game = row.data as CfbdGame
+                  const status = gameStatus(game)
+                  return <div className={STATUS_DOT[status]} title={STATUS_LABEL[status]} />
+                }}
+              </DataTableCell>
+            </DataTableColumn>
+
+            <DataTableColumn field="home_team" grow={1}>
+              <DataTableColumnHeader className="px-5">Matchup</DataTableColumnHeader>
+              <DataTableCell className="px-5">
+                {({ row }) => <GameRow game={row.data as CfbdGame} />}
+              </DataTableCell>
+            </DataTableColumn>
+          </DataTable>
+          </div>
         )}
 
         {tab === 'submissions' && (
@@ -240,6 +276,7 @@ export default function PoolDetail() {
       {/* ── Subtle danger zone ──────────────────────────────────── */}
       <div className="flex justify-end shrink-0">
         <button
+          type="button"
           onClick={() => setConfirmDelete(true)}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-destructive transition-colors"
         >
@@ -257,12 +294,14 @@ export default function PoolDetail() {
         footer={
           <>
             <button
+              type="button"
               onClick={() => setConfirmDelete(false)}
               className="px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleDelete}
               disabled={deletePool.isPending}
               className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/15 text-destructive text-sm font-medium hover:bg-destructive/25 transition-colors disabled:opacity-40"
@@ -331,7 +370,6 @@ const STATUS_LABEL: Record<string, string> = {
 // ══════════════════════════════════════════════════════════════════
 
 function GameRow({ game }: { game: CfbdGame }) {
-  const status = gameStatus(game)
   const dateTime = formatGameTime(game.start_date, game.start_time_tbd)
 
   const homeCls = game.home_classification?.toUpperCase() ?? null
@@ -350,83 +388,77 @@ function GameRow({ game }: { game: CfbdGame }) {
   const hasScore = game.completed && game.home_score != null && game.away_score != null
 
   return (
-    <div className="flex items-center gap-3 px-5 h-full border-b border-border/[0.15] last:border-b-0 hover:bg-white/[0.03] transition-colors">
-      {/* Status indicator */}
-      <div className={STATUS_DOT[status]} title={STATUS_LABEL[status]} />
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-3">
+        {/* Home team */}
+        <span
+          className={`text-sm truncate min-w-0 max-w-[140px] ${
+            hasScore
+              ? game.home_score! > game.away_score!
+                ? 'font-semibold text-foreground'
+                : 'text-foreground/70'
+              : 'font-medium text-foreground'
+          }`}
+        >
+          {game.home_team}
+        </span>
 
-      {/* Matchup + score */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3">
-          {/* Home team */}
-          <span
-            className={`text-sm truncate min-w-0 max-w-[140px] ${
-              hasScore
-                ? game.home_score! > game.away_score!
-                  ? 'font-semibold text-foreground'
-                  : 'text-foreground/70'
-                : 'font-medium text-foreground'
-            }`}
-          >
-            {game.home_team}
+        {/* Score / vs */}
+        {hasScore ? (
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground tracking-wide">
+            {game.home_score} – {game.away_score}
           </span>
+        ) : (
+          <span className="shrink-0 text-xs text-muted-foreground/60 font-medium tracking-widest uppercase">
+            vs
+          </span>
+        )}
 
-          {/* Score / vs */}
-          {hasScore ? (
-            <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground tracking-wide">
-              {game.home_score} – {game.away_score}
+        {/* Away team */}
+        <span
+          className={`text-sm truncate min-w-0 max-w-[140px] ${
+            hasScore
+              ? game.away_score! > game.home_score!
+                ? 'font-semibold text-foreground'
+                : 'text-foreground/70'
+              : 'font-medium text-foreground'
+          }`}
+        >
+          {game.away_team}
+        </span>
+
+        {/* Classification tags */}
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          {clsTags.map((tag) => (
+            <span
+              key={tag}
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                CLASSIFICATION_COLORS[tag] ?? 'tag-blue'
+              }`}
+            >
+              {tag}
             </span>
-          ) : (
-            <span className="shrink-0 text-xs text-muted-foreground/60 font-medium tracking-widest uppercase">
-              vs
-            </span>
-          )}
-
-          {/* Away team */}
-          <span
-            className={`text-sm truncate min-w-0 max-w-[140px] ${
-              hasScore
-                ? game.away_score! > game.home_score!
-                  ? 'font-semibold text-foreground'
-                  : 'text-foreground/70'
-                : 'font-medium text-foreground'
-            }`}
-          >
-            {game.away_team}
-          </span>
-
-          {/* Classification tags */}
-          <div className="flex items-center gap-1 shrink-0 ml-auto">
-            {clsTags.map((tag) => (
-              <span
-                key={tag}
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                  CLASSIFICATION_COLORS[tag] ?? 'tag-blue'
-                }`}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Metadata row */}
-        <div className="flex items-center gap-2 mt-0.5">
-          {dateTime && <span className="text-[11px] text-muted-foreground/70">{dateTime}</span>}
-          {game.bowl_name && (
-            <>
-              <span className="text-[11px] text-muted-foreground/40">·</span>
-              <span className="text-[11px] text-muted-foreground/70">{game.bowl_name}</span>
-            </>
-          )}
-          <span className="text-[11px] text-muted-foreground/40">·</span>
-          <span
-            className={`text-[10px] px-1.5 py-px rounded-full font-medium ${
-              sameConference ? 'tag-blue' : 'bg-white/[0.04] text-muted-foreground/60'
-            }`}
-          >
-            {conferencePillLabel}
-          </span>
-        </div>
+      {/* Metadata row */}
+      <div className="flex items-center gap-2 mt-0.5">
+        {dateTime && <span className="text-[11px] text-muted-foreground/70">{dateTime}</span>}
+        {game.bowl_name && (
+          <>
+            <span className="text-[11px] text-muted-foreground/40">·</span>
+            <span className="text-[11px] text-muted-foreground/70">{game.bowl_name}</span>
+          </>
+        )}
+        <span className="text-[11px] text-muted-foreground/40">·</span>
+        <span
+          className={`text-[10px] px-1.5 py-px rounded-full font-medium ${
+            sameConference ? 'tag-blue' : 'bg-white/[0.04] text-muted-foreground/60'
+          }`}
+        >
+          {conferencePillLabel}
+        </span>
       </div>
     </div>
   )

@@ -1,10 +1,13 @@
-import { useState, useMemo, type ReactNode } from 'react'
+import { useState, useMemo, useEffect, forwardRef, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Minus, Plus, Trash2, ListChecks, CircleSlash, Lock } from 'lucide-react'
+import { localModel } from '@virtuoso.dev/data-table'
 import ClearableSelect from '@/components/admin/filters/ClearableSelect'
 import SearchableSelect from '@/components/admin/filters/SearchableSelect'
 import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
-import AdminVirtualTable, { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
+import { DataTable, DataTableColumn, DataTableColumnHeader, DataTableCell } from '@/components/ui/data-table'
+import SelectionColumn from '@/components/admin/SelectionColumn'
+
 import {
   useCreatePool,
   useCfbdGames,
@@ -13,6 +16,7 @@ import {
   useUpdateMultipliers,
   useRemovePoolGame,
   useDeletePool,
+  type CfbdGame,
   type PoolGameDetail,
 } from '@/services/useAdminPools'
 import { useAdminTeams } from '@/services/useAdminTeams'
@@ -109,6 +113,9 @@ export default function PoolCreate() {
   const [newPoolId, setNewPoolId] = useState<number | null>(null)
   const [newPoolYear, setNewPoolYear] = useState<number | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
+
+  // Virtuoso localModel bridge for the game table
+  const [gameModel] = useState(() => localModel<CfbdGame>({ data: [] }))
   const [step2Tab, setStep2Tab] = useState<'finder' | 'selected'>('finder')
   const [finderSeasonType, setFinderSeasonType] = useState('all')
   const [finderClass, setFinderClass] = useState('FBS')
@@ -502,6 +509,17 @@ export default function PoolCreate() {
     gameIdToSlotKey[pgId] = slot
   }
 
+    // Compute activeGames at component level for model bridge
+  const activeGames = useMemo(() => {
+    if (step !== 'step2') return [] as CfbdGame[]
+    return step2Tab === 'finder' ? finderGames : selectedGames
+  }, [step, step2Tab, finderGames, selectedGames])
+
+  // Bridge activeGames to localModel
+  useEffect(() => {
+    gameModel.setData?.(activeGames)
+  }, [gameModel, activeGames])
+
   // ── Step 2 setup ────────────────────────────────────────────────────────────
 
   let step2Content: ReactNode = null
@@ -515,18 +533,9 @@ export default function PoolCreate() {
     const setActiveWeek = isFinder ? setFinderWeek : setSelectedWeek
     const activeConference = isFinder ? finderConference : selectedConference
     const setActiveConference = isFinder ? setFinderConference : setSelectedConference
-    const activeGames = isFinder ? finderGames : selectedGames
     const activeWeekOptions = isFinder ? finderWeekOptions : selectedWeekOptions
     const totalGames = isFinder ? cfbdGames.length : selected.size
 
-    const columns: AdminTableColumn[] = [
-      { key: 'status', header: '', className: 'w-8 shrink-0' },
-      { key: 'matchup', header: 'Matchup', className: 'flex-[3]' },
-      { key: 'week', header: 'Week', className: 'flex-[1]' },
-      { key: 'date', header: 'Date', className: 'flex-[2]' },
-      { key: 'class', header: 'Class', className: 'flex-[1.5]' },
-      { key: 'conf', header: 'Conference', className: 'flex-[2]' },
-    ]
 
     const isFiltered =
       search !== '' ||
@@ -542,7 +551,7 @@ export default function PoolCreate() {
     }
 
     step2Content = (
-      <div className="h-full flex flex-col gap-4 min-h-0">
+      <div className="h-full flex flex-col gap-4 min-h-0 overflow-hidden">
         {/* Tab bar */}
         <div className="shrink-0 flex items-center gap-1 border-b border-border">
           <button
@@ -625,114 +634,96 @@ export default function PoolCreate() {
           countSuffix={isFiltered ? '· filtered' : undefined}
         />
         {/* Virtual table */}
-        <AdminVirtualTable
-          columns={columns}
-          rows={activeGames}
-          rowKey={(g) => g.id}
-          rowHeight={56}
-          isLoading={gamesLoading}
-          isFiltered={isFiltered}
-          selectable={true}
-          selectedIds={selected}
-          onSelectionChange={(ids) => setSelected(ids as Set<number>)}
-          emptyState={
-            isFinder ? (
-              <p className="text-sm text-muted-foreground py-4">
-                No games available for this season.
-              </p>
+        {/* Data table */}
+        {activeGames.length === 0 && !gamesLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            {isFinder ? (
+              <p className="text-sm text-muted-foreground py-4">No games available for this season.</p>
             ) : (
-              <p className="text-sm text-muted-foreground py-4">
-                No games selected yet. Use the Game Finder tab to pick games.
-              </p>
-            )
-          }
-          noMatchState={
-            <p className="text-sm text-muted-foreground py-4">
-              No games match the current filters.
-            </p>
-          }
-          renderRow={(game) => {
-            const matchup = game.neutral_site
-              ? `${game.away_team} vs ${game.home_team}`
-              : `${game.away_team} at ${game.home_team}`
-            const title = game.bowl_name ? `${game.bowl_name}, ${matchup}` : matchup
-            const dateTime = formatGameTime(game.start_date, game.start_time_tbd)
-            const status = game.completed
-              ? 'final'
-              : Date.now() >= new Date(game.start_date).getTime()
-                ? 'live'
-                : 'upcoming'
-            const homeCls = game.home_classification?.toUpperCase() ?? null
-            const awayCls = game.away_classification?.toUpperCase() ?? null
-            const clsTags: string[] =
-              homeCls === awayCls
-                ? homeCls
-                  ? [homeCls]
-                  : []
-                : ([awayCls, homeCls].filter(Boolean) as string[])
-            const sameConference =
-              game.home_conference &&
-              game.away_conference &&
-              game.home_conference === game.away_conference
-
-            return (
-              <>
-                {/* status dot */}
-                <div className="w-8 shrink-0 flex justify-center">
-                  <div
-                    className={
-                      status === 'final'
-                        ? 'size-2 rounded-full bg-emerald-500 shrink-0'
-                        : status === 'live'
-                          ? 'size-2 rounded-full bg-amber-400 shrink-0 animate-pulse'
-                          : 'size-2 rounded-full bg-border shrink-0'
-                    }
-                    title={
-                      status === 'final' ? 'Final' : status === 'live' ? 'In Progress' : 'Upcoming'
-                    }
-                  />
-                </div>
-                {/* matchup */}
-                <div className="px-5 flex-[3] min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{title}</p>
-                </div>
-                {/* week */}
-                <div className="px-5 flex-[1]">
-                  <span className="text-xs text-muted-foreground">
-                    {game.week != null ? `Wk ${game.week}` : '—'}
-                  </span>
-                </div>
-                {/* date */}
-                <div className="px-5 flex-[2]">
-                  <span className="text-xs text-muted-foreground">{dateTime || '—'}</span>
-                </div>
-                {/* class */}
-                <div className="px-5 flex-[1.5]">
-                  <div className="flex items-center gap-1">
-                    {clsTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${clsColors[tag] ?? 'tag-blue'}`}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                {/* conf */}
-                <div className="px-5 flex-[2]">
-                  {game.home_conference && (
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full ${sameConference ? 'tag-blue' : 'bg-muted text-muted-foreground'}`}
-                    >
-                      {sameConference ? game.home_conference : 'Out of Conference'}
-                    </span>
-                  )}
-                </div>
-              </>
-            )
-          }}
-        />
+              <p className="text-sm text-muted-foreground py-4">No games selected yet. Use the Game Finder tab to pick games.</p>
+            )}
+          </div>
+        ) : gamesLoading && activeGames.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+          </div>
+        ) : (
+          <DataTable
+            className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden flex-1 min-h-0"
+            model={gameModel}
+            computeRowKey={({ data }) => data.id}
+            components={{
+              Row: forwardRef<any, any>(({ style, ...props }: any, ref) => (
+                <div ref={ref}
+                  {...props}
+                  className="flex items-center border-t border-border/20 transition-colors hover:bg-[rgba(26,30,42,0.4)]"
+                  style={{ ...style, height: 56 }}
+                />
+              )) as any,
+            }}
+          >
+            <SelectionColumn<CfbdGame>
+              data={activeGames}
+              rowKey={(g) => g.id}
+              selectedIds={selected as Set<string | number>}
+              onSelectionChange={(ids) => setSelected(ids as Set<number>)}
+            />
+            <DataTableColumn id="status">
+              <DataTableColumnHeader className="w-8 justify-center" />
+              <DataTableCell className="justify-center">
+                {({ row }) => {
+                  const g = row.data as CfbdGame
+                  const s = g.completed ? 'final' : Date.now() >= new Date(g.start_date).getTime() ? 'live' : 'upcoming'
+                  return <div className={s === 'final' ? 'size-2 rounded-full bg-emerald-500 shrink-0' : s === 'live' ? 'size-2 rounded-full bg-amber-400 shrink-0 animate-pulse' : 'size-2 rounded-full bg-border shrink-0'} title={s === 'final' ? 'Final' : s === 'live' ? 'In Progress' : 'Upcoming'} />
+                }}
+              </DataTableCell>
+            </DataTableColumn>
+            <DataTableColumn field="away_team" grow={3}>
+              <DataTableColumnHeader className="px-5">Matchup</DataTableColumnHeader>
+              <DataTableCell className="px-5">
+                {({ row }) => {
+                  const g = row.data as CfbdGame
+                  const matchup = g.neutral_site ? g.away_team + ' vs ' + g.home_team : g.away_team + ' at ' + g.home_team
+                  return <p className="text-sm font-medium text-foreground truncate">{g.bowl_name ? g.bowl_name + ', ' + matchup : matchup}</p>
+                }}
+              </DataTableCell>
+            </DataTableColumn>
+            <DataTableColumn field="week">
+              <DataTableColumnHeader className="px-5">Week</DataTableColumnHeader>
+              <DataTableCell className="px-5">
+                {({ row }) => { const g = row.data as CfbdGame; return <span className="text-xs text-muted-foreground">{g.week != null ? 'Wk ' + g.week : '—'}</span> }}
+              </DataTableCell>
+            </DataTableColumn>
+            <DataTableColumn id="date">
+              <DataTableColumnHeader className="px-5">Date</DataTableColumnHeader>
+              <DataTableCell className="px-5">
+                {({ row }) => { const g = row.data as CfbdGame; return <span className="text-xs text-muted-foreground">{formatGameTime(g.start_date, g.start_time_tbd) || '—'}</span> }}
+              </DataTableCell>
+            </DataTableColumn>
+            <DataTableColumn id="class">
+              <DataTableColumnHeader className="px-5">Class</DataTableColumnHeader>
+              <DataTableCell className="px-5">
+                {({ row }) => {
+                  const g = row.data as CfbdGame
+                  const hc = g.home_classification?.toUpperCase() ?? null
+                  const ac = g.away_classification?.toUpperCase() ?? null
+                  const tags: string[] = hc === ac ? (hc ? [hc] : []) : ([ac, hc].filter(Boolean) as string[])
+                  return <div className="flex items-center gap-1">{tags.map((t: string) => <span key={t} className={'text-[10px] px-1.5 py-0.5 rounded-full font-semibold ' + (clsColors[t] ?? 'tag-blue')}>{t}</span>)}</div>
+                }}
+              </DataTableCell>
+            </DataTableColumn>
+            <DataTableColumn id="conf">
+              <DataTableColumnHeader className="px-5">Conference</DataTableColumnHeader>
+              <DataTableCell className="px-5">
+                {({ row }) => {
+                  const g = row.data as CfbdGame
+                  const sc = g.home_conference && g.away_conference && g.home_conference === g.away_conference
+                  return <span className={'text-[10px] px-1.5 py-px rounded-full font-medium ' + (sc ? 'tag-blue' : 'bg-white/[0.04] text-muted-foreground/60')}>{sc ? g.home_conference : 'Out of Conference'}</span>
+                }}
+              </DataTableCell>
+            </DataTableColumn>
+          </DataTable>
+        )}
       </div>
     )
   }

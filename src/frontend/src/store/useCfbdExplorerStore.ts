@@ -4,8 +4,6 @@ import type { CfbdTableFilters } from '@/services/useCfbdAdmin'
 import { getCfbdTableConfig } from '@/pages/admin/cfbd/tableRegistry'
 
 export const MAX_TABS = 10
-export const PAGE_SIZE = 250
-export const MAX_RESTORE_LIMIT = 2000
 export const DEFAULT_TAB_SLUG = 'rankings'
 
 export interface CfbdTabState {
@@ -14,24 +12,13 @@ export interface CfbdTabState {
   filters: CfbdTableFilters
   sort: { key: string; dir: 'asc' | 'desc' } | null
   selectedIds: (string | number)[]
-  /** Offset of the last page requested — pagination progress, persisted. */
-  offset: number
-  scrollTop: number
-}
-
-/** Ephemeral per-tab row cache — never persisted. */
-export interface CfbdTabSession {
-  rows: Record<string, unknown>[]
-  /** Highest offset whose page has been merged into rows. */
-  loadedThrough: number
-  /** 'restore' = single large refetch after reload; 'paged' = normal infinite scroll. */
-  mode: 'restore' | 'paged'
+  /** Topmost visible row index — restored via DataTable's initialLocation. */
+  scrollRow: number
 }
 
 interface CfbdExplorerState {
   tabs: CfbdTabState[]
   activeTabId: string | null
-  sessions: Record<string, CfbdTabSession>
 
   openTab: (slug?: string, seedFilters?: Partial<CfbdTableFilters>) => string | null
   openOrFocusTab: (slug: string, seedFilters?: Partial<CfbdTableFilters>) => void
@@ -43,9 +30,7 @@ interface CfbdExplorerState {
   patchTabFilters: (id: string, patch: Partial<CfbdTableFilters>) => void
   setTabSort: (id: string, sort: CfbdTabState['sort']) => void
   setTabSelection: (id: string, ids: (string | number)[]) => void
-  setTabScrollTop: (id: string, scrollTop: number) => void
-  setTabOffsetLoaded: (id: string, offset: number) => void
-  setSession: (id: string, session: CfbdTabSession) => void
+  setTabScrollRow: (id: string, row: number) => void
 }
 
 export function defaultTabFilters(slug: string): CfbdTableFilters {
@@ -66,16 +51,8 @@ function newTab(slug: string, seedFilters?: Partial<CfbdTableFilters>): CfbdTabS
     filters: { ...defaultTabFilters(slug), ...seedFilters },
     sort: null,
     selectedIds: [],
-    offset: 0,
-    scrollTop: 0,
+    scrollRow: 0,
   }
-}
-
-function withoutSession(sessions: Record<string, CfbdTabSession>, id: string) {
-  if (!(id in sessions)) return sessions
-  const next = { ...sessions }
-  delete next[id]
-  return next
 }
 
 export const useCfbdExplorerStore = create<CfbdExplorerState>()(
@@ -83,7 +60,6 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
     (set, get) => ({
       tabs: [],
       activeTabId: null,
-      sessions: {},
 
       openTab: (slug = DEFAULT_TAB_SLUG, seedFilters) => {
         if (get().tabs.length >= MAX_TABS) return null
@@ -102,10 +78,9 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
               activeTabId: existing.id,
               tabs: s.tabs.map((t) =>
                 t.id === existing.id
-                  ? { ...t, filters: { ...t.filters, season }, selectedIds: [], offset: 0, scrollTop: 0 }
+                  ? { ...t, filters: { ...t.filters, season }, selectedIds: [], scrollRow: 0 }
                   : t,
               ),
-              sessions: withoutSession(s.sessions, existing.id),
             }))
           } else {
             set({ activeTabId: existing.id })
@@ -131,7 +106,7 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
           } else if (activeTabId === id) {
             activeTabId = (tabs[idx] ?? tabs[idx - 1]).id
           }
-          return { tabs, activeTabId, sessions: withoutSession(s.sessions, id) }
+          return { tabs, activeTabId }
         })
       },
 
@@ -160,18 +135,18 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
             if (typeof t.filters.season === 'number' && t.filters.season > 0) {
               filters.season = t.filters.season
             }
-            return { ...t, slug, filters, sort: null, selectedIds: [], offset: 0, scrollTop: 0 }
+            return { ...t, slug, filters, sort: null, selectedIds: [], scrollRow: 0 }
           }),
-          sessions: withoutSession(s.sessions, id),
         }))
       },
 
+      // Filter changes clear sort too — the remote model's setFilters action
+      // supersedes sort/order params, so the store mirrors that.
       setTabFilters: (id, filters) => {
         set((s) => ({
           tabs: s.tabs.map((t) =>
-            t.id === id ? { ...t, filters, selectedIds: [], offset: 0, scrollTop: 0 } : t,
+            t.id === id ? { ...t, filters, sort: null, selectedIds: [], scrollRow: 0 } : t,
           ),
-          sessions: withoutSession(s.sessions, id),
         }))
       },
 
@@ -183,8 +158,7 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
 
       setTabSort: (id, sort) => {
         set((s) => ({
-          tabs: s.tabs.map((t) => (t.id === id ? { ...t, sort, offset: 0, scrollTop: 0 } : t)),
-          sessions: withoutSession(s.sessions, id),
+          tabs: s.tabs.map((t) => (t.id === id ? { ...t, sort, scrollRow: 0 } : t)),
         }))
       },
 
@@ -194,29 +168,29 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
         }))
       },
 
-      setTabScrollTop: (id, scrollTop) => {
+      setTabScrollRow: (id, scrollRow) => {
         set((s) => ({
-          tabs: s.tabs.map((t) => (t.id === id ? { ...t, scrollTop } : t)),
+          tabs: s.tabs.map((t) => (t.id === id ? { ...t, scrollRow } : t)),
         }))
-      },
-
-      setTabOffsetLoaded: (id, offset) => {
-        set((s) => ({
-          tabs: s.tabs.map((t) => (t.id === id ? { ...t, offset } : t)),
-        }))
-      },
-
-      setSession: (id, session) => {
-        set((s) => ({ sessions: { ...s.sessions, [id]: session } }))
       },
     }),
     {
       name: 'kbp-cfbd-explorer',
-      version: 1,
+      version: 2,
       partialize: (s) => ({ tabs: s.tabs, activeTabId: s.activeTabId }),
-      migrate: (persisted) => {
-        const raw = persisted as { tabs?: CfbdTabState[]; activeTabId?: string | null }
-        const tabs = (raw?.tabs ?? []).filter((t) => t?.id && getCfbdTableConfig(t.slug))
+      migrate: (persisted, version) => {
+        const raw = persisted as {
+          tabs?: (CfbdTabState & { scrollTop?: number; offset?: number })[]
+          activeTabId?: string | null
+        }
+        let tabs = (raw?.tabs ?? []).filter((t) => t?.id && getCfbdTableConfig(t.slug))
+        if (version < 2) {
+          // v1 stored pixel scrollTop (44px rows) + a pagination offset
+          tabs = tabs.map(({ scrollTop, offset: _offset, ...t }) => ({
+            ...t,
+            scrollRow: Math.max(0, Math.round((scrollTop ?? 0) / 44)),
+          }))
+        }
         const activeTabId = tabs.some((t) => t.id === raw?.activeTabId)
           ? (raw.activeTabId ?? null)
           : (tabs[0]?.id ?? null)
