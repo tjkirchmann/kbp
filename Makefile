@@ -1,4 +1,4 @@
-.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-cfbd-facts temporal-cfbd-dims temporal-cfbd-games temporal-cfbd-plays temporal-espn-seed struct-output-run deploy migrate migrate-new migrate-down migrate-check frontend-component backend frontend-logic frontend-organize struct-output lint test install-hooks
+.PHONY: up build down logs logs-frontend logs-backend logs-worker logs-db logs-temporal logs-temporal-worker temporal-cfbd-facts temporal-cfbd-dims temporal-cfbd-games temporal-cfbd-plays temporal-espn-seed struct-output-run deploy migrate migrate-new migrate-down migrate-check frontend-component backend frontend-logic frontend-organize struct-output lint test install-hooks mcp-public mcp-public-logs mcp-public-build mcp-private
 
 # ── Lint ─────────────────────────────────────────────────────────────────────
 # One-time setup: install the git pre-commit hook.
@@ -103,6 +103,27 @@ migrate-down:
 
 migrate-check:
 	python3 src/backend/scripts/check_migrations.py
+
+# ── MCP Servers ─────────────────────────────────────────────────────────────
+
+# Start the public MCP server (Streamable HTTP on :8082).
+# Requires the db service to be running first.
+mcp-public:
+	docker compose up -d mcp-public
+
+# Build and start the public MCP server.
+mcp-public-build:
+	docker compose up -d --build mcp-public
+
+# Tail logs for the public MCP server.
+mcp-public-logs:
+	docker compose logs -f mcp-public
+
+# Run the private MCP server locally (stdio transport).
+# Connects to the Docker Postgres at localhost:5432.
+# Usage: make mcp-private
+mcp-private:
+	cd src/mcp && MCP_DATABASE_URL=postgresql+asyncpg://mcp_readonly:mcp_readonly@localhost:5432/app uv run python -m private_server.server
 
 # ── Agent skills ─────────────────────────────────────────────────────────────
 
