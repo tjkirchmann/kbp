@@ -49,6 +49,7 @@ function useBreadcrumbs() {
     if (parts[1]) {
       const labels: Record<string, string> = {
         coverage: 'Coverage',
+        explorer: 'Data Explorer',
         rankings: 'Poll Rankings',
         'sp-ratings': 'SP+ Ratings',
         'srs-ratings': 'SRS Ratings',

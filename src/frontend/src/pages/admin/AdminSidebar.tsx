@@ -45,7 +45,7 @@ const groups: Group[] = [
     label: 'CFBD',
     items: [
       { id: 'cfbd/coverage', label: 'Coverage', icon: BarChart3 },
-      { id: 'cfbd/rankings', label: 'Data Explorer', icon: Database },
+      { id: 'cfbd/explorer', label: 'Data Explorer', icon: Database },
     ],
   },
   {

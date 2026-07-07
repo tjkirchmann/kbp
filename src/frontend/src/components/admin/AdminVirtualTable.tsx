@@ -59,6 +59,10 @@ interface AdminVirtualTableProps<T> {
   selectedIds?: Set<number | string>
   /** Called when selection changes. Receives a new Set (never mutates the old one). */
   onSelectionChange?: (ids: Set<number | string>) => void
+  /** Body scrollTop to restore once rows first render (applied once per mount). */
+  initialScrollTop?: number
+  /** Reports the body scrollTop while scrolling (throttled, trailing). */
+  onScrollTopChange?: (scrollTop: number) => void
 }
 
 const HEADER_ROW =
@@ -108,6 +112,8 @@ export default function AdminVirtualTable<T>({
   shellRef,
   selectedIds,
   onSelectionChange,
+  initialScrollTop,
+  onScrollTopChange,
 }: AdminVirtualTableProps<T>) {
   const innerShellRef = useRef<HTMLDivElement>(null)
   const shellEl = shellRef ?? innerShellRef
@@ -161,6 +167,35 @@ export default function AdminVirtualTable<T>({
       header.style.transform = `translateX(${-body.scrollLeft}px)`
     }
   }, [])
+
+  // ── scroll position reporting + restore ────────────────────────
+  const scrollReportTimeoutRef = useRef<number | null>(null)
+  const handleBodyScroll = useCallback(() => {
+    if (resizable) syncHeaderScroll()
+    if (!onScrollTopChange || scrollReportTimeoutRef.current != null) return
+    scrollReportTimeoutRef.current = window.setTimeout(() => {
+      scrollReportTimeoutRef.current = null
+      if (parentRef.current) onScrollTopChange(parentRef.current.scrollTop)
+    }, 150)
+  }, [resizable, syncHeaderScroll, onScrollTopChange])
+
+  useEffect(
+    () => () => {
+      if (scrollReportTimeoutRef.current != null) {
+        window.clearTimeout(scrollReportTimeoutRef.current)
+      }
+    },
+    [],
+  )
+
+  const appliedInitialScrollRef = useRef(false)
+  useEffect(() => {
+    if (appliedInitialScrollRef.current) return
+    if (!initialScrollTop || initialScrollTop <= 0) return
+    if (rows.length === 0 || !parentRef.current) return
+    parentRef.current.scrollTop = initialScrollTop
+    appliedInitialScrollRef.current = true
+  }, [rows.length, initialScrollTop])
 
 
   // ── initial column widths + header minimums ────────────────
@@ -361,8 +396,7 @@ export default function AdminVirtualTable<T>({
             !col.minWidth && 'min-w-0',
             col.className,
           )}
-          style={col.minWidth ? { minWidth: col.minWidth } : undefined}
-          style={resizable ? colStyle(col.key) : undefined}
+          style={resizable ? colStyle(col.key) : col.minWidth ? { minWidth: col.minWidth } : undefined}
         >
           {onSortClick ? (
             <button
@@ -514,7 +548,7 @@ export default function AdminVirtualTable<T>({
         ref={parentRef}
         className={cn('flex-1', resizable ? 'overflow-auto scrollbar-themed' : 'overflow-y-auto')}
         style={{ scrollbarGutter: 'stable', willChange: 'transform' }}
-        onScroll={resizable ? syncHeaderScroll : undefined}
+        onScroll={resizable || onScrollTopChange ? handleBodyScroll : undefined}
       >
         <div
           style={{

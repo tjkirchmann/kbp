@@ -1,90 +1,101 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef } from 'react'
 import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
 import AdminVirtualTable, { type AdminTableColumn } from '@/components/admin/AdminVirtualTable'
-import { useCfbdTable, type CfbdTableFilters } from '@/services/useCfbdAdmin'
+import { useCfbdTable, type CfbdTableFilters, type CfbdTableResponse } from '@/services/useCfbdAdmin'
+import {
+  useCfbdExplorerStore,
+  defaultTabFilters,
+  PAGE_SIZE,
+  MAX_RESTORE_LIMIT,
+  type CfbdTabState,
+} from '@/store/useCfbdExplorerStore'
 import CfbdTableSelector from './CfbdTableSelector'
 import FilterBar from './FilterBar'
 import CfbdDataRow from './CfbdDataRow'
 import { CFBD_TABLES, getCfbdTableConfig, type CfbdFilterKey, type CfbdRenderContext } from './tableRegistry'
 
 const ROW_HEIGHT = 44
-const PAGE_SIZE = 250
 
-export default function CfbdWorkspace() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const { tableSlug } = useParams<{ tableSlug: string }>()
-  const activeSlug = tableSlug ?? 'rankings'
-  const table = getCfbdTableConfig(activeSlug) ?? CFBD_TABLES[0]
+export default function CfbdWorkspace({ tabId }: { tabId: string }) {
+  const tab = useCfbdExplorerStore((s) => s.tabs.find((t) => t.id === tabId))
+  if (!tab) return null
+  return <CfbdWorkspaceInner tab={tab} />
+}
 
-  const [filters, setFilters] = useState<CfbdTableFilters>(() => {
-    const initial: CfbdTableFilters = {}
-    const seasonParam = searchParams.get('season')
-    if (seasonParam) {
-      const parsed = Number(seasonParam)
-      if (!Number.isNaN(parsed)) initial.season = parsed
-    }
-    for (const dd of table.filterDropdowns ?? []) {
-      if (dd.default !== undefined && !initial[dd.key]) {
-        ;(initial as Record<string, unknown>)[dd.key] = dd.default
-      }
-    }
-    return initial
-  })
-  const [offset, setOffset] = useState(0)
-  const [accumulatedRows, setAccumulatedRows] = useState<Record<string, unknown>[]>([])
-  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null)
+function CfbdWorkspaceInner({ tab }: { tab: CfbdTabState }) {
+  const tabId = tab.id
+  const table = getCfbdTableConfig(tab.slug) ?? CFBD_TABLES[0]
 
+  const session = useCfbdExplorerStore((s) => s.sessions[tabId])
+  const setSession = useCfbdExplorerStore((s) => s.setSession)
+  const setTabFilters = useCfbdExplorerStore((s) => s.setTabFilters)
+  const patchTabFilters = useCfbdExplorerStore((s) => s.patchTabFilters)
+  const setTabSort = useCfbdExplorerStore((s) => s.setTabSort)
+  const setTabSelection = useCfbdExplorerStore((s) => s.setTabSelection)
+  const setTabScrollTop = useCfbdExplorerStore((s) => s.setTabScrollTop)
+  const setTabOffsetLoaded = useCfbdExplorerStore((s) => s.setTabOffsetLoaded)
+  const changeTabTable = useCfbdExplorerStore((s) => s.changeTabTable)
+
+  // Lazy session init: a persisted offset > 0 with no session means we just
+  // reloaded — restore all rows up to that offset in one larger request.
   useEffect(() => {
-    const defaults: CfbdTableFilters = {}
-    for (const dd of table.filterDropdowns ?? []) {
-      if (dd.default !== undefined) {
-        ;(defaults as Record<string, unknown>)[dd.key] = dd.default
-      }
-    }
-    setFilters(defaults)
-  }, [table.slug, table.filterDropdowns])
+    if (session) return
+    setSession(tabId, {
+      rows: [],
+      loadedThrough: 0,
+      mode: tab.offset > 0 ? 'restore' : 'paged',
+    })
+  }, [session, setSession, tabId, tab.offset])
 
-  const filterKey = useMemo(
-    () => JSON.stringify({ slug: table.slug, ...filters, sort }),
-    [table.slug, filters, sort],
-  )
-  const previousFilterKeyRef = useRef(filterKey)
+  const mode = session?.mode ?? (tab.offset > 0 ? 'restore' : 'paged')
 
-  useEffect(() => {
-    if (previousFilterKeyRef.current === filterKey) return
-    previousFilterKeyRef.current = filterKey
-    setOffset(0)
-  }, [filterKey])
-
-  const missingGameId = Boolean(table.requiresGameId && !filters.game_id)
+  const missingGameId = Boolean(table.requiresGameId && !tab.filters.game_id)
   const queryEnabled = !missingGameId
 
-  const queryFilters = useMemo(
-    () => ({ ...filters, offset, limit: PAGE_SIZE, sort: sort?.key, order: sort?.dir }),
-    [filters, offset, sort],
-  )
+  const queryFilters = useMemo(() => {
+    const base = { ...tab.filters, sort: tab.sort?.key, order: tab.sort?.dir }
+    if (mode === 'restore') {
+      return { ...base, offset: 0, limit: Math.min(tab.offset + PAGE_SIZE, MAX_RESTORE_LIMIT) }
+    }
+    return { ...base, offset: tab.offset, limit: PAGE_SIZE }
+  }, [tab.filters, tab.sort, tab.offset, mode])
 
   const { data, isLoading } = useCfbdTable(table.slug, queryFilters, queryEnabled)
 
+  // Merge fetched pages into the session. The lastMerged ref makes this run
+  // once per data object so background refetches of already-merged pages are
+  // ignored instead of re-appended.
+  const lastMergedDataRef = useRef<CfbdTableResponse | null>(null)
   useEffect(() => {
-    if (!data) return
-
-    setAccumulatedRows((prev) => (offset === 0 ? data.rows : [...prev, ...data.rows]))
-  }, [data, offset])
+    if (!data || !session) return
+    if (lastMergedDataRef.current === data) return
+    lastMergedDataRef.current = data
+    if (session.mode === 'restore' || tab.offset === 0) {
+      const loadedThrough =
+        session.mode === 'restore'
+          ? Math.min(tab.offset, Math.max(0, Math.ceil(data.rows.length / PAGE_SIZE) - 1) * PAGE_SIZE)
+          : 0
+      setSession(tabId, { rows: data.rows, loadedThrough, mode: session.mode })
+    } else if (tab.offset > session.loadedThrough) {
+      setSession(tabId, {
+        rows: [...session.rows, ...data.rows],
+        loadedThrough: tab.offset,
+        mode: 'paged',
+      })
+    }
+  }, [data, session, tab.offset, tabId, setSession])
 
   useEffect(() => {
     if (!data?.seasonMax) return
     if (!table.filters.includes('season')) return
-    if (filters.season) return
+    if (tab.filters.season) return
     if (table.defaultFilters?.season !== 0) return
-    setFilters((prev) => ({ ...prev, season: data.seasonMax ?? undefined }))
-  }, [data?.seasonMax, table, filters.season])
+    patchTabFilters(tabId, { season: data.seasonMax ?? undefined })
+  }, [data?.seasonMax, table, tab.filters.season, tabId, patchTabFilters])
 
-  const rows = accumulatedRows
+  const rows = session?.rows ?? []
   const hasMore = data ? rows.length < data.total : false
-  const isLoadingMore = isLoading && offset > 0
+  const isLoadingMore = isLoading && mode === 'paged' && tab.offset > 0
 
   const renderContext: CfbdRenderContext = useMemo(() => {
     const ctx: CfbdRenderContext = { teamLogos: data?.teamLogos ?? {} }
@@ -109,19 +120,21 @@ export default function CfbdWorkspace() {
   }, [data?.teamLogos, table.heatColumns, rows])
 
   const loadMore = () => {
-    if (!hasMore || isLoadingMore) return
-    setOffset((prev) => prev + PAGE_SIZE)
+    if (!hasMore || isLoadingMore || !session) return
+    if (session.mode !== 'paged') setSession(tabId, { ...session, mode: 'paged' })
+    setTabOffsetLoaded(tabId, session.loadedThrough + PAGE_SIZE)
   }
 
   const handleSortClick = (key: string) => {
-    setSort((prev) => {
-      if (!prev || prev.key !== key) return { key, dir: 'asc' }
-      if (prev.dir === 'asc') return { key, dir: 'desc' }
-      return null
-    })
+    const prev = tab.sort
+    if (!prev || prev.key !== key) setTabSort(tabId, { key, dir: 'asc' })
+    else if (prev.dir === 'asc') setTabSort(tabId, { key, dir: 'desc' })
+    else setTabSort(tabId, null)
   }
 
-  const isFiltered = Object.keys(filters).length > 0
+  const selectedIdsSet = useMemo(() => new Set<string | number>(tab.selectedIds), [tab.selectedIds])
+
+  const isFiltered = Object.keys(tab.filters).length > 0
   const syncedValues = rows
     .map((row) => row.last_synced_at)
     .filter((v): v is string => typeof v === 'string')
@@ -135,51 +148,29 @@ export default function CfbdWorkspace() {
   )
 
   return (
-    <div className="h-full flex flex-col gap-3">
-      <CfbdTableSelector
-        activeSlug={table.slug}
-        onSelect={(slug) => {
-          const params = new URLSearchParams()
-          if (filters.season) params.set('season', String(filters.season))
-          const qs = params.toString()
-          navigate(`/admin/cfbd/${slug}${qs ? `?${qs}` : ''}`)
-        }}
-      />
+    <div className="h-full flex flex-col gap-3 min-h-0">
+      <CfbdTableSelector activeSlug={table.slug} onSelect={(slug) => changeTabTable(tabId, slug)} />
 
       <FilterBar
         table={table}
-        filters={filters}
+        filters={tab.filters}
         onChange={(key: CfbdFilterKey, rawValue: string) => {
-          setFilters((prev) => {
-            const next: CfbdTableFilters = { ...prev }
-            if (rawValue === '') {
+          const next: CfbdTableFilters = { ...tab.filters }
+          if (rawValue === '') {
+            delete next[key]
+          } else if (key === 'season' || key === 'week' || key === 'game_id' || key === 'stars') {
+            const parsed = Number(rawValue.trim())
+            if (Number.isNaN(parsed)) {
               delete next[key]
-              return next
+            } else {
+              next[key] = parsed
             }
-
-            if (key === 'season' || key === 'week' || key === 'game_id' || key === 'stars') {
-              const parsed = Number(rawValue.trim())
-              if (Number.isNaN(parsed)) {
-                delete next[key]
-              } else {
-                next[key] = parsed
-              }
-              return next
-            }
-
+          } else {
             next[key] = rawValue
-            return next
-          })
-        }}
-        onReset={() => {
-          const defaults: CfbdTableFilters = {}
-          for (const dd of table.filterDropdowns ?? []) {
-            if (dd.default !== undefined) {
-              ;(defaults as Record<string, unknown>)[dd.key] = dd.default
-            }
           }
-          setFilters(defaults)
+          setTabFilters(tabId, next)
         }}
+        onReset={() => setTabFilters(tabId, defaultTabFilters(table.slug))}
       />
 
       {missingGameId && (
@@ -192,7 +183,7 @@ export default function CfbdWorkspace() {
         columns={columns}
         rows={rows}
         rowHeight={ROW_HEIGHT}
-        isLoading={isLoading && offset === 0 && accumulatedRows.length === 0}
+        isLoading={isLoading && rows.length === 0}
         isFiltered={isFiltered}
         rowKey={(row) => {
           if (row.id != null) return String(row.id)
@@ -225,9 +216,14 @@ export default function CfbdWorkspace() {
         isLoadingMore={isLoadingMore}
         onLoadMore={loadMore}
         resizable
-        sortKey={sort?.key}
-        sortDir={sort?.dir}
+        sortKey={tab.sort?.key}
+        sortDir={tab.sort?.dir}
         onSortClick={handleSortClick}
+        selectable
+        selectedIds={selectedIdsSet}
+        onSelectionChange={(ids) => setTabSelection(tabId, Array.from(ids))}
+        initialScrollTop={tab.scrollTop}
+        onScrollTopChange={(scrollTop) => setTabScrollTop(tabId, scrollTop)}
       />
 
       <AdminTableToolbar
@@ -237,7 +233,22 @@ export default function CfbdWorkspace() {
         countSuffix={
           latestSynced ? `· synced ${new Date(latestSynced).toLocaleString()}` : undefined
         }
-      />
+      >
+        {selectedIdsSet.size > 0 && (
+          <>
+            <span className="text-sm text-muted-foreground">
+              {selectedIdsSet.size} selected
+            </span>
+            <button
+              type="button"
+              onClick={() => setTabSelection(tabId, [])}
+              className="rounded-lg border border-border/40 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+            >
+              Clear
+            </button>
+          </>
+        )}
+      </AdminTableToolbar>
     </div>
   )
 }
