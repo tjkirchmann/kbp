@@ -57,6 +57,39 @@ services:
     depends_on:
       - db
 
+  # ── MCP Servers ───────────────────────────────────────────────────────────
+
+  # One-shot: create the mcp_readonly user for MCP servers.
+  # Uses IF NOT EXISTS — safe to run repeatedly.
+  mcp-db-setup:
+    image: postgres:16
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint:
+      - sh
+      - -c
+      - |
+        PGPASSWORD=postgres psql -h db -U postgres -d app -c "CREATE ROLE mcp_readonly WITH LOGIN PASSWORD 'mcp_readonly'" 2>/dev/null || true
+        PGPASSWORD=postgres psql -h db -U postgres -d app -c "GRANT CONNECT ON DATABASE app TO mcp_readonly"
+        PGPASSWORD=postgres psql -h db -U postgres -d app -c "GRANT USAGE ON SCHEMA public TO mcp_readonly"
+        PGPASSWORD=postgres psql -h db -U postgres -d app -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO mcp_readonly"
+        PGPASSWORD=postgres psql -h db -U postgres -d app -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO mcp_readonly"
+
+  # Public MCP server — Streamable HTTP transport over the CFBD database.
+  # Exposes parameterized query + lookup tools for paying subscribers.
+  mcp-public:
+    build:
+      context: ./src/mcp
+      dockerfile: public_server/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - MCP_DATABASE_URL=postgresql+asyncpg://mcp_readonly:mcp_readonly@db:5432/app
+    depends_on:
+      mcp-db-setup:
+        condition: service_completed_successfully
+
   # ── Temporal ────────────────────────────────────────────────────────────────
   # Self-hosted Temporal for durable workflows (separate from Procrastinate, which
   # still owns the cron/sync jobs). Backed by the existing `db` Postgres in its own
