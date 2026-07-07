@@ -10,7 +10,12 @@ import {
   type CfbdGame,
   type PoolGameDetail,
 } from '@/services/admin/useAdminPools'
-import { DataTable, DataTableColumn, DataTableColumnHeader, DataTableCell } from '@/components/ui/data-table'
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableColumnHeader,
+  DataTableCell,
+} from '@/components/ui/data-table'
 import Modal from '@/components/ui/Modal'
 
 const ROW_HEIGHT = 60
@@ -57,15 +62,6 @@ export default function PoolDetail() {
     model.setData?.(games)
   }, [model, games])
 
-  if (!live) {
-    return <p className="text-sm text-muted-foreground py-8">Pool not found.</p>
-  }
-
-  async function handleDelete() {
-    navigate('/admin/pools')
-    deletePool.mutate(live!.id)
-  }
-
   // ── Stat computation ──────────────────────────────────────────
   const stats = useMemo(() => {
     const teams = new Set<string>()
@@ -86,6 +82,15 @@ export default function PoolDetail() {
       conferences: conferences.size,
     }
   }, [games])
+
+  if (!live) {
+    return <p className="text-sm text-muted-foreground py-8">Pool not found.</p>
+  }
+
+  async function handleDelete() {
+    navigate('/admin/pools')
+    deletePool.mutate(live!.id)
+  }
 
   const StatLabel = ({
     icon: Icon,
@@ -220,7 +225,9 @@ export default function PoolDetail() {
 
         {tab === 'games' && games.length === 0 && !isLoading && (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground py-12 text-center">No games added to this pool yet.</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">
+              No games added to this pool yet.
+            </p>
           </div>
         )}
         {tab === 'games' && isLoading && games.length === 0 && (
@@ -230,38 +237,39 @@ export default function PoolDetail() {
         )}
         {tab === 'games' && games.length > 0 && (
           <div className="flex-1 min-h-0 relative">
-          <DataTable
-            className="bg-transparent absolute inset-0"
-            model={model}
-            computeRowKey={({ data }) => data.id}
-            components={{
-              Row: forwardRef<any, any>(({ style, ...props }: any, ref) => (
-                <div ref={ref}
-                  {...props}
-                  className="flex items-center border-b border-border/[0.15] last:border-b-0 hover:bg-white/[0.03] transition-colors"
-                  style={{ ...style, height: ROW_HEIGHT }}
-                />
-              )) as any,
-            }}
-          >
-            <DataTableColumn id="status">
-              <DataTableColumnHeader className="w-8 justify-center" />
-              <DataTableCell className="justify-center">
-                {({ row }) => {
-                  const game = row.data as CfbdGame
-                  const status = gameStatus(game)
-                  return <div className={STATUS_DOT[status]} title={STATUS_LABEL[status]} />
-                }}
-              </DataTableCell>
-            </DataTableColumn>
+            <DataTable
+              className="bg-transparent absolute inset-0"
+              model={model}
+              computeRowKey={({ data }) => data.id}
+              components={{
+                Row: forwardRef<any, any>(({ style, ...props }: any, ref) => (
+                  <div
+                    ref={ref}
+                    {...props}
+                    className="flex items-center border-b border-border/[0.15] last:border-b-0 hover:bg-white/[0.03] transition-colors"
+                    style={{ ...style, height: ROW_HEIGHT }}
+                  />
+                )) as any,
+              }}
+            >
+              <DataTableColumn id="status">
+                <DataTableColumnHeader className="w-8 justify-center" />
+                <DataTableCell className="justify-center">
+                  {({ row }) => {
+                    const game = row.data as CfbdGame
+                    const status = gameStatus(game)
+                    return <div className={STATUS_DOT[status]} title={STATUS_LABEL[status]} />
+                  }}
+                </DataTableCell>
+              </DataTableColumn>
 
-            <DataTableColumn field="home_team" grow={1}>
-              <DataTableColumnHeader className="px-5">Matchup</DataTableColumnHeader>
-              <DataTableCell className="px-5">
-                {({ row }) => <GameRow game={row.data as CfbdGame} />}
-              </DataTableCell>
-            </DataTableColumn>
-          </DataTable>
+              <DataTableColumn field="home_team" grow={1}>
+                <DataTableColumnHeader className="px-5">Matchup</DataTableColumnHeader>
+                <DataTableCell className="px-5">
+                  {({ row }) => <GameRow game={row.data as CfbdGame} />}
+                </DataTableCell>
+              </DataTableColumn>
+            </DataTable>
           </div>
         )}
 
@@ -312,8 +320,8 @@ export default function PoolDetail() {
         }
       >
         <p className="text-sm text-muted-foreground leading-relaxed">
-          <span className="text-foreground font-medium">{live.name}</span> and all its games will
-          be permanently deleted. This cannot be undone.
+          <span className="text-foreground font-medium">{live.name}</span> and all its games will be
+          permanently deleted. This cannot be undone.
         </p>
       </Modal>
     </div>

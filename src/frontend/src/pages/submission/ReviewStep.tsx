@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Loader2, AlertCircle, Check, Clock } from 'lucide-react'
 import { useToast } from '@/components/toast/ToastContext'
 import { ApiError } from '@/lib/apiError'
@@ -43,7 +42,6 @@ function formatDate(iso: string | null) {
 }
 
 export default function ReviewStep({ poolId, submissionId, entryName }: Props) {
-  const navigate = useNavigate()
   const { data: games = [] } = usePoolGames(poolId)
   const { data: picks = [] } = useSubmissionPicks(submissionId)
   const { data: mySubmissions = [] } = useMySubmissions(poolId)

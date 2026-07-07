@@ -152,7 +152,9 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
 
       patchTabFilters: (id, patch) => {
         set((s) => ({
-          tabs: s.tabs.map((t) => (t.id === id ? { ...t, filters: { ...t.filters, ...patch } } : t)),
+          tabs: s.tabs.map((t) =>
+            t.id === id ? { ...t, filters: { ...t.filters, ...patch } } : t,
+          ),
         }))
       },
 

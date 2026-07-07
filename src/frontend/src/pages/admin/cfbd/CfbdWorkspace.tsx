@@ -4,11 +4,22 @@ import { useAuth } from '@clerk/react'
 import { remoteModel, defaultOffsetViewportHandler } from '@virtuoso.dev/data-table'
 import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
 import { apiFetch } from '@/lib/api'
-import { DataTable, DataTableColumn, DataTableColumnHeader, DataTableCell, HeaderStart, HeaderOverlay, HeaderEdge } from '@/components/ui/data-table'
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableColumnHeader,
+  DataTableCell,
+  HeaderStart,
+  HeaderOverlay,
+  HeaderEdge,
+} from '@/components/ui/data-table'
 import { ResizeHandle } from '@/components/ui/data-table/column-resize'
 import { ReorderGrip, ReorderDropZone } from '@/components/ui/data-table/column-reorder'
 import { SortableHeaderLabel } from '@/components/ui/data-table/column-sort'
-import { CfbdRenderProvider, type CfbdRenderContextValue } from '@/components/admin/CfbdRenderContext'
+import {
+  CfbdRenderProvider,
+  type CfbdRenderContextValue,
+} from '@/components/admin/CfbdRenderContext'
 import CfbdTableSelector from './CfbdTableSelector'
 import FilterBar from './FilterBar'
 import { CFBD_TABLES, getCfbdTableConfig, type CfbdFilterKey } from './tableRegistry'
@@ -47,7 +58,16 @@ function computeRowKey(row: CfbdRow | Row<unknown>) {
   if (!data) return `placeholder-${row.index}`
   if (data.id != null) return String(data.id)
   if (data.game_id != null) {
-    const parts = [data.game_id, data.provider, data.category, data.stat_type, data.player_id, data.drive_number, data.media_type, data.outlet].filter((v) => v != null)
+    const parts = [
+      data.game_id,
+      data.provider,
+      data.category,
+      data.stat_type,
+      data.player_id,
+      data.drive_number,
+      data.media_type,
+      data.outlet,
+    ].filter((v) => v != null)
     return parts.join('-')
   }
   if (data.coach_id != null) {
@@ -128,7 +148,10 @@ export default function CfbdWorkspace() {
       actions: {
         setFilters: {
           strategy: 'supersede' as const,
-          handler: ({ params, payload }) => ({ slug: params.slug, ...payload as Record<string, unknown> }),
+          handler: ({ params, payload }) => ({
+            slug: params.slug,
+            ...(payload as Record<string, unknown>),
+          }),
         },
         sort: {
           strategy: 'supersede' as const,
@@ -289,50 +312,56 @@ export default function CfbdWorkspace() {
       {!missingGameId && (
         <CfbdRenderProvider value={renderContext}>
           <div ref={tableRef} className="flex-1 min-h-0 overflow-hidden rounded-2xl">
-          <DataTable
-            key={table.slug}
-            className="bg-white/[0.03] border border-border/20 rounded-2xl"
-            style={{ height: tableH || 400 }}
-            model={model}
-            computeRowKey={computeRowKey}
-            onRenderedDataChange={handleRenderedDataChange}
-            components={{
-              Row: forwardRef<any, any>(({ style, ...props }, ref) => (
-                <div
-                  ref={ref}
-                  {...props}
-                  className="flex items-center border-t border-border/20 transition-colors hover:bg-[rgba(26,30,42,0.4)]"
-                  style={{ ...style, height: 44 }}
-                />
-              )) as any,
-            }}
-          >
-            {columns.map((col) => (
-              <DataTableColumn key={col.key} field={col.key}>
-                <DataTableColumnHeader className="px-5">
-                  <HeaderStart component={ReorderGrip} />
-                  <HeaderOverlay component={ReorderDropZone} />
-                  {() => (
-                    <SortableHeaderLabel field={col.key}>
-                      {String(col.header)}
-                    </SortableHeaderLabel>
-                  )}
-                  <HeaderEdge>
-                    {(params) => <ResizeHandle {...(params as any)} />}
-                  </HeaderEdge>
-                </DataTableColumnHeader>
-                <DataTableCell className="px-5 py-0">
-                  {({ cellValue, row }) => {
-                    if (col.render) {
-                      return col.render(cellValue, row.data as Record<string, unknown>, renderContext)
-                    }
-                    if (col.rawCell) return toCellValue(cellValue)
-                    return <span className="text-xs text-muted-foreground truncate block">{toCellValue(cellValue)}</span>
-                  }}
-                </DataTableCell>
-              </DataTableColumn>
-            ))}
-          </DataTable>
+            <DataTable
+              key={table.slug}
+              className="bg-white/[0.03] border border-border/20 rounded-2xl"
+              style={{ height: tableH || 400 }}
+              model={model}
+              computeRowKey={computeRowKey}
+              onRenderedDataChange={handleRenderedDataChange}
+              components={{
+                Row: forwardRef<any, any>(({ style, ...props }, ref) => (
+                  <div
+                    ref={ref}
+                    {...props}
+                    className="flex items-center border-t border-border/20 transition-colors hover:bg-[rgba(26,30,42,0.4)]"
+                    style={{ ...style, height: 44 }}
+                  />
+                )) as any,
+              }}
+            >
+              {columns.map((col) => (
+                <DataTableColumn key={col.key} field={col.key}>
+                  <DataTableColumnHeader className="px-5">
+                    <HeaderStart component={ReorderGrip} />
+                    <HeaderOverlay component={ReorderDropZone} />
+                    {() => (
+                      <SortableHeaderLabel field={col.key}>
+                        {String(col.header)}
+                      </SortableHeaderLabel>
+                    )}
+                    <HeaderEdge>{(params) => <ResizeHandle {...(params as any)} />}</HeaderEdge>
+                  </DataTableColumnHeader>
+                  <DataTableCell className="px-5 py-0">
+                    {({ cellValue, row }) => {
+                      if (col.render) {
+                        return col.render(
+                          cellValue,
+                          row.data as Record<string, unknown>,
+                          renderContext,
+                        )
+                      }
+                      if (col.rawCell) return toCellValue(cellValue)
+                      return (
+                        <span className="text-xs text-muted-foreground truncate block">
+                          {toCellValue(cellValue)}
+                        </span>
+                      )
+                    }}
+                  </DataTableCell>
+                </DataTableColumn>
+              ))}
+            </DataTable>
           </div>
         </CfbdRenderProvider>
       )}
@@ -342,7 +371,9 @@ export default function CfbdWorkspace() {
         total={0}
         noun="row"
         countSuffix={
-          latestSyncedRef.current ? `· synced ${new Date(latestSyncedRef.current).toLocaleString()}` : undefined
+          latestSyncedRef.current
+            ? `· synced ${new Date(latestSyncedRef.current).toLocaleString()}`
+            : undefined
         }
       />
     </div>

@@ -8,7 +8,10 @@ import {
   CalendarClock,
   Timer,
 } from 'lucide-react'
-import { useTemporalSyncStatus, type TemporalWorkflowStatus } from '@/services/useTemporalSyncStatus'
+import {
+  useTemporalSyncStatus,
+  type TemporalWorkflowStatus,
+} from '@/services/useTemporalSyncStatus'
 
 // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -158,17 +161,11 @@ function WorkflowCard({
         </span>
         <span
           className={`flex items-center gap-1 text-[10px] font-medium ${
-            temporalReachable
-              ? statusColor(wf.workflow_status)
-              : 'text-muted-foreground/40'
+            temporalReachable ? statusColor(wf.workflow_status) : 'text-muted-foreground/40'
           }`}
         >
-          {temporalReachable
-            ? statusIcon(wf.workflow_status)
-            : statusIcon(null)}
-          {temporalReachable
-            ? statusLabel(wf.workflow_status)
-            : 'Unreachable'}
+          {temporalReachable ? statusIcon(wf.workflow_status) : statusIcon(null)}
+          {temporalReachable ? statusLabel(wf.workflow_status) : 'Unreachable'}
         </span>
       </div>
 
@@ -216,9 +213,7 @@ function WorkflowCard({
       )}
 
       {/* Result summary */}
-      {wf.workflow_status === 'COMPLETED' && wf.result && (
-        <ResultSummary result={wf.result} />
-      )}
+      {wf.workflow_status === 'COMPLETED' && wf.result && <ResultSummary result={wf.result} />}
     </div>
   )
 }
@@ -256,11 +251,7 @@ export default function TemporalSyncPanel() {
       )}
 
       {data?.workflows.map((wf) => (
-        <WorkflowCard
-          key={wf.id}
-          wf={wf}
-          temporalReachable={data.temporal_reachable}
-        />
+        <WorkflowCard key={wf.id} wf={wf} temporalReachable={data.temporal_reachable} />
       ))}
 
       {data && data.workflows.length === 0 && (
