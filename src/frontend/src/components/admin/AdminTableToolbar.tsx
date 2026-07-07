@@ -33,15 +33,17 @@ export default function AdminTableToolbar({
   children,
   className,
 }: AdminTableToolbarProps) {
-  const label =
-    total === 0
-      ? `No ${noun}s`
-      : count === total
-        ? `${total} ${noun}${total !== 1 ? 's' : ''}`
-        : `${count} of ${total} ${noun}s`
+  let label: string
+  if (total === 0) {
+    label = count === 0 ? `No ${noun}s` : `${count} ${noun}${count !== 1 ? 's' : ''}`
+  } else if (count === total) {
+    label = `${total} ${noun}${total !== 1 ? 's' : ''}`
+  } else {
+    label = `${count} of ${total} ${noun}s`
+  }
 
   return (
-    <div className={cn('shrink-0 flex h-9 items-center gap-3', className)}>
+    <div className={cn('shrink-0 flex h-7 items-center gap-2', className)}>
       {onSearch && (
         <div className="relative flex-1 max-w-xs">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
