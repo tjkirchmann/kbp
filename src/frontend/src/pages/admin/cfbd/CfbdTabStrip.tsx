@@ -14,7 +14,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, X } from 'lucide-react'
+import { Plus, Table2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCfbdExplorerStore, MAX_TABS, type CfbdTabState } from '@/store/useCfbdExplorerStore'
 import { getCfbdTableConfig } from './tableRegistry'
@@ -46,14 +46,18 @@ function SortableTab({ tab, isActive }: { tab: CfbdTabState; isActive: boolean }
         if (e.button === 1) closeTab(tab.id)
       }}
       className={cn(
-        'group flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors select-none',
+        'group relative flex h-9 max-w-56 shrink-0 cursor-pointer select-none items-center gap-2 rounded-t-lg px-3.5 text-sm font-medium transition-colors',
         isActive
-          ? 'border-primary/40 bg-primary/15 text-primary'
-          : 'border-border/20 bg-white/[0.03] text-muted-foreground hover:text-foreground',
-        isDragging && 'z-10 opacity-80',
+          ? // Surface color matches the content panel below so the active tab
+            // reads as one continuous sheet; the pseudo-elements paint the
+            // concave fillets where the tab meets the chrome band.
+            'z-10 bg-[#14161d] text-foreground before:absolute before:-left-2 before:bottom-0 before:size-2 before:bg-[radial-gradient(circle_at_top_left,transparent_8px,#14161d_8px)] after:absolute after:-right-2 after:bottom-0 after:size-2 after:bg-[radial-gradient(circle_at_top_right,transparent_8px,#14161d_8px)]'
+          : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground',
+        isDragging && 'z-20 opacity-80',
       )}
     >
-      <span className="whitespace-nowrap">{tabLabel(tab)}</span>
+      <Table2 className={cn('size-3.5 shrink-0', isActive && 'text-primary')} />
+      <span className="truncate whitespace-nowrap">{tabLabel(tab)}</span>
       <button
         type="button"
         aria-label="Close tab"
@@ -73,6 +77,10 @@ function SortableTab({ tab, isActive }: { tab: CfbdTabState; isActive: boolean }
   )
 }
 
+/**
+ * Browser-chrome tab band for the data explorer. Rendered by AdminShell in
+ * place of the breadcrumbs; the active tab fuses into the content panel.
+ */
 export default function CfbdTabStrip() {
   const tabs = useCfbdExplorerStore((s) => s.tabs)
   const activeTabId = useCfbdExplorerStore((s) => s.activeTabId)
@@ -91,7 +99,7 @@ export default function CfbdTabStrip() {
   }
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto">
+    <div className="shrink-0 flex items-end gap-1 overflow-x-auto bg-black/25 px-3 pt-2">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
           {tabs.map((tab) => (
@@ -104,7 +112,7 @@ export default function CfbdTabStrip() {
         aria-label="New tab"
         disabled={tabs.length >= MAX_TABS}
         onClick={() => openTab()}
-        className="flex shrink-0 items-center justify-center rounded-lg border border-border/20 bg-white/[0.03] p-1.5 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        className="mb-1.5 ml-1 flex shrink-0 items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus className="size-4" />
       </button>

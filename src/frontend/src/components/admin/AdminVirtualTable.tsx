@@ -131,6 +131,10 @@ export default function AdminVirtualTable<T>({
     getScrollElement: () => parentRef.current,
     estimateSize: () => rowHeight,
     overscan: 10,
+    // Seeds the virtualizer's internal offset on mount; it scrolls the element
+    // there when it attaches. Writing scrollTop externally after mount does NOT
+    // work — the virtualizer stomps it back to its own offset (0).
+    initialOffset: initialScrollTop && initialScrollTop > 0 ? initialScrollTop : 0,
   })
 
   useEffect(() => {
@@ -188,14 +192,6 @@ export default function AdminVirtualTable<T>({
     [],
   )
 
-  const appliedInitialScrollRef = useRef(false)
-  useEffect(() => {
-    if (appliedInitialScrollRef.current) return
-    if (!initialScrollTop || initialScrollTop <= 0) return
-    if (rows.length === 0 || !parentRef.current) return
-    parentRef.current.scrollTop = initialScrollTop
-    appliedInitialScrollRef.current = true
-  }, [rows.length, initialScrollTop])
 
 
   // ── initial column widths + header minimums ────────────────

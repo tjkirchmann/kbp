@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { useCfbdExplorerStore, DEFAULT_TAB_SLUG } from '@/store/useCfbdExplorerStore'
-import CfbdTabStrip from './CfbdTabStrip'
 import CfbdWorkspace from './CfbdWorkspace'
 
+// The tab band itself is rendered by AdminShell (it replaces the breadcrumbs);
+// this page hosts the active tab's workspace.
 export default function CfbdExplorer() {
   const tabs = useCfbdExplorerStore((s) => s.tabs)
   const activeTabId = useCfbdExplorerStore((s) => s.activeTabId)
@@ -17,8 +18,7 @@ export default function CfbdExplorer() {
   const active = tabs.find((t) => t.id === activeTabId) ?? tabs[0]
 
   return (
-    <div className="h-full flex flex-col gap-3 min-h-0">
-      <CfbdTabStrip />
+    <div className="h-full min-h-0 flex flex-col pt-4">
       {active && <CfbdWorkspace key={active.id} tabId={active.id} />}
     </div>
   )
