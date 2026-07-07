@@ -10,7 +10,7 @@ from app.core.database import Base
 class SyncSnapshot(Base):
     """Append-only history of provider payloads, deduped by content hash.
 
-    Scheduling/run bookkeeping lives in Procrastinate's own tables; this table
+    Scheduling/run bookkeeping lives in Temporal's visibility store; this table
     only versions the domain data we ingest.
     """
 

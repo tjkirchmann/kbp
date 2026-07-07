@@ -1,7 +1,7 @@
 """Temporal worker entrypoint.
 
 Polls the configured task queues and runs our workflows + activities. This is the
-sole background-work entrypoint (it replaced the former Procrastinate worker).
+sole background-work entrypoint.
 
 Run as: python -m app.temporal.worker
 
@@ -95,26 +95,31 @@ async def main() -> None:
     )
 
     # Reconcile the nightly CFBD-dims schedule on boot (mirrors how the
-    # Procrastinate worker reconciles DB crons at startup).
+    # Schedules are self-reconciling on boot).
     await ensure_schedule(client)
 
     # Declare the daily CFBD facts schedule in code (idempotent create-or-update),
-    # so it's self-registering on boot the way the Procrastinate crons were.
+    # so it's self-registering on boot.
     await ensure_cfbd_facts_schedule(client)
 
     # Declare the frequent CFBD games schedule in code (idempotent), replacing the
-    # former DB-cron Procrastinate cfbd_games task.
+    # cfbd_games schedule.
     await ensure_cfbd_games_schedule(client)
 
     # Declare the ESPN seeder schedule (coarse tick that spawns per-game pollers),
-    # replacing the former DB-cron Procrastinate espn_poll task.
+    # espn seeder schedule.
     await ensure_espn_seeder_schedule(client)
 
-    # Reconcile a Temporal Schedule for each scheduled structured-output
-    # definition (static, from code ∪ dynamic, from the registry) — static
-    # definitions register themselves at import via the definitions package,
-    # which the resolver imports lazily.
-    await reconcile_struct_output_schedules(client)
+    # Reconcile struct-output Temporal Schedules on worker boot only when
+    # explicitly enabled (prod). In dev, this stays off to avoid firing LLM
+    # calls (via OpenRouter) on every container start.
+    if settings.temporal_reconcile_struct_output:
+        await reconcile_struct_output_schedules(client)
+    else:
+        logger.info(
+            "Struct-output schedule reconciliation disabled "
+            "(TEMPORAL_RECONCILE_STRUCT_OUTPUT is false)"
+        )
 
     # Default-queue worker: every workflow plus the cheap (non-rate-limited)
     # activities. The ESPN game/seeder workflows live here too — they only sleep

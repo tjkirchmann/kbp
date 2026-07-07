@@ -3,7 +3,7 @@
 Commands are thin adapters: authorize → start a Temporal workflow / query Temporal
 visibility → reply. Slash commands need no privileged intent. The trigger path
 reuses the shared registry in app.temporal.triggers (the same workflows the
-schedules drive), replacing the old Procrastinate defer.
+schedules drive).
 """
 
 import logging

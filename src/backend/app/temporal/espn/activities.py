@@ -1,6 +1,6 @@
 """Activities for ESPN live-game polling — all the I/O lives here.
 
-Relocated from ``app/tasks/espn_poller.py`` (the Procrastinate task). The logic is
+The poll logic is
 preserved; only the orchestration changed: the old single ``_run_poll`` loop is
 split into a per-game ``poll_espn_game`` activity (driven by ``EspnGameWorkflow``)
 plus selection/seed/maintenance activities (driven by ``EspnSeederWorkflow``).

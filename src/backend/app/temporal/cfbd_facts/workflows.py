@@ -37,7 +37,7 @@ with workflow.unsafe.imports_passed_through():
 # the CFBD API with every endpoint × season at once.
 _ENDPOINT_CONCURRENCY = 4
 
-# Retry policy for the season ingest activity — replaces the old Procrastinate
+# Retry policy for the season ingest activity.
 # retry=3 plus hand-rolled HTTP backoff. Transient CFBD 429/5xx and DB hiccups
 # back off exponentially; a season that keeps failing is surfaced to the child,
 # which records it and moves on (the season stays uncovered and self-heals).

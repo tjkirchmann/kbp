@@ -1,7 +1,7 @@
 """Kick off a one-off CFBD plays run and print the summary.
 
 Replaces the admin "Run" button for this run-only task (which lived on the
-Procrastinate registry). The plays pipeline has no schedule — this is the only
+registry). The plays pipeline has no schedule — this is the only
 trigger. Uses a timestamped id so manual runs never collide.
 
 Run as: python -m app.temporal.cfbd_plays.starter

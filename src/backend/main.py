@@ -28,9 +28,7 @@ async def lifespan(app: FastAPI):
 
     async with SessionLocal() as db:
         await ensure_none_channel(db)
-    # All background work runs on Temporal now (app/temporal/*); the API process no
-    # longer opens a Procrastinate pool or defers startup tasks — Temporal Schedules
-    # and the workflows' own coverage self-heal cover "ensure data present on boot."
+    # All background work runs on Temporal (app/temporal/*).
     yield
 
 

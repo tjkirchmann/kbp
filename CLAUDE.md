@@ -31,7 +31,7 @@ kbp/
 ├── kbp-context.md             ← product context, features, deferred decisions
 ├── PROJECT_CHARTER.md         ← original technical scaffold spec
 ├── Makefile                   ← dev commands (make up, make migrate, etc.)
-├── docker-compose.yml         ← frontend, backend, db, workers (procrastinate + temporal), discord_bot, temporal server/ui
+├── docker-compose.yml         ← frontend, backend, db, temporal + workers, discord_bot
 ├── .env / .env.example        ← secrets (never commit .env)
 │
 ├── src/
@@ -183,10 +183,8 @@ make struct-output        # LLM structured-output jobs (pydantic-ai + OpenRouter
 
 ## Temporal (durable workflows)
 
-Self-hosted Temporal runs alongside the app for durable, multi-step workflows.
-It's **separate from Procrastinate** — Procrastinate (`app/tasks/`) owns the
-remaining cron/sync jobs (cfbd_sync, cfbd_facts, cfbd_plays, espn_poller);
-Temporal (`app/temporal/`) is the home for durable workflows. The **CFBD
+Self-hosted Temporal runs alongside the app for all background work — durable
+workflows, scheduled syncs, and the ESPN poller. The **CFBD
 dimension sync** has migrated here as `CfbdDimsWorkflow`
 (`app/temporal/cfbd_dims/`): it fans out one activity per dimension entity
 (teams/conferences/venues/coaches/draft) with per-activity retry, and runs on a
@@ -211,6 +209,9 @@ DB-cron admin panel — so it no longer appears in the admin Sync panel.
   workflow can get its own package — see `app/temporal/cfbd_dims/`
   (`activities.py` + `workflow.py` + `schedule.py`) as the worked example,
   including how to drive it with a Temporal Schedule reconciled at worker boot.
+- **Struct-output schedules are gated behind `TEMPORAL_RECONCILE_STRUCT_OUTPUT`**
+  (default `false`). This prevents the worker from firing LLM calls via OpenRouter
+  on every dev startup. Enable in prod only. See `config.py` and `.env.example`.
 
 ## Check the logs when debugging backend, inspect the code first for frontend and if you can't figure out rendering issues, use playwright mcp
 

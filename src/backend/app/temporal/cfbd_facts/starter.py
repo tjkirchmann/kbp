@@ -1,7 +1,7 @@
 """Kick off a one-off CFBD facts run and print the summary.
 
 Replaces the admin "Run now" button for this task (which lived on the
-Procrastinate registry). Runs the same workflow the daily schedule does, with a
+registry). Runs the same workflow the daily schedule does, with a
 timestamped id so manual runs don't collide with the scheduled one.
 
 Run as: python -m app.temporal.cfbd_facts.starter

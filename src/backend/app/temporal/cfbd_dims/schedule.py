@@ -1,7 +1,7 @@
 """The nightly Temporal Schedule that drives ``CfbdDimsWorkflow``.
 
 Replaces the former DB-driven cron (admin_notify_config) for this job. The
-Schedule is the native Temporal analogue of the old Procrastinate knobs:
+Schedule configuration:
 
   old cron "0 3 * * *"      -> ScheduleSpec(cron_expressions=["0 3 * * *"])
   queueing_lock="cfbd_dims" -> ScheduleOverlapPolicy.SKIP (no overlapping runs)
@@ -9,7 +9,7 @@ Schedule is the native Temporal analogue of the old Procrastinate knobs:
 
 ``ensure_schedule`` is idempotent (create, else update) and is called by the
 worker at startup, so deploying the worker reconciles the schedule — mirroring
-how the Procrastinate worker reconciles crons on boot.
+how the worker reconciles schedules on boot.
 """
 
 import logging

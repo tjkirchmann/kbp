@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # is per-definition (struct_output_definitions.model); this is the default
     # used when a definition leaves it blank.
     openrouter_api_key: str = ""
-    openrouter_default_model: str = "openai/gpt-4o"
+    openrouter_default_model: str = "z-ai/glm-5.2"
     cfbd_api_key: str = ""
     # Earliest season cfbd_facts backfills. CFBD betting lines begin ~2013.
     cfbd_facts_start_year: int = 2013
@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     # bucket (app/core/rate_limiter.py). Code-defined (boot-time), consistent with
     # the schedules-in-code decision; no longer live-editable from the admin panel.
     espn_rate_limit_per_minute: int = 60
+    # Reconcile struct-output Temporal Schedules on worker boot. Off by default
+    # (dev-safe — avoids LLM calls on every startup). Enable in prod only.
+    temporal_reconcile_struct_output: bool = False
 
     class Config:
         env_file = ".env"

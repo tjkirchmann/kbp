@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
-import { apiFetch } from '../lib/api'
+import { apiFetch } from '../../lib/api'
 
 export interface AdminPool {
   id: number

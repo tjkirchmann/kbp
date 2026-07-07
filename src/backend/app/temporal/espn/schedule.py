@@ -1,6 +1,6 @@
 """Temporal Schedule that drives ``EspnSeederWorkflow``.
 
-Replaces the former Procrastinate ``espn_poll`` cron. The seeder is a coarse tick
+The seeder is a coarse tick
 (every minute) that spawns/refreshes the per-game pollers; the fast polling itself
 lives in the per-game ``EspnGameWorkflow``s, so this schedule stays cheap.
 

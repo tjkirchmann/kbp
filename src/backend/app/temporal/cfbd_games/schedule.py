@@ -1,12 +1,12 @@
 """Temporal Schedule for the frequent CFBD games run.
 
 A Schedule is the modern replacement for both the deprecated workflow cron field
-and Procrastinate's periodic/catch-up machinery. ``ensure_cfbd_games_schedule``
+and catch-up machinery. ``ensure_cfbd_games_schedule``
 is idempotent (create-or-update) and is invoked on worker boot, so the schedule
 is declared in code and self-heals — no manual ``tctl`` step.
 
 Overlap policy is SKIP: if a run is still going when the next fires, the new one
-is dropped rather than stacked — the same guarantee Procrastinate's
+is dropped rather than stacked.
 ``queueing_lock`` gave the old task.
 """
 

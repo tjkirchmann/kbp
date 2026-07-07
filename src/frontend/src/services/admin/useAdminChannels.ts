@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/react'
-import { apiFetch } from '../lib/api'
+import { apiFetch } from '../../lib/api'
 
 // Named, reusable notification destinations (Discord webhooks, etc). Independent
 // of the sync/run-history surface — used by the ESPN and channel-manager panels.

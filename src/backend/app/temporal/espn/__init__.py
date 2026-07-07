@@ -1,6 +1,6 @@
 """ESPN live-game polling on Temporal — per-game entity workflows.
 
-Replaces the former Procrastinate ``espn_poll`` cron loop (``app/tasks/espn_poller.py``)
+Per-game entity workflow for ESPN live-score polling.
 with one long-running workflow per live game:
 
     EspnSeederWorkflow                ← driven by a coarse Schedule (every ~1 min)

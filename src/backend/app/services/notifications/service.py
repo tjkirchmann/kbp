@@ -14,7 +14,7 @@ class NotificationService:
     Strategies unpack the arbitrary `payload` themselves. The service never
     raises into its caller: an unknown strategy, empty target, or delivery error
     is logged and swallowed, so notifications can't break the work that triggers
-    them (critical inside Procrastinate tasks with retry=0).
+    them.
     """
 
     def __init__(self, strategies: dict[str, NotificationStrategy] | None = None):
