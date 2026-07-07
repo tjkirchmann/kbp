@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { CfbdTableFilters } from '@/services/useCfbdAdmin'
+import type { CfbdTableFilters } from '@/services/cfbd/useCfbdAdmin'
 import { getCfbdTableConfig } from '@/pages/admin/cfbd/tableRegistry'
 
 export const MAX_TABS = 10

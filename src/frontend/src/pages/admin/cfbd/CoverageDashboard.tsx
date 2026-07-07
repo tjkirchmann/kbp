@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Database } from 'lucide-react'
-import { useCfbdCoverage, type CoverageData } from '@/services/useCfbdCoverage'
-import type { CoverageFactEndpoint, CoverageSeasonItem } from '@/services/useCfbdCoverage'
+import { useCfbdCoverage, type CoverageData } from '@/services/cfbd/useCfbdCoverage'
+import type { CoverageFactEndpoint, CoverageSeasonItem } from '@/services/cfbd/useCfbdCoverage'
 import CoverageHeatmap from './CoverageHeatmap'
 import TemporalSyncPanel from './TemporalSyncPanel'
 

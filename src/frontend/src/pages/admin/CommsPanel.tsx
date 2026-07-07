@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAdminConfig, useUpdateAdminConfig, useTestDiscordBot } from '@/services/useAdminConfig'
+import { useAdminConfig, useUpdateAdminConfig, useTestDiscordBot } from '@/services/admin/useAdminConfig'
 
 const INPUT_CLASS =
   'flex-1 px-3 py-2 rounded-lg bg-white/[0.03] border border-border/20 text-foreground text-sm focus:outline-none focus:border-primary/60 transition-colors'

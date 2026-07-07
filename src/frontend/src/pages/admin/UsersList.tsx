@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, forwardRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { localModel } from '@virtuoso.dev/data-table'
-import { useAdminUsers, useBanUser, useSetAdmin, type AdminUser } from '@/services/useAdminUsers'
+import { useAdminUsers, useBanUser, useSetAdmin, type AdminUser } from '@/services/admin/useAdminUsers'
 import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
 import { DataTable, DataTableColumn, DataTableColumnHeader, DataTableCell } from '@/components/ui/data-table'
 

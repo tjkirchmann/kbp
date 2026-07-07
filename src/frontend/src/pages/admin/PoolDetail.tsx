@@ -9,7 +9,7 @@ import {
   useDeletePool,
   type CfbdGame,
   type PoolGameDetail,
-} from '@/services/useAdminPools'
+} from '@/services/admin/useAdminPools'
 import { DataTable, DataTableColumn, DataTableColumnHeader, DataTableCell } from '@/components/ui/data-table'
 import Modal from '@/components/ui/Modal'
 

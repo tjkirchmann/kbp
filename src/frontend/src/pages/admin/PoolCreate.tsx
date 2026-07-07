@@ -18,8 +18,8 @@ import {
   useDeletePool,
   type CfbdGame,
   type PoolGameDetail,
-} from '@/services/useAdminPools'
-import { useAdminTeams } from '@/services/useAdminTeams'
+} from '@/services/admin/useAdminPools'
+import { useAdminTeams } from '@/services/admin/useAdminTeams'
 import Modal from '@/components/ui/Modal'
 
 type Step = 'step1' | 'step2' | 'step3' | 'step4'

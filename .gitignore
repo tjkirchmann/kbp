@@ -28,3 +28,5 @@ temp/
 # Pi Plans
 .plans/
 .worktrees
+
+.excalidraw.png

@@ -1,4 +1,4 @@
-import { type CoverageFactEndpoint } from '@/services/useCfbdCoverage'
+import { type CoverageFactEndpoint } from '@/services/cfbd/useCfbdCoverage'
 
 interface Props {
   facts: CoverageFactEndpoint[]

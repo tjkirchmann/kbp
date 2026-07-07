@@ -14,7 +14,7 @@ import FilterBar from './FilterBar'
 import { CFBD_TABLES, getCfbdTableConfig, type CfbdFilterKey } from './tableRegistry'
 
 import type { Row } from '@virtuoso.dev/data-table'
-import type { CfbdTableFilters } from '@/services/useCfbdAdmin'
+import type { CfbdTableFilters } from '@/services/cfbd/useCfbdAdmin'
 
 type CfbdRow = Row<Record<string, unknown>>
 
