@@ -66,7 +66,7 @@ export default function UsersList() {
           <Loader2 className="size-4 animate-spin" />
         </div>
       ) : (
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 min-h-0 flex flex-col">
           <DataTable
             className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden flex-1 min-h-0"
             model={model}

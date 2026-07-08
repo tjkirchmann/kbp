@@ -78,7 +78,7 @@ export default function PoolsList() {
           <p className="text-sm">No pools yet. Create one to get started.</p>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 relative">
+        <div className="flex-1 min-h-0 flex flex-col">
           <DataTable
             className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden flex-1 min-h-0"
             model={model}

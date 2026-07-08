@@ -111,7 +111,7 @@ export default function FilterBar({ table, filters, onChange, onReset }: FilterB
   )
 
   return (
-    <div className="shrink-0 rounded-lg border border-border/20 bg-white/[0.03] px-3 py-2">
+    <div className="shrink-0 px-3 py-2 mb-1 border-b border-border/20">
       <div className="flex flex-wrap items-center gap-2.5">
         <Filter className="size-3.5 text-muted-foreground shrink-0" />
         {table.filters.includes('season') && (

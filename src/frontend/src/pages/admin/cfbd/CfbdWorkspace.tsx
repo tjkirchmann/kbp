@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, useCallback, forwardRef } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@clerk/react'
+import { Loader2 } from 'lucide-react'
 import { remoteModel, defaultOffsetViewportHandler } from '@virtuoso.dev/data-table'
 import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
 import { apiFetch } from '@/lib/api'
+import { useCfbdExplorerStore } from '@/store/useCfbdExplorerStore'
 import {
   DataTable,
   DataTableColumn,
@@ -20,6 +21,7 @@ import {
   CfbdRenderProvider,
   type CfbdRenderContextValue,
 } from '@/components/admin/CfbdRenderContext'
+import { Keycap } from 'keycap'
 import CfbdTableSelector from './CfbdTableSelector'
 import FilterBar from './FilterBar'
 import { CFBD_TABLES, getCfbdTableConfig, type CfbdFilterKey } from './tableRegistry'
@@ -83,25 +85,17 @@ function toCellValue(value: unknown): string {
   return String(value)
 }
 
-export default function CfbdWorkspace() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const { tableSlug } = useParams<{ tableSlug: string }>()
-  const activeSlug = tableSlug ?? 'rankings'
-  const table = getCfbdTableConfig(activeSlug) ?? CFBD_TABLES[0]
+export default function CfbdWorkspace({ tabId }: { tabId: string }) {
+  const changeTabTable = useCfbdExplorerStore((s) => s.changeTabTable)
+  // Read the tab's slug from the store (not URL params).
+  // The parent CfbdExplorer keys us by `${tabId}-${slug}` so a slug
+  // change causes a full remount — filters/state reset naturally.
+  const tabSlug = useCfbdExplorerStore((s) => s.tabs.find((t) => t.id === tabId)?.slug ?? 'rankings')
+  const table = getCfbdTableConfig(tabSlug) ?? CFBD_TABLES[0]
   const { getToken } = useAuth()
 
   // ── Filter state (source of truth for FilterBar UI) ───────────
-  const [filters, setFilters] = useState<CfbdTableFilters>(() => {
-    const initial: CfbdTableFilters = {}
-    const seasonParam = searchParams.get('season')
-    if (seasonParam) {
-      const parsed = Number(seasonParam)
-      if (!Number.isNaN(parsed)) initial.season = parsed
-    }
-    Object.assign(initial, buildDefaultFilters(table))
-    return initial
-  })
+  const [filters, setFilters] = useState<CfbdTableFilters>(() => buildDefaultFilters(table))
 
   // Reset filters when table changes (slug is the stable identity)
   useEffect(() => {
@@ -254,6 +248,35 @@ export default function CfbdWorkspace() {
     setFilters((prev) => ({ ...prev, season: seasonMaxRef.current! }))
   }, [filters.season, table])
 
+  // ── Option-held state for shortcut hints ────────────────────
+  const [optionHeld, setOptionHeld] = useState(false)
+
+  // Track physical Alt/Option key via keydown/keyup.
+  // Also catch blur so we don't get stuck if focus leaves while Alt is held.
+  useEffect(() => {
+    function onDown(e: KeyboardEvent) {
+      if (e.altKey && !e.metaKey && !e.ctrlKey && e.repeat === false) {
+        setOptionHeld(true)
+      }
+    }
+    function onUp(e: KeyboardEvent) {
+      if (e.code === 'AltLeft' || e.code === 'AltRight') {
+        setOptionHeld(false)
+      }
+    }
+    function onBlur() {
+      setOptionHeld(false)
+    }
+    window.addEventListener('keydown', onDown)
+    window.addEventListener('keyup', onUp)
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('keydown', onDown)
+      window.removeEventListener('keyup', onUp)
+      window.removeEventListener('blur', onBlur)
+    }
+  }, [])
+
   // ── Render context (provided via React Context to cell renderers) ──
   const renderContext: CfbdRenderContextValue = useMemo(
     () => ({ teamLogos, columnRanges }),
@@ -264,108 +287,111 @@ export default function CfbdWorkspace() {
   const columns = table.columns
 
   return (
-    <div className="h-full flex flex-col gap-1.5">
+    <div className="cfbd-workspace h-full flex flex-col gap-3">
       <CfbdTableSelector
         activeSlug={table.slug}
-        onSelect={(slug) => {
-          const params = new URLSearchParams()
-          if (filters.season) params.set('season', String(filters.season))
-          const qs = params.toString()
-          navigate(`/admin/cfbd/${slug}${qs ? `?${qs}` : ''}`)
-        }}
+        onSelect={(slug) => changeTabTable(tabId, slug)}
       />
 
-      <FilterBar
-        table={table}
-        filters={filters}
-        onChange={(key: CfbdFilterKey, rawValue: string) => {
-          setFilters((prev) => {
-            const next = { ...prev } as Record<string, unknown>
-            if (rawValue === '') {
-              delete next[key]
-              return next as CfbdTableFilters
-            }
-            if (key === 'season' || key === 'week' || key === 'game_id' || key === 'stars') {
-              const parsed = Number(rawValue.trim())
-              if (Number.isNaN(parsed)) {
+      <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border/20 bg-white/[0.03] overflow-hidden">
+        <FilterBar
+          table={table}
+          filters={filters}
+          onChange={(key: CfbdFilterKey, rawValue: string) => {
+            setFilters((prev) => {
+              const next = { ...prev } as Record<string, unknown>
+              if (rawValue === '') {
                 delete next[key]
-              } else {
-                next[key] = parsed
+                return next as CfbdTableFilters
               }
+              if (key === 'season' || key === 'week' || key === 'game_id' || key === 'stars') {
+                const parsed = Number(rawValue.trim())
+                if (Number.isNaN(parsed)) {
+                  delete next[key]
+                } else {
+                  next[key] = parsed
+                }
+                return next as CfbdTableFilters
+              }
+              next[key] = rawValue
               return next as CfbdTableFilters
-            }
-            next[key] = rawValue
-            return next as CfbdTableFilters
-          })
-        }}
-        onReset={() => {
-          const defaults = buildDefaultFilters(table)
-          setFilters(defaults as CfbdTableFilters)
-        }}
-      />
+            })
+          }}
+          onReset={() => {
+            const defaults = buildDefaultFilters(table)
+            setFilters(defaults as CfbdTableFilters)
+          }}
+        />
 
-      {missingGameId && (
-        <div className="shrink-0 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-          This table is game-scoped. Enter a Game ID filter to load rows.
-        </div>
-      )}
-
-      {!missingGameId && (
-        <CfbdRenderProvider value={renderContext}>
-          <div ref={tableRef} className="flex-1 min-h-0 overflow-hidden rounded-2xl">
-            <DataTable
-              key={table.slug}
-              className="bg-white/[0.03] border border-border/20 rounded-2xl"
-              style={{ height: tableH || 400 }}
-              model={model}
-              computeRowKey={computeRowKey}
-              onRenderedDataChange={handleRenderedDataChange}
-              components={{
-                Row: forwardRef<any, any>(({ style, ...props }, ref) => (
-                  <div
-                    ref={ref}
-                    {...props}
-                    className="flex items-center border-t border-border/20 transition-colors hover:bg-[rgba(26,30,42,0.4)]"
-                    style={{ ...style, height: 44 }}
-                  />
-                )) as any,
-              }}
-            >
-              {columns.map((col) => (
-                <DataTableColumn key={col.key} field={col.key}>
-                  <DataTableColumnHeader className="px-5">
-                    <HeaderStart component={ReorderGrip} />
-                    <HeaderOverlay component={ReorderDropZone} />
-                    {() => (
-                      <SortableHeaderLabel field={col.key}>
-                        {String(col.header)}
-                      </SortableHeaderLabel>
-                    )}
-                    <HeaderEdge>{(params) => <ResizeHandle {...(params as any)} />}</HeaderEdge>
-                  </DataTableColumnHeader>
-                  <DataTableCell className="px-5 py-0">
-                    {({ cellValue, row }) => {
-                      if (col.render) {
-                        return col.render(
-                          cellValue,
-                          row.data as Record<string, unknown>,
-                          renderContext,
-                        )
-                      }
-                      if (col.rawCell) return toCellValue(cellValue)
-                      return (
-                        <span className="text-xs text-muted-foreground truncate block">
-                          {toCellValue(cellValue)}
-                        </span>
-                      )
-                    }}
-                  </DataTableCell>
-                </DataTableColumn>
-              ))}
-            </DataTable>
+        {missingGameId && (
+          <div className="shrink-0 border-t border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+            This table is game-scoped. Enter a Game ID filter to load rows.
           </div>
-        </CfbdRenderProvider>
-      )}
+        )}
+
+        {!missingGameId && (
+          <CfbdRenderProvider value={renderContext}>
+            <div ref={tableRef} className="flex-1 min-h-0 overflow-hidden">
+              <DataTable
+                key={table.slug}
+                className=""
+                style={{ height: tableH || 400 }}
+                model={model}
+                computeRowKey={computeRowKey}
+                onRenderedDataChange={handleRenderedDataChange}
+                components={{
+                  Row: forwardRef<any, any>(({ style, ...props }, ref) => (
+                    <div
+                      ref={ref}
+                      {...props}
+                      className="flex items-center border-t border-border/20 transition-colors hover:bg-[rgba(26,30,42,0.4)]"
+                      style={{ ...style, height: 44 }}
+                    />
+                  )) as any,
+                  LoadingPlaceholder: () => (
+                    <div className="flex flex-col items-center justify-center gap-2.5 py-16 text-muted-foreground/40">
+                      <Loader2 className="size-6 animate-spin" />
+                      <span className="text-xs">Loading…</span>
+                    </div>
+                  ),
+                }}
+              >
+                {columns.map((col) => (
+                  <DataTableColumn key={col.key} field={col.key}>
+                    <DataTableColumnHeader className="px-5">
+                      <HeaderStart component={ReorderGrip} />
+                      <HeaderOverlay component={ReorderDropZone} />
+                      {() => (
+                        <SortableHeaderLabel field={col.key}>
+                          {String(col.header)}
+                        </SortableHeaderLabel>
+                      )}
+                      <HeaderEdge>{(params) => <ResizeHandle {...(params as any)} />}</HeaderEdge>
+                    </DataTableColumnHeader>
+                    <DataTableCell className="px-5 py-0">
+                      {({ cellValue, row }) => {
+                        if (col.render) {
+                          return col.render(
+                            cellValue,
+                            row.data as Record<string, unknown>,
+                            renderContext,
+                          )
+                        }
+                        if (col.rawCell) return toCellValue(cellValue)
+                        return (
+                          <span className="text-xs text-muted-foreground truncate block">
+                            {toCellValue(cellValue)}
+                          </span>
+                        )
+                      }}
+                    </DataTableCell>
+                  </DataTableColumn>
+                ))}
+              </DataTable>
+            </div>
+          </CfbdRenderProvider>
+        )}
+      </div>
 
       <AdminTableToolbar
         count={renderedCount}
@@ -376,7 +402,19 @@ export default function CfbdWorkspace() {
             ? `· synced ${new Date(latestSyncedRef.current).toLocaleString()}`
             : undefined
         }
-      />
+      >
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground/50 opacity-60">
+          <Keycap activeKey="Alt">⌥</Keycap>
+          {optionHeld ? (
+            <>
+              <Keycap activeKey="w">W</Keycap>
+              <span>close tab</span>
+            </>
+          ) : (
+            <span>hold for shortcuts</span>
+          )}
+        </span>
+      </AdminTableToolbar>
     </div>
   )
 }

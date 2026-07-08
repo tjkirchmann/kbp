@@ -83,7 +83,7 @@ const TableStickyHeader = React.forwardRef<
   return (
     <div
       ref={ref}
-      className="border-b border-[var(--data-table-border)] bg-[#161820]"
+      className="border-b border-[var(--data-table-border)] bg-[var(--background)]"
       style={mergedStyle}
       {...props}
     />

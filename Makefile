@@ -28,6 +28,9 @@ down:
 restart:
 	docker compose down && docker compose up -d
 
+restart-frontend:
+	docker compose restart frontend
+
 # ── Logs ─────────────────────────────────────────────────────────────────────
 
 logs:
