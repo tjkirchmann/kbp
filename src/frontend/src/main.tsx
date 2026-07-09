@@ -7,6 +7,9 @@ import App from './App'
 import { ToastProvider } from './components/toast/ToastContext'
 import { ApiError } from './lib/apiError'
 import './index.css'
+// React Flow base styles — imported here, not in index.css, so the Tailwind v4
+// @import chain there stays contiguous.
+import '@xyflow/react/dist/style.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {

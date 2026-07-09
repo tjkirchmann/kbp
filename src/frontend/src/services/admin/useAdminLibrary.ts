@@ -11,6 +11,7 @@ export interface LibraryFile {
   created_at: string
   deleted_at: string | null
   uploaded_by_user_id: number | null
+  project_id: number | null
 }
 
 interface PresignResult {
@@ -37,11 +38,15 @@ export function useUploadFile() {
   const { getToken } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, projectId }: { file: File; projectId?: number }) => {
       const token = await getToken()
       const presign: PresignResult = await apiFetch(token!, '/admin/library/presign', {
         method: 'POST',
-        body: JSON.stringify({ original_name: file.name, content_type: file.type || null }),
+        body: JSON.stringify({
+          original_name: file.name,
+          content_type: file.type || null,
+          project_id: projectId ?? null,
+        }),
       })
 
       // Browser → S3 (or MinIO) directly. Fields first, file last, no auth header
@@ -54,7 +59,10 @@ export function useUploadFile() {
 
       return apiFetch(token!, `/admin/library/${presign.file_id}/confirm`, { method: 'POST' })
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'library', 'files'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'library', 'files'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'projects'] })
+    },
   })
 }
 

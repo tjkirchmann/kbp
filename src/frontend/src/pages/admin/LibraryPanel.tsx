@@ -95,7 +95,7 @@ export default function LibraryPanel() {
     if (!fileList || fileList.length === 0) return
     for (const file of Array.from(fileList)) {
       try {
-        await upload.mutateAsync(file)
+        await upload.mutateAsync({ file })
         toast({ variant: 'success', title: 'Uploaded', description: file.name })
       } catch {
         toast({ variant: 'error', title: 'Upload failed', description: file.name })

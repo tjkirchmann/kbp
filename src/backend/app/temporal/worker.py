@@ -11,6 +11,7 @@ function to `activities=` below.
 
 import asyncio
 import logging
+from datetime import timedelta
 
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -52,6 +53,12 @@ from app.temporal.espn.activities import (
 from app.temporal.espn.game_workflow import EspnGameWorkflow
 from app.temporal.espn.schedule import ensure_espn_seeder_schedule
 from app.temporal.espn.seeder_workflow import EspnSeederWorkflow
+from app.temporal.pipeline.activities import (
+    finalize_run,
+    prepare_run,
+    run_node,
+)
+from app.temporal.pipeline.workflow import PipelineRunWorkflow
 from app.temporal.struct_output.activities import (
     generate_and_upsert,
     resolve_targets,
@@ -138,6 +145,7 @@ async def main() -> None:
             EspnGameWorkflow,
             StructOutputBatchWorkflow,
             StructOutputEntityWorkflow,
+            PipelineRunWorkflow,
         ],
         activities=[
             sync_flat_dim,
@@ -155,7 +163,23 @@ async def main() -> None:
             prune_event_log,
             resolve_targets,
             generate_and_upsert,
+            prepare_run,
+            finalize_run,
         ],
+    )
+
+    # Dedicated media worker: only the CPU-heavy per-node pipeline activity
+    # (ffmpeg), capped so concurrent transcodes can't peg the container while
+    # the default queue keeps its activity slots free. Heartbeat throttling is
+    # tightened because cancellation rides the heartbeat RPC — the default
+    # throttle would leave a canceled ffmpeg running for tens of seconds.
+    media_worker = Worker(
+        client,
+        task_queue=settings.temporal_media_task_queue,
+        activities=[run_node],
+        max_concurrent_activities=settings.pipeline_media_concurrency,
+        default_heartbeat_throttle_interval=timedelta(seconds=5),
+        max_heartbeat_throttle_interval=timedelta(seconds=5),
     )
 
     # Dedicated ESPN worker: only the single rate-limited poll activity. Temporal
@@ -176,7 +200,7 @@ async def main() -> None:
         settings.espn_rate_limit_per_minute,
     )
 
-    await asyncio.gather(default_worker.run(), espn_worker.run())
+    await asyncio.gather(default_worker.run(), espn_worker.run(), media_worker.run())
 
 
 if __name__ == "__main__":

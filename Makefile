@@ -29,7 +29,9 @@ restart:
 	docker compose down && docker compose up -d
 
 restart-frontend:
-	docker compose restart frontend
+	docker compose rm -s -f -v frontend
+	docker compose build frontend --no-cache
+	docker compose up -d frontend
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 
