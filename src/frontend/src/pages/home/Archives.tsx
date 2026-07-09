@@ -60,7 +60,7 @@ export function Archives() {
         className="flex flex-col gap-12"
       >
         <motion.div variants={item} className="flex items-center gap-6">
-          <div className="flex shrink-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1 sm:shrink-0">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">
               From the Archives
             </p>
@@ -68,7 +68,7 @@ export function Archives() {
               Three decades of questionable decisions, immortalized.
             </p>
           </div>
-          <div className="hatch h-10 flex-1 rounded" />
+          <div className="hatch hidden h-10 flex-1 rounded sm:block" />
         </motion.div>
 
         <motion.div
