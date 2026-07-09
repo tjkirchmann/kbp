@@ -90,7 +90,9 @@ export default function CfbdWorkspace({ tabId }: { tabId: string }) {
   // Read the tab's slug from the store (not URL params).
   // The parent CfbdExplorer keys us by `${tabId}-${slug}` so a slug
   // change causes a full remount — filters/state reset naturally.
-  const tabSlug = useCfbdExplorerStore((s) => s.tabs.find((t) => t.id === tabId)?.slug ?? 'rankings')
+  const tabSlug = useCfbdExplorerStore(
+    (s) => s.tabs.find((t) => t.id === tabId)?.slug ?? 'rankings',
+  )
   const table = getCfbdTableConfig(tabSlug) ?? CFBD_TABLES[0]
   const { getToken } = useAuth()
 
@@ -288,10 +290,7 @@ export default function CfbdWorkspace({ tabId }: { tabId: string }) {
 
   return (
     <div className="cfbd-workspace h-full flex flex-col gap-3">
-      <CfbdTableSelector
-        activeSlug={table.slug}
-        onSelect={(slug) => changeTabTable(tabId, slug)}
-      />
+      <CfbdTableSelector activeSlug={table.slug} onSelect={(slug) => changeTabTable(tabId, slug)} />
 
       <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border/20 bg-white/[0.03] overflow-hidden">
         <FilterBar

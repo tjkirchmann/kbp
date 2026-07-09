@@ -19,13 +19,7 @@ export default function CfbdExplorer() {
     function handleKeyDown(e: KeyboardEvent) {
       // Use code (not key) — Option+W produces ∑ on macOS, so key === 'w' fails.
       // Only Option/Alt — no Cmd, Ctrl, or Shift held.
-      if (
-        e.altKey &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        !e.shiftKey &&
-        e.code === 'KeyW'
-      ) {
+      if (e.altKey && !e.metaKey && !e.ctrlKey && !e.shiftKey && e.code === 'KeyW') {
         const tag = (e.target as HTMLElement)?.tagName
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
         const state = useCfbdExplorerStore.getState()
