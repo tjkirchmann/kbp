@@ -57,7 +57,11 @@ export function ProjectFilesPanel({ projectId }: ProjectFilesPanelProps) {
           disabled={upload.isPending}
           className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary/15 border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
         >
-          {upload.isPending ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+          {upload.isPending ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Upload className="size-4" />
+          )}
           Upload
         </button>
         <input

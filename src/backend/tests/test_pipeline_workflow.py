@@ -27,7 +27,6 @@ _DIAMOND = {
 
 
 async def test_diamond_executes_in_dependency_waves():
-    executed: list[list[str]] = []
     wave: list[str] = []
 
     @activity.defn(name="prepare_run")
