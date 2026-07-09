@@ -45,6 +45,11 @@ function useBreadcrumbs() {
   }
 
   if (parts[0] === 'library') return [{ label: 'Library', to: '/admin/library' }]
+  if (parts[0] === 'pipelines') {
+    const crumbs = [{ label: 'Pipelines', to: '/admin/pipelines' }]
+    if (parts[1]) crumbs.push({ label: `Pipeline ${parts[1]}`, to: '' })
+    return crumbs
+  }
   if (parts[0] === 'cfbd') {
     const crumbs = [{ label: 'CFBD', to: '/admin/cfbd' }]
     if (parts[1]) {

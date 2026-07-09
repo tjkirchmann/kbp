@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     # minutes (games are a fact table — scores change). Ported from the former
     # DB cron (admin_notify_config). See app/temporal/cfbd_games/schedule.py.
     temporal_cfbd_games_cron: str = "*/15 * * * *"
+    # Dedicated task queue for pipeline media activities (ffmpeg). CPU-heavy
+    # work gets its own queue + a low worker concurrency cap so a transcode
+    # can't starve the default queue's activity slots. See app/temporal/pipeline/.
+    temporal_media_task_queue: str = "kbp-media"
+    # Max ffmpeg nodes running concurrently in one worker process.
+    pipeline_media_concurrency: int = 2
     # Dedicated task queue for ESPN poll activities. Per Temporal's guidance, one
     # rate-limited downstream API gets its own queue so its throughput limit is
     # isolated from the rest of the workers. See app/temporal/espn/.

@@ -14,6 +14,8 @@ import {
   BrainCircuit,
   Database,
   BarChart3,
+  Workflow,
+  FolderKanban,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useClerk } from '@clerk/react'
@@ -38,6 +40,8 @@ const groups: Group[] = [
         children: [{ id: 'espn', label: 'ESPN', icon: Activity }],
       },
       { id: 'library', label: 'Library', icon: FolderOpen },
+      { id: 'pipelines', label: 'Pipelines', icon: Workflow },
+      { id: 'projects', label: 'Projects', icon: FolderKanban },
       { id: 'ai-structs', label: 'AI Structs', icon: BrainCircuit },
     ],
   },

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user, require_admin
 from app.core.database import get_db
-from app.models import LibraryFile, User
+from app.models import LibraryFile, Project, User
 from app.services import s3
 
 router = APIRouter(prefix="/admin/library", dependencies=[Depends(require_admin)])
@@ -25,6 +25,8 @@ router = APIRouter(prefix="/admin/library", dependencies=[Depends(require_admin)
 class PresignBody(BaseModel):
     original_name: str
     content_type: str | None = None
+    # Set when uploading from within a project; NULL = global library file.
+    project_id: int | None = None
 
 
 class PresignResult(BaseModel):
@@ -43,6 +45,7 @@ class LibraryFileSchema(BaseModel):
     created_at: datetime
     deleted_at: datetime | None = None
     uploaded_by_user_id: int | None = None
+    project_id: int | None = None
 
 
 async def _get_file(db: AsyncSession, file_id: int) -> LibraryFile:
@@ -60,6 +63,10 @@ async def presign_upload(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    if body.project_id is not None:
+        project = await db.get(Project, body.project_id)
+        if project is None or project.deleted_at is not None:
+            raise HTTPException(status_code=404, detail="Project not found")
     key = s3.build_key(body.original_name)
     row = LibraryFile(
         s3_key=key,
@@ -67,6 +74,7 @@ async def presign_upload(
         content_type=body.content_type,
         status="pending",
         uploaded_by_user_id=user.id,
+        project_id=body.project_id,
     )
     db.add(row)
     await db.commit()

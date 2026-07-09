@@ -40,6 +40,8 @@ from app.models.espn import EspnGame
 from app.models.event_log import EventLog
 from app.models.library_file import LibraryFile
 from app.models.notification_channel import NotificationChannel
+from app.models.pipeline import Artifact, NodeRun, Pipeline, PipelineRun
+from app.models.project import Project
 from app.models.pool import (
     Pool,
     PoolGame,
@@ -101,6 +103,11 @@ __all__ = [
     "LibraryFile",
     "Clip",
     "ClipStatus",
+    "Pipeline",
+    "PipelineRun",
+    "NodeRun",
+    "Artifact",
+    "Project",
     "StructOutputDefinition",
     "StructOutputProgramProfile",
 ]

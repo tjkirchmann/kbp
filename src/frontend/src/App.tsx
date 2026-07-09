@@ -12,6 +12,10 @@ import CommsPanel from './pages/admin/CommsPanel'
 import IntegrationsShell from './pages/admin/IntegrationsShell'
 import EspnPanel from './pages/admin/EspnPanel'
 import LibraryPanel from './pages/admin/LibraryPanel'
+import PipelinesList from './pages/admin/pipelines/PipelinesList'
+import PipelineEditor from './pages/admin/pipelines/PipelineEditor'
+import ProjectsList from './pages/admin/projects/ProjectsList'
+import ProjectDetail from './pages/admin/projects/ProjectDetail'
 import AiStructsList from './pages/admin/AiStructsList'
 import AiStructDetail from './pages/admin/AiStructDetail'
 import CfbdWorkspace from './pages/admin/cfbd/CfbdWorkspace'
@@ -37,6 +41,10 @@ export default function App() {
         {/* Back-compat: the old top-level ESPN route now lives under Integrations. */}
         <Route path="espn" element={<Navigate to="/admin/integrations/espn" replace />} />
         <Route path="library" element={<LibraryPanel />} />
+        <Route path="pipelines" element={<PipelinesList />} />
+        <Route path="pipelines/:pipelineId" element={<PipelineEditor />} />
+        <Route path="projects" element={<ProjectsList />} />
+        <Route path="projects/:projectId" element={<ProjectDetail />} />
         <Route path="cfbd" element={<Outlet />}>
           <Route index element={<Navigate to="coverage" replace />} />
           <Route path="coverage" element={<CoverageDashboard />} />

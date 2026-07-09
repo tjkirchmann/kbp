@@ -57,6 +57,14 @@ def build_key(original_name: str) -> str:
     return f"library/{uuid.uuid4()}/{_sanitize(original_name)}"
 
 
+def build_artifact_key(run_id: int, node_id: str, filename: str) -> str:
+    """``artifacts/{run_id}/{node_id}/{uuid4}/{filename}`` — pipeline outputs,
+    namespaced away from ``library/`` so the library stays clean."""
+    return (
+        f"artifacts/{run_id}/{_sanitize(node_id)}/{uuid.uuid4()}/{_sanitize(filename)}"
+    )
+
+
 def create_presigned_post(key: str, content_type: str | None) -> dict:
     """Presigned POST for a direct browser→S3 upload.
 
@@ -121,3 +129,29 @@ def create_internal_presigned_get(key: str) -> str:
 def delete_object(key: str) -> None:
     """Hard delete (purge only)."""
     _internal_client().delete_object(Bucket=settings.s3_bucket_name, Key=key)
+
+
+def download_file(key: str, dest) -> None:
+    """Server-side object fetch to a local path (pipeline step inputs).
+    Blocking boto3 call — run in a thread from async code."""
+    _internal_client().download_file(settings.s3_bucket_name, key, str(dest))
+
+
+def upload_file(key: str, path, content_type: str | None = None) -> None:
+    """Server-side file upload (pipeline artifacts). Multipart is automatic.
+    Blocking boto3 call — run in a thread from async code."""
+    extra = {"ContentType": content_type} if content_type else None
+    _internal_client().upload_file(
+        str(path), settings.s3_bucket_name, key, ExtraArgs=extra
+    )
+
+
+def create_preview_presigned_get(key: str) -> str:
+    """Browser-facing inline GET (artifact preview: <video>/<img>/<audio> src).
+    Longer expiry than downloads so a long video can finish playing; no
+    content-disposition override → renders inline instead of downloading."""
+    return _public_client().generate_presigned_url(
+        "get_object",
+        Params={"Bucket": settings.s3_bucket_name, "Key": key},
+        ExpiresIn=3600,
+    )

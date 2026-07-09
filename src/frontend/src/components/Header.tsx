@@ -1,15 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import { Trophy, BookOpen, LogIn, Menu, X, Newspaper, ShieldCheck, LogOut } from 'lucide-react'
+import { motion, useMotionValueEvent, useScroll } from 'motion/react'
 import logo256w from '@/assets/logo/logo-256w.png'
 import logo512w from '@/assets/logo/logo-512w.png'
 import { useClerk, useAuth } from '@clerk/react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMe } from '@/services/useMe'
+import { cn } from '@/lib/utils'
 
 const navBtn =
-  'flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors whitespace-nowrap'
+  'flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-foreground/75 hover:text-foreground hover:bg-white/5 transition-colors whitespace-nowrap'
 const mobileNavBtn =
-  'flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors w-full'
+  'flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-foreground/75 hover:text-foreground hover:bg-white/5 transition-colors w-full'
 
 function avatarLetter(data: { name?: string | null; email?: string } | undefined) {
   const src = data?.name || data?.email || '?'
@@ -47,7 +49,7 @@ function AvatarMenu({
 
       {open && (
         <div
-          className="absolute -right-6 top-12 rounded-xl overflow-hidden min-w-40 z-50 shadow-lg border border-white/10"
+          className="absolute right-0 top-12 rounded-xl overflow-hidden min-w-40 z-50 shadow-lg border border-white/10"
           style={{
             background: 'rgba(13, 15, 19, 0.92)',
             backdropFilter: 'blur(16px)',
@@ -88,12 +90,25 @@ export default function Header() {
   const { isSignedIn } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const { data } = useMe()
   const isAdmin = data?.is_admin ?? false
 
+  const { scrollY } = useScroll()
+  useMotionValueEvent(scrollY, 'change', (v) => setScrolled(v > 24))
+  const solid = scrolled || menuOpen
+
   return (
-    <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-6xl px-4">
-      <div className="glass-panel rounded-full px-6 h-14 flex items-center justify-between">
+    <motion.header
+      initial={{ y: -16, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className={cn(
+        'fixed inset-x-0 top-0 z-50 border-b transition-colors duration-300',
+        solid ? 'border-white/8 bg-background/95' : 'border-transparent bg-transparent',
+      )}
+    >
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-3 shrink-0">
           <img
             src={logo256w}
@@ -143,7 +158,7 @@ export default function Header() {
 
         {/* Hamburger — mobile */}
         <button
-          className="sm:hidden p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-[rgba(26,30,42,0.6)] transition-colors"
+          className="sm:hidden p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
           onClick={() => setMenuOpen((o) => !o)}
           aria-label="Toggle menu"
         >
@@ -151,9 +166,9 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Mobile menu — full-width sheet under the bar */}
       {menuOpen && (
-        <div className="sm:hidden mt-2 glass-panel rounded-2xl px-3 py-3 flex flex-col gap-1">
+        <div className="sm:hidden flex flex-col gap-1 border-t border-white/8 bg-background-subtle/95 px-3 py-3">
           <button
             className={mobileNavBtn}
             onClick={() => {
@@ -220,6 +235,6 @@ export default function Header() {
           )}
         </div>
       )}
-    </header>
+    </motion.header>
   )
 }
