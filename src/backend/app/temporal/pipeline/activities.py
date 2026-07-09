@@ -82,9 +82,17 @@ async def run_node(run_id: int, node_id: str) -> None:
     scratch dir, record status transitions on the node_runs row throughout."""
     async with TaskSessionLocal() as db:
         run = await db.get(PipelineRun, run_id)
+        if run is None:
+            raise ApplicationError(
+                f"Pipeline run {run_id} not found", non_retryable=True
+            )
         graph = Graph.model_validate(run.graph)
         node = next(n for n in graph.nodes if n.id == node_id)
         step = get_step(node.type)
+        if step is None:
+            raise ApplicationError(
+                f"Unknown step type '{node.type}'", non_retryable=True
+            )
 
         inputs: dict[str, ArtifactRef] = {}
         for up_node, up_port, my_port in build_deps(graph)[node_id]:

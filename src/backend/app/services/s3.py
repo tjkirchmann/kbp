@@ -150,7 +150,7 @@ def create_preview_presigned_get(key: str) -> str:
     """Browser-facing inline GET (artifact preview: <video>/<img>/<audio> src).
     Longer expiry than downloads so a long video can finish playing; no
     content-disposition override → renders inline instead of downloading."""
-    return _public_client().generate_presigned_url(
+    return _public_client().generate_presigned_url(  # type: ignore[no-any-return]
         "get_object",
         Params={"Bucket": settings.s3_bucket_name, "Key": key},
         ExpiresIn=3600,

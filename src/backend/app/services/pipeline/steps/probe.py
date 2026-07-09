@@ -27,7 +27,7 @@ class ProbeStep(BaseStep):
     inputs: list[PortSpec] = [PortSpec("in", ArtifactKind.video)]
     outputs: list[PortSpec] = [PortSpec("out", ArtifactKind.json)]
 
-    async def run(
+    async def run(  # type: ignore[override]
         self,
         ctx: StepContext,
         params: ProbeParams,
