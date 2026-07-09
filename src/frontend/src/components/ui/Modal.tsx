@@ -66,11 +66,15 @@ export default function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4 sm:p-6 animate-modal-overlay-in"
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px] flex items-center justify-center p-4 sm:p-6 animate-modal-overlay-in"
       onClick={handleBackdropClick}
     >
       <div
         className={`glass-panel rounded-2xl w-full overflow-hidden flex flex-col shadow-2xl animate-modal-panel-in ${sizeClasses[size]}`}
+        style={{
+          background: 'linear-gradient(to bottom, rgba(42, 47, 62, 0.94), rgba(26, 30, 42, 0.90))',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+        }}
       >
         {/* Header */}
         {showHeader && (

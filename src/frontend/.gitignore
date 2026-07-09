@@ -1,0 +1,15 @@
+# BEGIN design-playground
+# Design Playground — local dev tool; installed via setup.mjs
+/src/app/playground/
+/app/playground/
+/.playground-temp/
+/skills-lock.json
+/.claude/skills/
+/public/.playground/
+/public/untitled-*/
+/public/pdf.worker.min.mjs
+# END design-playground
+
+# BEGIN design-playground-public-frames
+# Auto-managed — do not edit; synced from public/.playground/html-tree.json
+# END design-playground-public-frames

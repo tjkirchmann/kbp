@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, forwardRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trophy, Loader2, Trash2 } from 'lucide-react'
+import { Plus, Trophy, Loader2, Trash2, Pencil } from 'lucide-react'
 import { localModel } from '@virtuoso.dev/data-table'
 import { useAdminPools, useDeletePool, type AdminPool } from '@/services/admin/useAdminPools'
 import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
@@ -11,6 +11,7 @@ import {
   DataTableCell,
 } from '@/components/ui/data-table'
 import Modal from '@/components/ui/Modal'
+import PoolEditModal from './PoolEditModal'
 
 const ROW_HEIGHT = 48
 
@@ -21,6 +22,7 @@ export default function PoolsList() {
   const { data: pools = [], isLoading, error } = useAdminPools()
   const deletePool = useDeletePool()
   const [confirmDelete, setConfirmDelete] = useState<AdminPool | null>(null)
+  const [editPoolId, setEditPoolId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
 
   const filtered = useMemo(() => {
@@ -78,7 +80,7 @@ export default function PoolsList() {
           <p className="text-sm">No pools yet. Create one to get started.</p>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col [&>*]:flex-1 [&>*]:min-h-0">
           <DataTable
             className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden flex-1 min-h-0"
             model={model}
@@ -157,7 +159,18 @@ export default function PoolsList() {
                 {({ row }) => {
                   const pool = row.data as AdminPool
                   return (
-                    <div className="flex justify-end w-full">
+                    <div className="flex justify-end w-full gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditPoolId(pool.id)
+                        }}
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
+                        title="Edit pool"
+                      >
+                        <Pencil className="size-4" />
+                      </button>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -175,6 +188,11 @@ export default function PoolsList() {
             </DataTableColumn>
           </DataTable>
         </div>
+      )}
+
+      {/* ── Edit modal ──────────────────────────────────────────── */}
+      {editPoolId !== null && (
+        <PoolEditModal poolId={editPoolId} open={true} onClose={() => setEditPoolId(null)} />
       )}
 
       <Modal

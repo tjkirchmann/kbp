@@ -196,3 +196,15 @@ class MultiplierItem(BaseModel):
 
 class PoolGamesMultiplierUpdate(BaseModel):
     multipliers: list[MultiplierItem]
+
+
+class AdminSubmissionRow(BaseModel):
+    id: int
+    submitted_by_name: str
+    submitted_by_email: str
+    on_behalf_of_name: str
+    is_locked: bool
+    submitted_at: datetime | None
+    pick_count: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)

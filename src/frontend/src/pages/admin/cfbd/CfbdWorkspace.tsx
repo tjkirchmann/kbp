@@ -22,6 +22,8 @@ import {
   type CfbdRenderContextValue,
 } from '@/components/admin/CfbdRenderContext'
 import { Keycap } from 'keycap'
+import ViewTypeSelector from '@/components/admin/ViewTypeSelector'
+import type { CfbdViewType } from '@/store/useCfbdExplorerStore'
 import CfbdTableSelector from './CfbdTableSelector'
 import FilterBar from './FilterBar'
 import { CFBD_TABLES, getCfbdTableConfig, type CfbdFilterKey } from './tableRegistry'
@@ -87,11 +89,15 @@ function toCellValue(value: unknown): string {
 
 export default function CfbdWorkspace({ tabId }: { tabId: string }) {
   const changeTabTable = useCfbdExplorerStore((s) => s.changeTabTable)
+  const setTabViewType = useCfbdExplorerStore((s) => s.setTabViewType)
+  const viewType = useCfbdExplorerStore(
+    (s) => s.tabs.find((t) => t.id === tabId)?.viewType ?? 'table',
+  )
   // Read the tab's slug from the store (not URL params).
   // The parent CfbdExplorer keys us by `${tabId}-${slug}` so a slug
   // change causes a full remount — filters/state reset naturally.
   const tabSlug = useCfbdExplorerStore(
-    (s) => s.tabs.find((t) => t.id === tabId)?.slug ?? 'rankings',
+    (s) => s.tabs.find((t) => t.id === tabId)?.table.slug ?? 'rankings',
   )
   const table = getCfbdTableConfig(tabSlug) ?? CFBD_TABLES[0]
   const { getToken } = useAuth()
@@ -290,7 +296,18 @@ export default function CfbdWorkspace({ tabId }: { tabId: string }) {
 
   return (
     <div className="cfbd-workspace h-full flex flex-col gap-3">
-      <CfbdTableSelector activeSlug={table.slug} onSelect={(slug) => changeTabTable(tabId, slug)} />
+      <div className="flex items-center gap-2">
+        <ViewTypeSelector
+          viewType={viewType}
+          onChange={(vt: CfbdViewType) => setTabViewType(tabId, vt)}
+        />
+        <div className="flex-1">
+          <CfbdTableSelector
+            activeSlug={table.slug}
+            onSelect={(slug) => changeTabTable(tabId, slug)}
+          />
+        </div>
+      </div>
 
       <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-border/20 bg-white/[0.03] overflow-hidden">
         <FilterBar
@@ -407,7 +424,14 @@ export default function CfbdWorkspace({ tabId }: { tabId: string }) {
           {optionHeld ? (
             <>
               <Keycap activeKey="w">W</Keycap>
-              <span>close tab</span>
+              <span>close</span>
+              <span className="text-muted-foreground/30">·</span>
+              <Keycap activeKey="l">L</Keycap>
+              <Keycap activeKey="h">H</Keycap>
+              <span>nav</span>
+              <span className="text-muted-foreground/30">·</span>
+              <Keycap activeKey=".">.</Keycap>
+              <span>view</span>
             </>
           ) : (
             <span>hold for shortcuts</span>

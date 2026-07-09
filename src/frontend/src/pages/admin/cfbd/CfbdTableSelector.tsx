@@ -104,7 +104,6 @@ export default function CfbdTableSelector({ activeSlug, onSelect }: CfbdTableSel
           )
         })}
       </div>
-      <div className="h-px bg-primary/40 mt-1.5" />
     </div>
   )
 }
