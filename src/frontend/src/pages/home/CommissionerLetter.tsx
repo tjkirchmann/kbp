@@ -14,7 +14,7 @@ export function CommissionerLetter() {
         className="flex flex-col gap-10"
       >
         <motion.div variants={item} className="flex items-center gap-6">
-          <div className="flex shrink-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1 sm:shrink-0">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-primary">
               A message from the Commissioner
             </p>
@@ -22,7 +22,7 @@ export function CommissionerLetter() {
               Eric Kirchmann — Founder / Commissioner / President / CEO
             </p>
           </div>
-          <div className="hatch h-10 flex-1 rounded" />
+          <div className="hatch hidden h-10 flex-1 rounded sm:block" />
         </motion.div>
 
         <motion.blockquote
