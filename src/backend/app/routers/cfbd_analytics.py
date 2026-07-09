@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import desc, func, select
@@ -370,32 +372,32 @@ async def _over_under(
                 }
             )
 
-    teams.sort(key=lambda t: t["delta"], reverse=True)
+    teams.sort(key=lambda t: t["delta"], reverse=True)  # type: ignore[arg-type,return-value]
     over = teams[:5]
-    under = sorted(teams[-5:], key=lambda t: t["delta"])
-    team_names = {t["team"] for t in (*over, *under)}
+    under = sorted(teams[-5:], key=lambda t: t["delta"])  # type: ignore[return-value,arg-type]
+    team_names = {str(t["team"]) for t in (*over, *under)}
     meta = await _team_metadata_map(db, team_names)
 
     return (
         [
             OverUnderTeam(
-                team=t["team"],
-                logo=meta.get(t["team"], {}).get("logo"),
-                color=meta.get(t["team"], {}).get("color"),
-                expected_wins=round(t["expected_wins"], 1),
-                actual_wins=t["actual_wins"],
-                delta=round(t["delta"], 1),
+                team=str(t["team"]),
+                logo=meta.get(str(t["team"]), {}).get("logo"),
+                color=meta.get(str(t["team"]), {}).get("color"),
+                expected_wins=round(float(t["expected_wins"]), 1),  # type: ignore[arg-type]
+                actual_wins=int(t["actual_wins"]),  # type: ignore[call-overload]
+                delta=round(float(t["delta"]), 1),  # type: ignore[arg-type]
             )
             for t in over
         ],
         [
             OverUnderTeam(
-                team=t["team"],
-                logo=meta.get(t["team"], {}).get("logo"),
-                color=meta.get(t["team"], {}).get("color"),
-                expected_wins=round(t["expected_wins"], 1),
-                actual_wins=t["actual_wins"],
-                delta=round(t["delta"], 1),
+                team=str(t["team"]),
+                logo=meta.get(str(t["team"]), {}).get("logo"),
+                color=meta.get(str(t["team"]), {}).get("color"),
+                expected_wins=round(float(t["expected_wins"]), 1),  # type: ignore[arg-type]
+                actual_wins=int(t["actual_wins"]),  # type: ignore[call-overload]
+                delta=round(float(t["delta"]), 1),  # type: ignore[arg-type]
             )
             for t in under
         ],
@@ -575,7 +577,7 @@ async def player_leaders(
 # GET /team-slicer
 # ──────────────────────────────────────────────────────────────────────
 
-_SLICER_MODELS: dict[str, type] = {
+_SLICER_MODELS: dict[str, Any] = {
     "elo": CfbdEloRating,
     "sp_plus": CfbdSpRating,
     "srs": CfbdSrsRating,
@@ -670,7 +672,7 @@ async def team_slicer(
         stmt = stmt.where(model.conference == conference)
 
     rows = (await db.execute(stmt)).scalars().all()
-    team_names = {r.team for r in rows if r.team}  # type: ignore[attr-defined]
+    team_names = {r.team for r in rows if r.team}
     meta = await _team_metadata_map(db, team_names)
 
     return TeamSlicerResponse(
@@ -678,7 +680,7 @@ async def team_slicer(
         metric=metric,
         teams=[
             TeamSlicerRow(
-                team=r.team,  # type: ignore[attr-defined]
+                team=r.team,
                 conference=r.conference if hasattr(r, "conference") else None,
                 logo=meta.get(r.team, {}).get("logo"),
                 color=meta.get(r.team, {}).get("color"),
@@ -870,9 +872,9 @@ async def team_detail(
         numeric_vals: list[tuple[str, float]] = []
         for v in all_vals:
             try:
-                numeric_vals.append((v, float(v)))
+                numeric_vals.append((str(v), float(v)))  # type: ignore[arg-type]
             except (ValueError, TypeError):
-                numeric_vals.append((v, 0.0))
+                numeric_vals.append((str(v), 0.0))
 
         try:
             team_val_num = float(team_val_str) if team_val_str else None
