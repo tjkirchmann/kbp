@@ -382,9 +382,7 @@ async def update_multipliers(
 
 
 @router.get("/{pool_id}/submissions", response_model=list[AdminSubmissionRow])
-async def get_pool_submissions(
-    pool_id: int, db: AsyncSession = Depends(get_db)
-):
+async def get_pool_submissions(pool_id: int, db: AsyncSession = Depends(get_db)):
     """Admin view: list all non-deleted submissions for a pool with user info and pick counts."""
     result = await db.execute(
         select(

@@ -192,10 +192,14 @@ async def _team_metadata_map(
 async def list_available_seasons(db: AsyncSession = Depends(get_db)):
     """Return every season that has at least one record in cfbd_sp_ratings."""
     rows = (
-        await db.execute(
-            select(CfbdSpRating.year).distinct().order_by(CfbdSpRating.year.desc())
+        (
+            await db.execute(
+                select(CfbdSpRating.year).distinct().order_by(CfbdSpRating.year.desc())
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return SeasonListResponse(seasons=list(rows))
 
 
@@ -334,18 +338,18 @@ async def _over_under(
     """Return top 5 overachievers and top 5 underachievers by delta (FBS only)."""
     # Get FBS team names to filter out D-II/D-III schools
     fbs_teams = (
-        await db.execute(
-            select(CfbdTeam.school).where(CfbdTeam.classification == "fbs")
+        (
+            await db.execute(
+                select(CfbdTeam.school).where(CfbdTeam.classification == "fbs")
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     fbs_set = set(fbs_teams)
 
     rows = (
-        (
-            await db.execute(
-                select(CfbdTeamRecord).where(CfbdTeamRecord.year == season)
-            )
-        )
+        (await db.execute(select(CfbdTeamRecord).where(CfbdTeamRecord.year == season)))
         .scalars()
         .all()
     )
@@ -398,16 +402,10 @@ async def _over_under(
     )
 
 
-async def _standings(
-    db: AsyncSession, season: int
-) -> StandingsByConference:
+async def _standings(db: AsyncSession, season: int) -> StandingsByConference:
     """Build conference standings from cfbd_team_records."""
     rows = (
-        (
-            await db.execute(
-                select(CfbdTeamRecord).where(CfbdTeamRecord.year == season)
-            )
-        )
+        (await db.execute(select(CfbdTeamRecord).where(CfbdTeamRecord.year == season)))
         .scalars()
         .all()
     )
@@ -480,7 +478,9 @@ async def season_summary(
 ):
     # Verify season exists
     exists = await db.scalar(
-        select(func.count()).select_from(CfbdSpRating).where(CfbdSpRating.year == season)
+        select(func.count())
+        .select_from(CfbdSpRating)
+        .where(CfbdSpRating.year == season)
     )
     if not exists:
         raise HTTPException(status_code=404, detail=f"No data for season {season}")
@@ -604,8 +604,7 @@ async def team_slicer(
         # Poll rankings — get the latest week's rankings for this poll
         poll_name = "AP Top 25" if metric == "ap_poll" else "Playoff Committee Rankings"
         max_week = await db.scalar(
-            select(func.max(CfbdRanking.week))
-            .where(
+            select(func.max(CfbdRanking.week)).where(
                 CfbdRanking.season == season,
                 CfbdRanking.poll == poll_name,
             )
@@ -662,7 +661,9 @@ async def team_slicer(
         select(model)
         .where(model.year == season)
         .order_by(
-            getattr(model, value_col).desc() if is_desc else getattr(model, value_col).asc()
+            getattr(model, value_col).desc()
+            if is_desc
+            else getattr(model, value_col).asc()
         )
     )
     if conference and hasattr(model, "conference"):
