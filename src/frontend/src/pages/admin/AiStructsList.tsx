@@ -66,7 +66,7 @@ export default function AiStructsList() {
           <p className="text-sm">No structured-output definitions.</p>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col [&>*]:flex-1 [&>*]:min-h-0">
           <DataTable
             className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden flex-1 min-h-0"
             model={model}

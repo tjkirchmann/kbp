@@ -14,14 +14,27 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, Table2, X } from 'lucide-react'
+import { Plus, Table2, X, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCfbdExplorerStore, MAX_TABS, type CfbdTabState } from '@/store/useCfbdExplorerStore'
 import { getCfbdTableConfig } from './tableRegistry'
 
+const CATEGORY_LABELS: Record<string, string> = {
+  teams: 'Teams',
+  seasons: 'Seasons',
+  games: 'Games',
+  recruiting: 'Recruiting',
+  dimensions: 'Dimensions',
+}
+
 function tabLabel(tab: CfbdTabState): string {
-  const label = getCfbdTableConfig(tab.slug)?.label ?? tab.slug
-  const season = tab.filters.season
+  if (tab.viewType === 'analysis') {
+    return tab.analysis.category
+      ? CATEGORY_LABELS[tab.analysis.category] ?? tab.analysis.category
+      : 'Analysis'
+  }
+  const label = getCfbdTableConfig(tab.table.slug)?.label ?? tab.table.slug
+  const season = tab.table.filters.season
   return typeof season === 'number' && season > 0 ? `${label} · ${season}` : label
 }
 
@@ -56,7 +69,11 @@ function SortableTab({ tab, isActive }: { tab: CfbdTabState; isActive: boolean }
         isDragging && 'z-20 opacity-80',
       )}
     >
-      <Table2 className={cn('size-3.5 shrink-0', isActive && 'text-primary')} />
+      {tab.viewType === 'analysis' ? (
+        <Zap className={cn('size-3.5 shrink-0', isActive && 'text-primary')} />
+      ) : (
+        <Table2 className={cn('size-3.5 shrink-0', isActive && 'text-primary')} />
+      )}
       <span className="truncate whitespace-nowrap">{tabLabel(tab)}</span>
       <button
         type="button"

@@ -9,8 +9,10 @@ from sqlalchemy.orm import joinedload
 from app.core.auth import require_admin
 from app.core.database import get_db
 from app.models.cfbd import CfbdGame
-from app.models.pool import Pool, PoolGame, PoolSubmission
+from app.models.pool import Pool, PoolGame, PoolSubmission, PoolSubmissionGameItem
+from app.models.user import User
 from app.schemas.pool import (
+    AdminSubmissionRow,
     CfbdGameSchema,
     PoolCreate,
     PoolDetailSchema,
@@ -376,4 +378,53 @@ async def update_multipliers(
     )
     return [
         PoolGameSchema.model_validate(pg) for pg in all_games_result.scalars().all()
+    ]
+
+
+@router.get("/{pool_id}/submissions", response_model=list[AdminSubmissionRow])
+async def get_pool_submissions(
+    pool_id: int, db: AsyncSession = Depends(get_db)
+):
+    """Admin view: list all non-deleted submissions for a pool with user info and pick counts."""
+    result = await db.execute(
+        select(
+            PoolSubmission.id,
+            User.name.label("submitted_by_name"),
+            User.email.label("submitted_by_email"),
+            PoolSubmission.on_behalf_of_name,
+            PoolSubmission.is_locked,
+            PoolSubmission.submitted_at,
+            PoolSubmission.created_at,
+            func.count(PoolSubmissionGameItem.id).label("pick_count"),
+        )
+        .join(User, PoolSubmission.submitted_by_user_id == User.id)
+        .outerjoin(
+            PoolSubmissionGameItem,
+            (PoolSubmissionGameItem.submission_id == PoolSubmission.id)
+            & (PoolSubmissionGameItem.deleted_at.is_(None)),
+        )
+        .where(
+            PoolSubmission.pool_id == pool_id,
+            PoolSubmission.deleted_at.is_(None),
+        )
+        .group_by(
+            PoolSubmission.id,
+            User.name,
+            User.email,
+        )
+        .order_by(PoolSubmission.created_at.desc())
+    )
+    rows = result.all()
+    return [
+        AdminSubmissionRow(
+            id=row.id,
+            submitted_by_name=row.submitted_by_name or "",
+            submitted_by_email=row.submitted_by_email or "",
+            on_behalf_of_name=row.on_behalf_of_name or "",
+            is_locked=row.is_locked,
+            submitted_at=row.submitted_at,
+            pick_count=row.pick_count,
+            created_at=row.created_at,
+        )
+        for row in rows
     ]

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState, forwardRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Loader2, Star, Flag, Calendar, Users, Building2, Trash2 } from 'lucide-react'
+import { Loader2, Pencil, Star, Flag, Calendar, Users, Building2, Trash2, ClipboardList } from 'lucide-react'
 import { localModel } from '@virtuoso.dev/data-table'
 import {
   useAdminPools,
   usePoolDetail,
   usePatchPool,
   useDeletePool,
+  usePoolSubmissions,
   type CfbdGame,
   type PoolGameDetail,
+  type AdminSubmissionRow,
 } from '@/services/admin/useAdminPools'
 import {
   DataTable,
@@ -17,6 +19,7 @@ import {
   DataTableCell,
 } from '@/components/ui/data-table'
 import Modal from '@/components/ui/Modal'
+import PoolEditModal from './PoolEditModal'
 
 const ROW_HEIGHT = 60
 
@@ -49,7 +52,10 @@ export default function PoolDetail() {
   const { data: detail, isLoading } = usePoolDetail(poolId ? Number(poolId) : null)
   const patchPool = usePatchPool()
   const deletePool = useDeletePool()
+  const submissionsQuery = usePoolSubmissions(poolId ? Number(poolId) : null)
+  const submissions = submissionsQuery.data ?? []
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [tab, setTab] = useState<'games' | 'submissions'>('games')
 
   const pool = pools.find((p) => String(p.id) === poolId)
@@ -61,6 +67,11 @@ export default function PoolDetail() {
   useEffect(() => {
     model.setData?.(games)
   }, [model, games])
+
+  const [submissionModel] = useState(() => localModel<AdminSubmissionRow>({ data: [] }))
+  useEffect(() => {
+    submissionModel.setData?.(submissions)
+  }, [submissionModel, submissions])
 
   // ── Stat computation ──────────────────────────────────────────
   const stats = useMemo(() => {
@@ -80,8 +91,10 @@ export default function PoolDetail() {
       upcoming: games.length - completed,
       teams: teams.size,
       conferences: conferences.size,
+      submissions: submissions.length,
+      submissionsComplete: submissions.filter((s) => s.submitted_at).length,
     }
-  }, [games])
+  }, [games, submissions])
 
   if (!live) {
     return <p className="text-sm text-muted-foreground py-8">Pool not found.</p>
@@ -175,7 +188,15 @@ export default function PoolDetail() {
                   : 'bg-white/[0.04] text-muted-foreground border-border/40 hover:text-foreground hover:border-border'
               }`}
             >
-              {live.submissions_open ? 'Submissions Open' : 'Submissions Closed'}
+              {live.submissions_open ? 'Close Submissions' : 'Open Submissions'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-colors"
+              title="Edit pool"
+            >
+              <Pencil className="size-4" />
             </button>
           </div>
         </div>
@@ -190,6 +211,12 @@ export default function PoolDetail() {
             icon={Building2}
             value={stats.conferences}
             label="Conferences"
+            variant="default"
+          />
+          <StatLabel
+            icon={ClipboardList}
+            value={stats.submissions}
+            label="Entries"
             variant="default"
           />
         </div>
@@ -238,7 +265,7 @@ export default function PoolDetail() {
         {tab === 'games' && games.length > 0 && (
           <div className="flex-1 min-h-0 relative">
             <DataTable
-              className="bg-transparent absolute inset-0"
+              className="bg-transparent absolute inset-0 border-0 rounded-none overflow-auto"
               model={model}
               computeRowKey={({ data }) => data.id}
               components={{
@@ -250,11 +277,20 @@ export default function PoolDetail() {
                     style={{ ...style, height: ROW_HEIGHT }}
                   />
                 )) as any,
+                StickyHeader: forwardRef<any, any>(({ style, ...props }: any, ref) => (
+                  <div
+                    ref={ref}
+                    {...props}
+                    aria-hidden="true"
+                    className="!h-0 overflow-hidden invisible"
+                    style={style}
+                  />
+                )) as any,
               }}
             >
               <DataTableColumn id="status">
                 <DataTableColumnHeader className="w-8 justify-center" />
-                <DataTableCell className="justify-center">
+                <DataTableCell className="flex items-center justify-center">
                   {({ row }) => {
                     const game = row.data as CfbdGame
                     const status = gameStatus(game)
@@ -274,9 +310,95 @@ export default function PoolDetail() {
         )}
 
         {tab === 'submissions' && (
-          <div className="flex flex-col items-center justify-center py-20 gap-2 text-muted-foreground">
-            <p className="text-sm">Submissions not yet implemented.</p>
-            <p className="text-xs opacity-60">Come back soon.</p>
+          <div className="flex-1 min-h-0 relative">
+            <DataTable
+              className="bg-transparent absolute inset-0 border-0 rounded-none overflow-auto"
+              model={submissionModel}
+              computeRowKey={({ data }) => data.id}
+              components={{
+                Row: forwardRef<any, any>(({ style, ...props }: any, ref) => (
+                  <div
+                    ref={ref}
+                    {...props}
+                    className="flex items-center border-b border-border/[0.15] last:border-b-0 hover:bg-white/[0.03] transition-colors"
+                    style={{ ...style, height: 48 }}
+                  />
+                )) as any,
+                StickyHeader: forwardRef<any, any>(({ style, ...props }: any, ref) => (
+                  <div
+                    ref={ref}
+                    {...props}
+                    aria-hidden="true"
+                    className="!h-0 overflow-hidden invisible"
+                    style={style}
+                  />
+                )) as any,
+              }}
+            >
+              <DataTableColumn field="submitted_by_name" grow={2}>
+                <DataTableColumnHeader className="px-5">Submitter</DataTableColumnHeader>
+                <DataTableCell className="px-5">
+                  {({ row }) => {
+                    const s = row.data as AdminSubmissionRow
+                    return (
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium text-foreground truncate block">
+                          {s.submitted_by_name}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate block">
+                          {s.submitted_by_email}
+                        </span>
+                      </div>
+                    )
+                  }}
+                </DataTableCell>
+              </DataTableColumn>
+
+              <DataTableColumn field="pick_count">
+                <DataTableColumnHeader className="px-5">Picks</DataTableColumnHeader>
+                <DataTableCell className="px-5 text-sm text-muted-foreground tabular-nums">
+                  {({ cellValue }) => String(cellValue)}
+                </DataTableCell>
+              </DataTableColumn>
+
+              <DataTableColumn id="status">
+                <DataTableColumnHeader className="px-5">Status</DataTableColumnHeader>
+                <DataTableCell className="px-5">
+                  {({ row }) => {
+                    const s = row.data as AdminSubmissionRow
+                    return s.submitted_at ? (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/[0.12] text-emerald-400">
+                        Submitted
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-white/[0.04] text-muted-foreground">
+                        Draft
+                      </span>
+                    )
+                  }}
+                </DataTableCell>
+              </DataTableColumn>
+
+              <DataTableColumn field="submitted_at">
+                <DataTableColumnHeader className="px-5">Date</DataTableColumnHeader>
+                <DataTableCell className="px-5 text-xs text-muted-foreground">
+                  {({ row }) => {
+                    const s = row.data as AdminSubmissionRow
+                    if (!s.submitted_at) return <span>—</span>
+                    return (
+                      <span>
+                        {new Date(s.submitted_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )
+                  }}
+                </DataTableCell>
+              </DataTableColumn>
+            </DataTable>
           </div>
         )}
       </div>
@@ -292,6 +414,13 @@ export default function PoolDetail() {
           Delete pool
         </button>
       </div>
+
+      {/* ── Edit modal ──────────────────────────────────────────── */}
+      <PoolEditModal
+        poolId={live.id}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+      />
 
       {/* ── Delete confirmation modal ────────────────────────────── */}
       <Modal

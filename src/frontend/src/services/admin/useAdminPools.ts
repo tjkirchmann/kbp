@@ -232,3 +232,26 @@ export function useUpdateMultipliers() {
     },
   })
 }
+
+export interface AdminSubmissionRow {
+  id: number
+  submitted_by_name: string
+  submitted_by_email: string
+  on_behalf_of_name: string
+  is_locked: boolean
+  submitted_at: string | null
+  pick_count: number
+  created_at: string
+}
+
+export function usePoolSubmissions(poolId: number | null) {
+  const { getToken } = useAuth()
+  return useQuery<AdminSubmissionRow[]>({
+    queryKey: ['admin', 'pools', poolId, 'submissions'],
+    queryFn: async () => {
+      const token = await getToken()
+      return apiFetch(token!, `/admin/pools/${poolId}/submissions`)
+    },
+    enabled: poolId !== null,
+  })
+}
