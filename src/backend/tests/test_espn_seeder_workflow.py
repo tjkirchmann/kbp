@@ -75,7 +75,7 @@ async def test_seeder_starts_one_child_per_live_game_and_dedups():
             for gid in (10, 20):
                 handle = env.client.get_workflow_handle(f"espn:{gid}")
                 desc = await handle.describe()
-                assert desc.status.name == "RUNNING"
+                assert desc.status is not None and desc.status.name == "RUNNING"
 
             # Second tick over the same still-running games: both dedup.
             second = await env.client.execute_workflow(

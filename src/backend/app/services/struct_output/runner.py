@@ -36,7 +36,7 @@ def _build_agent(defn: BaseDefinition) -> tuple[Agent, str]:
         model_name,
         provider=OpenRouterProvider(api_key=settings.openrouter_api_key),
     )
-    return Agent(model, output_type=defn.output_model()), model_name
+    return Agent(model, output_type=defn.output_model()), model_name  # type: ignore[arg-type]
 
 
 async def generate(defn: BaseDefinition, entity: dict) -> tuple[dict, str]:
@@ -49,4 +49,4 @@ async def generate(defn: BaseDefinition, entity: dict) -> tuple[dict, str]:
     prompt = defn.render_prompt(entity)
     result = await agent.run(prompt)
     logger.info("struct_output.generate name=%s model=%s", defn.name, model_name)
-    return result.output.model_dump(), model_name
+    return result.output.model_dump(), model_name  # type: ignore[attr-defined]

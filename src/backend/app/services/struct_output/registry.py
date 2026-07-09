@@ -63,8 +63,7 @@ async def fetch_source_row(
             raise ValueError(f"invalid label field {c!r}")
     col_sql = ", ".join(f'"{c}"' for c in cols)
     sql = text(
-        f'SELECT {col_sql} FROM "{defn.source_table}" '
-        f'WHERE "{defn.source_pk}" = :eid'
+        f'SELECT {col_sql} FROM "{defn.source_table}" WHERE "{defn.source_pk}" = :eid'
     )
     row = (await db.execute(sql, {"eid": entity_id})).mappings().first()
     return dict(row) if row else None

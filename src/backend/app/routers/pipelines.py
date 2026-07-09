@@ -166,7 +166,11 @@ async def run_status(run_id: int, db: AsyncSession = Depends(get_db)):
         .scalars()
         .all()
     )
-    return RunStatusResponse(run=run, node_runs=node_runs, artifacts=artifacts)
+    return RunStatusResponse(
+        run=RunSchema.model_validate(run),
+        node_runs=[NodeRunSchema.model_validate(nr) for nr in node_runs],
+        artifacts=[ArtifactSchema.model_validate(a) for a in artifacts],
+    )
 
 
 @router.post("/runs/{run_id}/cancel", response_model=RunSchema)

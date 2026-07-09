@@ -41,7 +41,6 @@ from app.models.event_log import EventLog
 from app.models.library_file import LibraryFile
 from app.models.notification_channel import NotificationChannel
 from app.models.pipeline import Artifact, NodeRun, Pipeline, PipelineRun
-from app.models.project import Project
 from app.models.pool import (
     Pool,
     PoolGame,
@@ -49,6 +48,7 @@ from app.models.pool import (
     PoolSubmissionGameItem,
     ScoringStrategy,
 )
+from app.models.project import Project
 from app.models.struct_output import StructOutputDefinition
 from app.models.struct_output_program_profile import StructOutputProgramProfile
 from app.models.sync import SyncSnapshot

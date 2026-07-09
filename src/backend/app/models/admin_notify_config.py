@@ -7,7 +7,7 @@ from app.core.database import Base
 
 
 class AdminNotifyConfig(Base):
-    """Per-task notification settings for Procrastinate workflows.
+    """Per-task notification settings for background workflows.
 
     One row per task_name. Absent row → defaults (failure-only, no channel,
     catch-up off). `channel_name` selects a named notification_channels row for
@@ -34,7 +34,7 @@ class AdminNotifyConfig(Base):
     channel_name: Mapped[str | None] = mapped_column(
         ForeignKey("notification_channels.name", ondelete="SET NULL"), nullable=True
     )
-    # Fire the last missed cron slot on worker restart (Procrastinate catch-up).
+    # Fire the last missed cron slot on worker restart.
     run_catchup: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default="false"
     )

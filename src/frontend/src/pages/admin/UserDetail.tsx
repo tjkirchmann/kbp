@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Check } from 'lucide-react'
-import { useAdminUsers, useBanUser, useSetAdmin, type AdminUser } from '@/services/useAdminUsers'
+import {
+  useAdminUsers,
+  useBanUser,
+  useSetAdmin,
+  type AdminUser,
+} from '@/services/admin/useAdminUsers'
 
 const FIELD_LABELS: Record<keyof AdminUser, string> = {
   id: 'ID',

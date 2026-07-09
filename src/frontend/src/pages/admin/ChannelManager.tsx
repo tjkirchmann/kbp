@@ -6,7 +6,7 @@ import {
   useDeleteChannel,
   useTestChannel,
   type NotificationChannel,
-} from '@/services/useAdminChannels'
+} from '@/services/admin/useAdminChannels'
 import { useToast } from '@/components/toast/ToastContext'
 
 // Strategies the backend can deliver to. Add entries here as new

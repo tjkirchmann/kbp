@@ -1,11 +1,12 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Info } from 'lucide-react'
-import { useAdminUsers } from '@/services/useAdminUsers'
-import { useAdminPools } from '@/services/useAdminPools'
+import { useAdminUsers } from '@/services/admin/useAdminUsers'
+import { useAdminPools } from '@/services/admin/useAdminPools'
 import AdminInfoPanel from '@/pages/admin/AdminInfoPanel'
 import AdminSidebar from '@/pages/admin/AdminSidebar'
 import AdminBreadcrumbs from '@/pages/admin/AdminBreadcrumbs'
+import CfbdTabStrip from '@/pages/admin/cfbd/CfbdTabStrip'
 import AdminCommandPalette from '@/pages/admin/AdminCommandPalette'
 import { usePageTitle } from '@/lib/usePageTitle'
 import { useAuth } from '@clerk/react'
@@ -55,6 +56,7 @@ function useBreadcrumbs() {
     if (parts[1]) {
       const labels: Record<string, string> = {
         coverage: 'Coverage',
+        explorer: 'Data Explorer',
         rankings: 'Poll Rankings',
         'sp-ratings': 'SP+ Ratings',
         'srs-ratings': 'SRS Ratings',
@@ -170,7 +172,12 @@ export default function AdminShell() {
           </div>
           {/* Dark content panel floating on the gradient; breadcrumbs live inside it. */}
           <div className="mx-4 mb-4 flex-1 min-h-0 flex flex-col rounded-2xl border border-white/10 bg-[#14161d]/95 shadow-2xl shadow-black/40 overflow-hidden">
-            <AdminBreadcrumbs crumbs={breadcrumbs} />
+            {/* The explorer's tab band takes over the breadcrumb slot — tabs ARE its navigation. */}
+            {pathname.startsWith('/admin/cfbd/explorer') ? (
+              <CfbdTabStrip />
+            ) : (
+              <AdminBreadcrumbs crumbs={breadcrumbs} />
+            )}
             <div
               key={pathname}
               className="px-6 pb-3 flex-1 min-h-0 overflow-y-auto overflow-x-hidden animate-view-fade-in"

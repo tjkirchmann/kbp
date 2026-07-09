@@ -57,44 +57,60 @@ import type {
 } from '@virtuoso.dev/data-table'
 import type { ReorderColumnsPayload } from '@virtuoso.dev/data-table/column-reorder'
 
-const TableRow = React.forwardRef<HTMLDivElement, RowComponentProps & { context?: unknown }>(function TableRow(
-  { context: _context, ...props },
-  ref
-) {
+const TableRow = React.forwardRef<HTMLDivElement, RowComponentProps & { context?: unknown }>(
+  function TableRow({ context: _context, ...props }, ref) {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'border-b border-transparent bg-clip-padding transition-colors hover:bg-[var(--data-table-row-hover)]',
+          'after:content-[""] after:absolute after:-bottom-px after:inset-x-0 after:h-px after:bg-[var(--data-table-border)] after:z-3',
+        )}
+        {...props}
+      />
+    )
+  },
+)
+
+const TableStickyHeader = React.forwardRef<
+  HTMLDivElement,
+  StickyHeaderComponentProps & { context?: unknown }
+>(function TableStickyHeader({ context: _context, style, ...props }, ref) {
+  const mergedStyle = React.useMemo(
+    () => ({ position: 'sticky' as const, top: 0, zIndex: 1, ...style }),
+    [style],
+  )
   return (
     <div
       ref={ref}
-      className={cn(
-        'border-b border-transparent bg-clip-padding transition-colors hover:bg-[var(--data-table-row-hover)]',
-        'after:content-[""] after:absolute after:-bottom-px after:inset-x-0 after:h-px after:bg-[var(--data-table-border)] after:z-3'
-      )}
+      className="border-b border-[var(--data-table-border)] bg-[var(--background)]"
+      style={mergedStyle}
       {...props}
     />
   )
 })
 
-const TableStickyHeader = React.forwardRef<HTMLDivElement, StickyHeaderComponentProps & { context?: unknown }>(function TableStickyHeader(
-  { context: _context, style, ...props },
-  ref
-) {
-  const mergedStyle = React.useMemo(() => ({ position: 'sticky' as const, top: 0, zIndex: 1, ...style }), [style])
-  return <div ref={ref} className="border-b border-[var(--data-table-border)] bg-[#161820]" style={mergedStyle} {...props} />
+const TableStickyColumnContainer = React.forwardRef<
+  HTMLDivElement,
+  StickyColumnContainerComponentProps & { context?: unknown }
+>(function TableStickyColumnContainer({ context: _context, ...props }, ref) {
+  return <div ref={ref} className="bg-[var(--data-table-bg)] transition-colors" {...props} />
 })
-
-const TableStickyColumnContainer = React.forwardRef<HTMLDivElement, StickyColumnContainerComponentProps & { context?: unknown }>(
-  function TableStickyColumnContainer({ context: _context, ...props }, ref) {
-    return <div ref={ref} className="bg-[var(--data-table-bg)] transition-colors" {...props} />
-  }
-)
 
 function TableLoadingOverlay({ loadingState }: LoadingComponentProps) {
   const isError = loadingState.refresh.status === 'error'
-  const message = isError ? (loadingState.refresh.errorMessage ?? 'Update failed') : 'Refreshing rows...'
+  const message = isError
+    ? (loadingState.refresh.errorMessage ?? 'Update failed')
+    : 'Refreshing rows...'
 
   return (
     <div aria-live="polite" className="flex justify-center px-3 pt-3" role="status">
       <div className="inline-flex items-center gap-2 rounded-full border border-[var(--data-table-border)] bg-[color-mix(in_oklch,var(--data-table-bg)_90%,transparent)] px-3 py-1.5 text-xs text-[var(--data-table-muted-fg)] shadow-sm backdrop-blur-xs">
-        {isError ? <AlertCircle className="size-3.5" /> : <Loader2 className="size-3.5 animate-spin" />}
+        {isError ? (
+          <AlertCircle className="size-3.5" />
+        ) : (
+          <Loader2 className="size-3.5 animate-spin" />
+        )}
         <span>{message}</span>
       </div>
     </div>
@@ -103,19 +119,28 @@ function TableLoadingOverlay({ loadingState }: LoadingComponentProps) {
 
 function TableLoadingPlaceholder({ loadingState }: LoadingComponentProps) {
   const isError = loadingState.initial.status === 'error'
-  const message = isError ? (loadingState.initial.errorMessage ?? 'Failed to load rows') : 'Loading rows...'
+  const message = isError
+    ? (loadingState.initial.errorMessage ?? 'Failed to load rows')
+    : 'Loading rows...'
 
   return (
     <div aria-live="polite" className="px-3 py-4" role="status">
       <div className="rounded-xl border border-[var(--data-table-border)] bg-[color-mix(in_oklch,var(--data-table-muted)_20%,transparent)] p-4 shadow-xs">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--data-table-border)] bg-[var(--data-table-bg)] px-3 py-1.5 text-xs text-[var(--data-table-muted-fg)]">
-          {isError ? <AlertCircle className="size-3.5" /> : <Loader2 className="size-3.5 animate-spin" />}
+          {isError ? (
+            <AlertCircle className="size-3.5" />
+          ) : (
+            <Loader2 className="size-3.5 animate-spin" />
+          )}
           <span>{message}</span>
         </div>
         {!isError ? (
           <div className="space-y-3">
             {Array.from({ length: 6 }, (_, index) => (
-              <div key={index} className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.6fr)] gap-3">
+              <div
+                key={index}
+                className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.6fr)] gap-3"
+              >
                 <div className="h-4 animate-pulse rounded bg-[var(--data-table-muted)]" />
                 <div className="h-4 animate-pulse rounded bg-[color-mix(in_oklch,var(--data-table-muted)_80%,transparent)]" />
                 <div className="h-4 animate-pulse rounded bg-[color-mix(in_oklch,var(--data-table-muted)_60%,transparent)]" />
@@ -130,7 +155,9 @@ function TableLoadingPlaceholder({ loadingState }: LoadingComponentProps) {
 
 function TableLoadingFooter({ loadingState }: LoadingComponentProps) {
   const isError = loadingState.end.status === 'error'
-  const message = isError ? (loadingState.end.errorMessage ?? 'Failed to load more rows') : 'Loading more rows...'
+  const message = isError
+    ? (loadingState.end.errorMessage ?? 'Failed to load more rows')
+    : 'Loading more rows...'
 
   return (
     <div
@@ -139,7 +166,11 @@ function TableLoadingFooter({ loadingState }: LoadingComponentProps) {
       role="status"
     >
       <div className="inline-flex items-center gap-2 rounded-full border border-[var(--data-table-border)] bg-[color-mix(in_oklch,var(--data-table-muted)_60%,transparent)] px-3 py-1 shadow-xs">
-        {isError ? <AlertCircle className="size-3.5" /> : <Loader2 className="size-3.5 animate-spin" />}
+        {isError ? (
+          <AlertCircle className="size-3.5" />
+        ) : (
+          <Loader2 className="size-3.5 animate-spin" />
+        )}
         <span>{message}</span>
       </div>
     </div>
@@ -160,7 +191,10 @@ function DataTable<Data, Context = unknown, Group = unknown>({
   components,
   ...props
 }: VirtuosoDataTableProps<Data, Context, Group> & { className?: string }) {
-  const mergedComponents = React.useMemo(() => ({ ...TABLE_COMPONENTS, ...components }) as DataTableComponents<Context>, [components])
+  const mergedComponents = React.useMemo(
+    () => ({ ...TABLE_COMPONENTS, ...components }) as DataTableComponents<Context>,
+    [components],
+  )
 
   return (
     <VirtuosoDataTable
@@ -176,7 +210,7 @@ function DataTable<Data, Context = unknown, Group = unknown>({
         '**:data-[scope=colgroup]:border-b **:data-[scope=colgroup]:border-[var(--data-table-border)]',
         '**:data-group-row:bg-[var(--data-table-muted)] **:data-group-row:font-medium',
         '[&_[data-table-element-role=row]:hover_[data-sticky]]:bg-[var(--data-table-sticky-hover)]',
-        className
+        className,
       )}
       components={mergedComponents}
       {...props}
@@ -195,11 +229,14 @@ interface DataTableColumnHeaderProps {
 }
 
 function DataTableColumnHeader(props: DataTableColumnHeaderProps) {
-  const measureClassName = 'flex h-10 items-center px-2 align-middle text-sm font-medium text-[var(--data-table-fg)]'
+  const measureClassName =
+    'flex h-10 items-center px-2 align-middle text-sm font-medium text-[var(--data-table-fg)]'
   const contentClassName = cn('flex min-w-0 items-center overflow-hidden truncate', props.className)
 
   if (props.component) {
-    return <ColumnHeader className={cn(measureClassName, props.className)} component={props.component} />
+    return (
+      <ColumnHeader className={cn(measureClassName, props.className)} component={props.component} />
+    )
   }
 
   const wrapRender =
@@ -216,7 +253,9 @@ function DataTableColumnHeader(props: DataTableColumnHeaderProps) {
     const userRender = props.children
     return (
       <ColumnHeader className={measureClassName}>
-        {wrapRender((params) => (typeof userRender === 'function' ? userRender(params) : userRender))}
+        {wrapRender((params) =>
+          typeof userRender === 'function' ? userRender(params) : userRender,
+        )}
       </ColumnHeader>
     )
   }
@@ -234,7 +273,11 @@ function DataTableColumnHeader(props: DataTableColumnHeaderProps) {
     return children
   }
 
-  return <ColumnHeader className={measureClassName}>{wrapChildren(props.children) as ColumnHeaderChildren}</ColumnHeader>
+  return (
+    <ColumnHeader className={measureClassName}>
+      {wrapChildren(props.children) as ColumnHeaderChildren}
+    </ColumnHeader>
+  )
 }
 
 function DataTableCell(props: CellDefinitionProps) {
@@ -254,7 +297,7 @@ interface CellDefinitionProps {
 function DataTableGroupHeader(props: GroupHeaderCellProps) {
   const className = cn(
     'border-b border-[var(--data-table-border)] bg-[var(--data-table-muted)] px-2 py-2 text-sm font-medium text-[var(--data-table-fg)]',
-    props.className
+    props.className,
   )
 
   if ('component' in props) {

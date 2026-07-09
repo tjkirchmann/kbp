@@ -1,11 +1,6 @@
 import React from 'react'
 
-export type CfbdTableGroup =
-  | 'Ratings'
-  | 'Season'
-  | 'Recruiting'
-  | 'Games'
-  | 'Dimensions'
+export type CfbdTableGroup = 'Ratings' | 'Season' | 'Recruiting' | 'Games' | 'Dimensions'
 
 export type CfbdFilterKey =
   | 'season'
@@ -39,7 +34,11 @@ export interface CfbdColumnConfig {
   key: string
   header: React.ReactNode
   className?: string
-  render?: (value: unknown, row: Record<string, unknown>, ctx?: CfbdRenderContext) => React.ReactNode
+  render?: (
+    value: unknown,
+    row: Record<string, unknown>,
+    ctx?: CfbdRenderContext,
+  ) => React.ReactNode
   /** When true, the cell is rendered without the default truncate/text wrapper. Use for images, badges, etc. */
   rawCell?: boolean
   /** Minimum column width in px (used when resizable is enabled). */
@@ -127,8 +126,7 @@ function divergingBar(value: unknown, max = 35): React.ReactNode {
     React.createElement(
       'span',
       {
-        className:
-          'relative h-1.5 w-16 overflow-hidden rounded-full bg-white/10 flex items-center',
+        className: 'relative h-1.5 w-16 overflow-hidden rounded-full bg-white/10 flex items-center',
       },
       // 0-line
       React.createElement('span', {
@@ -160,13 +158,28 @@ function dateRange(start: unknown, end: unknown): React.ReactNode {
     if (raw == null || raw === '') return null
     const d = new Date(raw as string)
     if (isNaN(d.getTime())) return String(raw)
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ]
     return `${months[d.getMonth()]} ${d.getDate()}`
   }
   const left = _fmt(start)
   const right = _fmt(end)
   if (!left && !right) return '—'
-  return React.createElement('span', { className: 'text-[11px] text-muted-foreground' },
+  return React.createElement(
+    'span',
+    { className: 'text-[11px] text-muted-foreground' },
     `${left || '—'}  →  ${right || '—'}`,
   )
 }
@@ -189,7 +202,7 @@ function stars(value: unknown): React.ReactNode {
   return `${'★'.repeat(count)}${'☆'.repeat(5 - count)}`
 }
 
-function talentChip(value: unknown): React.ReactNode {
+function _talentChip(value: unknown): React.ReactNode {
   const numeric = asNumber(value)
   if (numeric == null) return '—'
   return React.createElement(
@@ -240,7 +253,7 @@ function heatChip(columnKey: string): CfbdColumnConfig['render'] {
   }
 }
 
-function boldText(value: unknown): React.ReactNode {
+function _boldText(value: unknown): React.ReactNode {
   if (value == null || value === '') return '—'
   return React.createElement('span', { className: 'font-semibold text-foreground' }, String(value))
 }
@@ -253,7 +266,7 @@ function colorCircle(value: unknown): React.ReactNode {
   })
 }
 
-function logoImage(value: unknown): React.ReactNode {
+function _logoImage(value: unknown): React.ReactNode {
   if (!Array.isArray(value) || value.length === 0) return '—'
   const url = String(value[0])
   if (!url) return '—'
@@ -289,11 +302,11 @@ function _parseDate(raw: unknown): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
-const _MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const _MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function _formatAbsolute(d: Date): string {
   const h = d.getHours()
-  const m = d.getMinutes().toString().padStart(2,'0')
+  const m = d.getMinutes().toString().padStart(2, '0')
   const ampm = h >= 12 ? 'PM' : 'AM'
   const h12 = h % 12 || 12
   return `${_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}, ${h12}:${m} ${ampm}`
@@ -307,27 +320,33 @@ function syncedAtCell(value: unknown): React.ReactNode {
   const diff = now - d.getTime()
   const sec = Math.floor(diff / 1000)
   const min = Math.floor(sec / 60)
-  const hr  = Math.floor(min / 60)
+  const hr = Math.floor(min / 60)
   const day = Math.floor(hr / 24)
 
   let label: string
-  if (sec < 60)       label = 'just now'
-  else if (min < 60)  label = `${min}m ago`
-  else if (hr < 24)   label = `${hr}h ago`
-  else if (day < 7)   label = `${day}d ago`
+  if (sec < 60) label = 'just now'
+  else if (min < 60) label = `${min}m ago`
+  else if (hr < 24) label = `${hr}h ago`
+  else if (day < 7) label = `${day}d ago`
   else if (day < 365) label = `${_MONTHS[d.getMonth()]} ${d.getDate()}`
-  else                label = `${_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+  else label = `${_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 
-  return React.createElement('span', {
-    className: 'text-[11px] text-muted-foreground',
-    title: abs,
-  }, label)
+  return React.createElement(
+    'span',
+    {
+      className: 'text-[11px] text-muted-foreground',
+      title: abs,
+    },
+    label,
+  )
 }
 
 function dateCell(value: unknown): React.ReactNode {
   const d = _parseDate(value)
   if (!d) return '—'
-  return React.createElement('span', { className: 'text-[11px] text-muted-foreground' },
+  return React.createElement(
+    'span',
+    { className: 'text-[11px] text-muted-foreground' },
     `${_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`,
   )
 }
@@ -336,10 +355,12 @@ function timeCell(value: unknown): React.ReactNode {
   const d = _parseDate(value)
   if (!d) return '—'
   const h = d.getHours()
-  const m = d.getMinutes().toString().padStart(2,'0')
+  const m = d.getMinutes().toString().padStart(2, '0')
   const ampm = h >= 12 ? 'PM' : 'AM'
   const h12 = h % 12 || 12
-  return React.createElement('span', { className: 'text-[11px] text-muted-foreground' },
+  return React.createElement(
+    'span',
+    { className: 'text-[11px] text-muted-foreground' },
     `${h12}:${m} ${ampm}`,
   )
 }
@@ -477,7 +498,12 @@ export const CFBD_TABLES: CfbdTableConfig[] = [
       { key: 'year', header: 'Season', className: 'flex-[1]' },
       { key: 'team', header: 'Team', className: 'flex-[2]', render: teamNameWithLogo },
       { key: 'conference', header: 'Conference', className: 'flex-[2]' },
-      { key: 'fpi', header: 'FPI', className: 'flex-[1]', render: (value) => divergingBar(value, 35) },
+      {
+        key: 'fpi',
+        header: 'FPI',
+        className: 'flex-[1]',
+        render: (value) => divergingBar(value, 35),
+      },
       {
         key: 'efficiency_overall',
         header: 'Eff (All)',
@@ -680,7 +706,8 @@ export const CFBD_TABLES: CfbdTableConfig[] = [
         key: 'rating',
         header: 'Rating',
         className: 'flex-[1]',
-        render: (value) => ratingBar((typeof value === "number" ? value : Number(value)) * 100, 100),
+        render: (value) =>
+          ratingBar((typeof value === 'number' ? value : Number(value)) * 100, 100),
       },
     ],
     filters: ['search', 'season'],
@@ -700,7 +727,8 @@ export const CFBD_TABLES: CfbdTableConfig[] = [
         key: 'average_rating',
         header: 'Avg Rating',
         className: 'flex-[1]',
-        render: (value) => ratingBar((typeof value === "number" ? value : Number(value)) * 100, 100),
+        render: (value) =>
+          ratingBar((typeof value === 'number' ? value : Number(value)) * 100, 100),
       },
       {
         key: 'commits',
@@ -722,14 +750,56 @@ export const CFBD_TABLES: CfbdTableConfig[] = [
       { key: 'season_year', header: 'Season', className: 'flex-[1.5]', minWidth: 75 },
       { key: 'week', header: 'Week', className: 'flex-[1]', minWidth: 60 },
       { key: 'season_type', header: 'Type', className: 'flex-[2]', minWidth: 90 },
-      { key: 'away_team', header: 'Away', className: 'flex-[4]', minWidth: 220, render: teamNameWithLogo },
-      { key: 'home_team', header: 'Home', className: 'flex-[4]', minWidth: 220, render: teamNameWithLogo },
-      { key: 'away_score', header: 'Away', className: 'flex-[1.5]', minWidth: 60, render: (value) => value ?? '—' },
-      { key: 'home_score', header: 'Home', className: 'flex-[1.5]', minWidth: 60, render: (value) => value ?? '—' },
+      {
+        key: 'away_team',
+        header: 'Away',
+        className: 'flex-[4]',
+        minWidth: 220,
+        render: teamNameWithLogo,
+      },
+      {
+        key: 'home_team',
+        header: 'Home',
+        className: 'flex-[4]',
+        minWidth: 220,
+        render: teamNameWithLogo,
+      },
+      {
+        key: 'away_score',
+        header: 'Away',
+        className: 'flex-[1.5]',
+        minWidth: 60,
+        render: (value) => value ?? '—',
+      },
+      {
+        key: 'home_score',
+        header: 'Home',
+        className: 'flex-[1.5]',
+        minWidth: 60,
+        render: (value) => value ?? '—',
+      },
       { key: 'start_date', header: 'Date', className: 'flex-[2]', minWidth: 110, render: dateCell },
-      { key: 'completed', header: 'Done', className: 'flex-[1.5]', minWidth: 65, render: (value) => rankBadge(value ? 'Yes' : 'No') },
-      { key: 'neutral_site', header: 'Neutral', className: 'flex-[1.5]', minWidth: 80, render: (value) => rankBadge(value ? 'Yes' : 'No') },
-      { key: 'conference_game', header: 'Conf Gm', className: 'flex-[1.5]', minWidth: 85, render: (value) => rankBadge(value ? 'Yes' : 'No') },
+      {
+        key: 'completed',
+        header: 'Done',
+        className: 'flex-[1.5]',
+        minWidth: 65,
+        render: (value) => rankBadge(value ? 'Yes' : 'No'),
+      },
+      {
+        key: 'neutral_site',
+        header: 'Neutral',
+        className: 'flex-[1.5]',
+        minWidth: 80,
+        render: (value) => rankBadge(value ? 'Yes' : 'No'),
+      },
+      {
+        key: 'conference_game',
+        header: 'Conf Gm',
+        className: 'flex-[1.5]',
+        minWidth: 85,
+        render: (value) => rankBadge(value ? 'Yes' : 'No'),
+      },
       { key: 'away_conference', header: 'Away Conf', className: 'flex-[4]', minWidth: 170 },
       { key: 'home_conference', header: 'Home Conf', className: 'flex-[4]', minWidth: 170 },
       { key: 'bowl_name', header: 'Notes', className: 'flex-[4]', minWidth: 220 },
@@ -911,7 +981,13 @@ export const CFBD_TABLES: CfbdTableConfig[] = [
       { key: 'stat', header: 'Stat', className: 'flex-[1]' },
     ],
     filters: ['season'],
-    filterDropdowns: [{ key: 'team' }, { key: 'conference' }, { key: 'stat_name' }, { key: 'category' }, { key: 'position' }],
+    filterDropdowns: [
+      { key: 'team' },
+      { key: 'conference' },
+      { key: 'stat_name' },
+      { key: 'category' },
+      { key: 'position' },
+    ],
     defaultFilters: { season: 0 },
   },
   {

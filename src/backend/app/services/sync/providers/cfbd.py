@@ -238,9 +238,9 @@ cfbd_provider = CfbdProvider()
 
 async def fetch_teams() -> list[dict]:
     """Backward-compat shim re-exported via app/services/cfbd.py."""
-    return await cfbd_provider.fetch("teams")
+    return await cfbd_provider.fetch("teams")  # type: ignore[no-any-return]
 
 
 async def fetch_games(year: int) -> list[dict]:
     """Backward-compat shim."""
-    return await cfbd_provider.fetch("games", year=year)
+    return await cfbd_provider.fetch("games", year=year)  # type: ignore[no-any-return]

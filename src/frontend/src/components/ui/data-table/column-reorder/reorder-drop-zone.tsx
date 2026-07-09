@@ -11,7 +11,11 @@ import {
 
 import type { HeaderSlotCustomComponent } from '@virtuoso.dev/data-table'
 
-export const ReorderDropZone: HeaderSlotCustomComponent = ({ columnKey, columnState, headerRef }) => {
+export const ReorderDropZone: HeaderSlotCustomComponent = ({
+  columnKey,
+  columnState,
+  headerRef,
+}) => {
   const dragState = useCellValue(columnDragState$)
   const endColumnDrag = usePublisher(endColumnDrag$)
   const setColumnDropTarget = usePublisher(setColumnDropTarget$)
@@ -20,7 +24,8 @@ export const ReorderDropZone: HeaderSlotCustomComponent = ({ columnKey, columnSt
 
   const isSourceForThisColumn = dragState.sourceKeys?.includes(columnKey) ?? false
   const isGroupDrag = (dragState.sourceKeys?.length ?? 0) > 1
-  const dropPosition = dragState.dropTarget?.key === columnKey ? dragState.dropTarget.position : null
+  const dropPosition =
+    dragState.dropTarget?.key === columnKey ? dragState.dropTarget.position : null
 
   useEffect(() => {
     const header = headerRef.current

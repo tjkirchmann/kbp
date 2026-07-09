@@ -30,7 +30,7 @@ def _type_label(annotation: Any) -> str:
     """Best-effort human type label for a Pydantic field annotation (admin view)."""
     name = getattr(annotation, "__name__", None)
     if name:
-        return name
+        return name  # type: ignore[no-any-return]
     return str(annotation).removeprefix("typing.")
 
 
@@ -114,7 +114,7 @@ async def get_definition(
             "enabled": True,
             "locked": True,
         }
-    row = defn.row
+    row = defn.row  # type: ignore[attr-defined]
     return {
         "name": row.name,
         "tier": "dynamic",

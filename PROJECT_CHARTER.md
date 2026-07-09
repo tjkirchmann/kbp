@@ -37,7 +37,6 @@
 │   ├── frontend/                      ← Vite React app
 │   │   ├── index.html
 │   │   ├── vite.config.ts
-│   │   ├── tailwind.config.ts
 │   │   ├── tsconfig.json
 │   │   ├── package.json
 │   │   └── src/
@@ -374,19 +373,7 @@ export default function Home() {
 @import "tailwindcss";
 ```
 
-6. `src/frontend/tailwind.config.ts`:
-
-```ts
-import type { Config } from 'tailwindcss'
-
-export default {
-  content: ['./index.html', './src/**/*.{ts,tsx}'],
-  theme: { extend: {} },
-  plugins: [],
-} satisfies Config
-```
-
-7. `src/frontend/vite.config.ts`:
+6. `src/frontend/vite.config.ts`:
 
 ```ts
 import { defineConfig } from 'vite'
@@ -970,7 +957,7 @@ Run this before calling any phase "done."
 → Check `allow_origins` in `main.py` includes `http://localhost:5173` exactly (no trailing slash)
 
 **Tailwind classes not applying**
-→ Confirm `content` in `tailwind.config.ts` includes `./src/**/*.{ts,tsx}`
+→ Confirm the `@tailwindcss/vite` plugin is in `vite.config.ts` and `@import "tailwindcss"` is in `index.css`
 
 **Clerk JWT 401**
 → Confirm `CLERK_PUBLISHABLE_KEY` in frontend env and `CLERK_SECRET_KEY` in backend env are from the same Clerk app instance

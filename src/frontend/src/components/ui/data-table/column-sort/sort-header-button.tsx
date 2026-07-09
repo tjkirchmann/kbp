@@ -1,4 +1,9 @@
-import { dispatchModelAction$, modelActionState$, useCellValue, usePublisher } from '@virtuoso.dev/data-table'
+import {
+  dispatchModelAction$,
+  modelActionState$,
+  useCellValue,
+  usePublisher,
+} from '@virtuoso.dev/data-table'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -17,7 +22,11 @@ export interface SortHeaderButtonProps extends Partial<HeaderSlotRenderParams> {
   className?: string
   field?: string
   getDirection?: (payload: unknown, field: string) => SortDirection | undefined
-  getPayload?: (context: { direction: SortDirection | undefined; field: string; previousDirection: SortDirection | undefined }) => unknown
+  getPayload?: (context: {
+    direction: SortDirection | undefined
+    field: string
+    previousDirection: SortDirection | undefined
+  }) => unknown
 }
 
 function sortDirectionFromPayload(payload: unknown, field: string): SortDirection | undefined {
@@ -26,7 +35,9 @@ function sortDirectionFromPayload(payload: unknown, field: string): SortDirectio
   }
 
   const sort = payload as Partial<SortPayload>
-  return sort.field === field && (sort.direction === 'asc' || sort.direction === 'desc') ? sort.direction : undefined
+  return sort.field === field && (sort.direction === 'asc' || sort.direction === 'desc')
+    ? sort.direction
+    : undefined
 }
 
 export function SortHeaderButton({
@@ -46,7 +57,8 @@ export function SortHeaderButton({
   }
 
   const direction = getDirection(actionState[action]?.payload, sortField)
-  const nextDirection: SortDirection | undefined = direction === 'asc' ? 'desc' : direction === 'desc' ? undefined : 'asc'
+  const nextDirection: SortDirection | undefined =
+    direction === 'asc' ? 'desc' : direction === 'desc' ? undefined : 'asc'
   const label =
     nextDirection === 'asc'
       ? `Sort ${sortField} ascending`
@@ -63,14 +75,18 @@ export function SortHeaderButton({
         'ml-1 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
         direction !== undefined && 'bg-muted text-foreground',
         !direction && 'opacity-0 group-hover:opacity-100',
-        className
+        className,
       )}
       data-sort-direction={direction}
       onClick={() => {
         dispatch({
           action,
           payload: getPayload
-            ? getPayload({ direction: nextDirection, field: sortField, previousDirection: direction })
+            ? getPayload({
+                direction: nextDirection,
+                field: sortField,
+                previousDirection: direction,
+              })
             : nextDirection === undefined
               ? undefined
               : { field: sortField, direction: nextDirection },

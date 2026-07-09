@@ -1,6 +1,6 @@
 """CFBD dimension ingestion as a durable Temporal workflow.
 
-Replaces the former Procrastinate task ``cfbd_dims`` (deleted). The workflow
+Syncs CFBD dimension data. The workflow
 (:mod:`app.temporal.cfbd_dims.workflow`) fans out one activity per dimension
 entity — each fetches its CFBD endpoint, records content-hash snapshots, and
 batch-upserts its table inside its own DB transaction

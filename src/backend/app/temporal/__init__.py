@@ -1,5 +1,5 @@
 """Temporal workflows, activities, and the worker/starter entrypoints.
 
-Durable workflow home (distinct from Procrastinate in app/tasks/, which owns the
+Durable workflow home. All background work runs through Temporal.
 cron/sync jobs). The connection seam lives in app.core.temporal.
 """

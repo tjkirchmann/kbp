@@ -54,7 +54,7 @@ def _python_type(spec: dict) -> Any:
                 f"field {spec['name']!r}: type {ftype!r} requires non-empty 'enum'"
             )
         # Literal[...] is how pydantic-ai expresses a closed set to the LLM.
-        return Literal[tuple(values)]  # type: ignore[valid-type]
+        return Literal[tuple(values)]
     try:
         return _SCALARS[ftype]
     except KeyError:

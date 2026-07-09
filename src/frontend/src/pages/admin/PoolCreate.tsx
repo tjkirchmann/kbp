@@ -5,7 +5,12 @@ import { localModel } from '@virtuoso.dev/data-table'
 import ClearableSelect from '@/components/admin/filters/ClearableSelect'
 import SearchableSelect from '@/components/admin/filters/SearchableSelect'
 import AdminTableToolbar from '@/components/admin/AdminTableToolbar'
-import { DataTable, DataTableColumn, DataTableColumnHeader, DataTableCell } from '@/components/ui/data-table'
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableColumnHeader,
+  DataTableCell,
+} from '@/components/ui/data-table'
 import SelectionColumn from '@/components/admin/SelectionColumn'
 
 import {
@@ -18,8 +23,8 @@ import {
   useDeletePool,
   type CfbdGame,
   type PoolGameDetail,
-} from '@/services/useAdminPools'
-import { useAdminTeams } from '@/services/useAdminTeams'
+} from '@/services/admin/useAdminPools'
+import { useAdminTeams } from '@/services/admin/useAdminTeams'
 import Modal from '@/components/ui/Modal'
 
 type Step = 'step1' | 'step2' | 'step3' | 'step4'
@@ -509,7 +514,7 @@ export default function PoolCreate() {
     gameIdToSlotKey[pgId] = slot
   }
 
-    // Compute activeGames at component level for model bridge
+  // Compute activeGames at component level for model bridge
   const activeGames = useMemo(() => {
     if (step !== 'step2') return [] as CfbdGame[]
     return step2Tab === 'finder' ? finderGames : selectedGames
@@ -535,7 +540,6 @@ export default function PoolCreate() {
     const setActiveConference = isFinder ? setFinderConference : setSelectedConference
     const activeWeekOptions = isFinder ? finderWeekOptions : selectedWeekOptions
     const totalGames = isFinder ? cfbdGames.length : selected.size
-
 
     const isFiltered =
       search !== '' ||
@@ -638,9 +642,13 @@ export default function PoolCreate() {
         {activeGames.length === 0 && !gamesLoading ? (
           <div className="flex-1 flex items-center justify-center">
             {isFinder ? (
-              <p className="text-sm text-muted-foreground py-4">No games available for this season.</p>
+              <p className="text-sm text-muted-foreground py-4">
+                No games available for this season.
+              </p>
             ) : (
-              <p className="text-sm text-muted-foreground py-4">No games selected yet. Use the Game Finder tab to pick games.</p>
+              <p className="text-sm text-muted-foreground py-4">
+                No games selected yet. Use the Game Finder tab to pick games.
+              </p>
             )}
           </div>
         ) : gamesLoading && activeGames.length === 0 ? (
@@ -654,7 +662,8 @@ export default function PoolCreate() {
             computeRowKey={({ data }) => data.id}
             components={{
               Row: forwardRef<any, any>(({ style, ...props }: any, ref) => (
-                <div ref={ref}
+                <div
+                  ref={ref}
                   {...props}
                   className="flex items-center border-t border-border/20 transition-colors hover:bg-[rgba(26,30,42,0.4)]"
                   style={{ ...style, height: 56 }}
@@ -673,8 +682,23 @@ export default function PoolCreate() {
               <DataTableCell className="justify-center">
                 {({ row }) => {
                   const g = row.data as CfbdGame
-                  const s = g.completed ? 'final' : Date.now() >= new Date(g.start_date).getTime() ? 'live' : 'upcoming'
-                  return <div className={s === 'final' ? 'size-2 rounded-full bg-emerald-500 shrink-0' : s === 'live' ? 'size-2 rounded-full bg-amber-400 shrink-0 animate-pulse' : 'size-2 rounded-full bg-border shrink-0'} title={s === 'final' ? 'Final' : s === 'live' ? 'In Progress' : 'Upcoming'} />
+                  const s = g.completed
+                    ? 'final'
+                    : Date.now() >= new Date(g.start_date).getTime()
+                      ? 'live'
+                      : 'upcoming'
+                  return (
+                    <div
+                      className={
+                        s === 'final'
+                          ? 'size-2 rounded-full bg-emerald-500 shrink-0'
+                          : s === 'live'
+                            ? 'size-2 rounded-full bg-amber-400 shrink-0 animate-pulse'
+                            : 'size-2 rounded-full bg-border shrink-0'
+                      }
+                      title={s === 'final' ? 'Final' : s === 'live' ? 'In Progress' : 'Upcoming'}
+                    />
+                  )
                 }}
               </DataTableCell>
             </DataTableColumn>
@@ -683,21 +707,41 @@ export default function PoolCreate() {
               <DataTableCell className="px-5">
                 {({ row }) => {
                   const g = row.data as CfbdGame
-                  const matchup = g.neutral_site ? g.away_team + ' vs ' + g.home_team : g.away_team + ' at ' + g.home_team
-                  return <p className="text-sm font-medium text-foreground truncate">{g.bowl_name ? g.bowl_name + ', ' + matchup : matchup}</p>
+                  const matchup = g.neutral_site
+                    ? g.away_team + ' vs ' + g.home_team
+                    : g.away_team + ' at ' + g.home_team
+                  return (
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {g.bowl_name ? g.bowl_name + ', ' + matchup : matchup}
+                    </p>
+                  )
                 }}
               </DataTableCell>
             </DataTableColumn>
             <DataTableColumn field="week">
               <DataTableColumnHeader className="px-5">Week</DataTableColumnHeader>
               <DataTableCell className="px-5">
-                {({ row }) => { const g = row.data as CfbdGame; return <span className="text-xs text-muted-foreground">{g.week != null ? 'Wk ' + g.week : '—'}</span> }}
+                {({ row }) => {
+                  const g = row.data as CfbdGame
+                  return (
+                    <span className="text-xs text-muted-foreground">
+                      {g.week != null ? 'Wk ' + g.week : '—'}
+                    </span>
+                  )
+                }}
               </DataTableCell>
             </DataTableColumn>
             <DataTableColumn id="date">
               <DataTableColumnHeader className="px-5">Date</DataTableColumnHeader>
               <DataTableCell className="px-5">
-                {({ row }) => { const g = row.data as CfbdGame; return <span className="text-xs text-muted-foreground">{formatGameTime(g.start_date, g.start_time_tbd) || '—'}</span> }}
+                {({ row }) => {
+                  const g = row.data as CfbdGame
+                  return (
+                    <span className="text-xs text-muted-foreground">
+                      {formatGameTime(g.start_date, g.start_time_tbd) || '—'}
+                    </span>
+                  )
+                }}
               </DataTableCell>
             </DataTableColumn>
             <DataTableColumn id="class">
@@ -707,8 +751,23 @@ export default function PoolCreate() {
                   const g = row.data as CfbdGame
                   const hc = g.home_classification?.toUpperCase() ?? null
                   const ac = g.away_classification?.toUpperCase() ?? null
-                  const tags: string[] = hc === ac ? (hc ? [hc] : []) : ([ac, hc].filter(Boolean) as string[])
-                  return <div className="flex items-center gap-1">{tags.map((t: string) => <span key={t} className={'text-[10px] px-1.5 py-0.5 rounded-full font-semibold ' + (clsColors[t] ?? 'tag-blue')}>{t}</span>)}</div>
+                  const tags: string[] =
+                    hc === ac ? (hc ? [hc] : []) : ([ac, hc].filter(Boolean) as string[])
+                  return (
+                    <div className="flex items-center gap-1">
+                      {tags.map((t: string) => (
+                        <span
+                          key={t}
+                          className={
+                            'text-[10px] px-1.5 py-0.5 rounded-full font-semibold ' +
+                            (clsColors[t] ?? 'tag-blue')
+                          }
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )
                 }}
               </DataTableCell>
             </DataTableColumn>
@@ -717,8 +776,20 @@ export default function PoolCreate() {
               <DataTableCell className="px-5">
                 {({ row }) => {
                   const g = row.data as CfbdGame
-                  const sc = g.home_conference && g.away_conference && g.home_conference === g.away_conference
-                  return <span className={'text-[10px] px-1.5 py-px rounded-full font-medium ' + (sc ? 'tag-blue' : 'bg-white/[0.04] text-muted-foreground/60')}>{sc ? g.home_conference : 'Out of Conference'}</span>
+                  const sc =
+                    g.home_conference &&
+                    g.away_conference &&
+                    g.home_conference === g.away_conference
+                  return (
+                    <span
+                      className={
+                        'text-[10px] px-1.5 py-px rounded-full font-medium ' +
+                        (sc ? 'tag-blue' : 'bg-white/[0.04] text-muted-foreground/60')
+                      }
+                    >
+                      {sc ? g.home_conference : 'Out of Conference'}
+                    </span>
+                  )
                 }}
               </DataTableCell>
             </DataTableColumn>
@@ -822,7 +893,9 @@ export default function PoolCreate() {
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 relative">
-          <div className={bracketMode === 'skip' ? 'opacity-30 pointer-events-none select-none' : ''}>
+          <div
+            className={bracketMode === 'skip' ? 'opacity-30 pointer-events-none select-none' : ''}
+          >
             <div className="space-y-6">
               {roundGroups.map(({ round, slots }) => (
                 <div key={round} className="space-y-2">

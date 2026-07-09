@@ -72,7 +72,9 @@ export default function AdminCommandPalette({ open, onClose }: AdminCommandPalet
   return (
     <Command.Dialog
       open={open}
-      onOpenChange={(v) => { if (!v) onClose() }}
+      onOpenChange={(v) => {
+        if (!v) onClose()
+      }}
       overlayClassName={overlayClass}
       contentClassName={dialogClass}
       label="Admin section search"

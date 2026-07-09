@@ -94,7 +94,7 @@ async def probe(target: str | Path, timeout: float = 30.0) -> dict:
     if proc.returncode != 0:
         tail = stderr.decode(errors="replace").strip()[-500:]
         raise FfmpegError(f"ffprobe exited {proc.returncode}: {tail}")
-    return json.loads(stdout)
+    return dict(json.loads(stdout))
 
 
 async def probe_meta(target: str | Path) -> dict:
@@ -106,7 +106,7 @@ def extract_meta(probe_json: dict) -> dict:
     """Flatten a probe result into the small meta dict artifacts carry
     (duration drives downstream progress bars)."""
     fmt = probe_json.get("format") or {}
-    video = next(
+    video: dict = next(
         (s for s in probe_json.get("streams") or [] if s.get("codec_type") == "video"),
         {},
     )

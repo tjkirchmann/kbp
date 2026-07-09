@@ -28,13 +28,15 @@ function DraggableGroupHeader({ label, columnKeys, stickyGroup }: DraggableGroup
   const isSelfDrag = isGroupDrag && dragState.sourceKeys?.[0] === columnKeys[0]
   const groupAnchorKey = dragState.dropTarget?.key
   const dropPosition =
-    groupAnchorKey && (groupAnchorKey === columnKeys[0] || groupAnchorKey === columnKeys.at(-1)) ? dragState.dropTarget!.position : null
+    groupAnchorKey && (groupAnchorKey === columnKeys[0] || groupAnchorKey === columnKeys.at(-1))
+      ? dragState.dropTarget!.position
+      : null
 
   return (
     <div
       className={cn(
         'relative flex items-center border-b border-border bg-muted px-2 py-1 text-xs font-semibold whitespace-nowrap',
-        stickyGroup && 'bg-muted/80'
+        stickyGroup && 'bg-muted/80',
       )}
       onDragOver={(ev) => {
         if (!isGroupDrag) {

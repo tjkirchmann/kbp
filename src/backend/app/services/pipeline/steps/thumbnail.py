@@ -27,7 +27,7 @@ class ThumbnailStep(BaseStep):
     inputs: list[PortSpec] = [PortSpec("in", ArtifactKind.video)]
     outputs: list[PortSpec] = [PortSpec("out", ArtifactKind.image)]
 
-    async def run(
+    async def run(  # type: ignore[override]
         self,
         ctx: StepContext,
         params: ThumbnailParams,

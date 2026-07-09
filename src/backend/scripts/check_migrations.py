@@ -22,6 +22,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 VERSIONS_DIR = Path(__file__).resolve().parent.parent / "alembic" / "versions"
 
@@ -65,7 +66,7 @@ def collect() -> dict[str, dict]:
     return nodes
 
 
-def fail(msg: str) -> None:
+def fail(msg: str) -> NoReturn:
     print(f"::error::migration history check failed: {msg}", file=sys.stderr)
     print(f"\n  ✗ {msg}\n", file=sys.stderr)
     sys.exit(1)
@@ -77,7 +78,7 @@ def check_chain(nodes: dict[str, dict]) -> None:
 
     # 2a. every parent must reference a known revision (a merge migration has
     #     several parents; a base migration has none).
-    for rev, info in nodes.items():
+    for _rev, info in nodes.items():
         for parent in info["parents"]:
             if parent not in nodes:
                 fail(

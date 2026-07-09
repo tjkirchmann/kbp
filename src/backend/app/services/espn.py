@@ -8,7 +8,7 @@ async def fetch_espn_boxscore(event_id: str) -> dict:
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, timeout=15.0)
         resp.raise_for_status()
-        return resp.json()
+        return resp.json()  # type: ignore[no-any-return]
 
 
 def extract_espn_scores(payload: dict) -> dict:

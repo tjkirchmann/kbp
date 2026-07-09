@@ -5,7 +5,7 @@ plays per game, millions of rows per backfill). They share the ``cfbd_fact_cover
 table with ``cfbd_facts_syncers`` but key on their own endpoints ("plays" /
 "play_stats"), so the two never collide.
 
-Ported verbatim from the former Procrastinate task ``app/tasks/cfbd_plays.py``;
+CFBD plays sync logic;
 only the orchestration moved (to ``app/temporal/cfbd_plays/``). The shape mirrors
 ``cfbd_facts_syncers`` (``load_coverage`` + ``sync_one_season`` + a ``_SYNCERS``
 registry) so the two pipelines stay structurally parallel.

@@ -4,7 +4,7 @@ Orchestration only — no I/O. Fans out one activity per dimension entity and ru
 them concurrently, each with its own retry policy and timeout, so a transient
 CFBD failure on one entity (e.g. coaches) retries in isolation without re-fetching
 the others. The workflow re-assembles the per-activity results into the same
-aggregate shape the former Procrastinate task returned.
+aggregate shape the data.
 
 Durability: the workflow remembers which activities have completed, so a worker
 crash mid-run resumes only the unfinished ones rather than redoing everything.
@@ -17,8 +17,8 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
+    from app.services.sync.cfbd_dims_syncers import FLAT_DIM_KEYS
     from app.temporal.cfbd_dims.activities import (
-        FLAT_DIM_KEYS,
         sync_coaches,
         sync_flat_dim,
     )

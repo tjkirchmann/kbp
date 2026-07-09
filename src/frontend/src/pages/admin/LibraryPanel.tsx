@@ -9,7 +9,7 @@ import {
   useRestoreFile,
   usePurgeFile,
   type LibraryFile,
-} from '@/services/useAdminLibrary'
+} from '@/services/admin/useAdminLibrary'
 import { useToast } from '@/components/toast/ToastContext'
 
 function formatSize(bytes: number | null): string {

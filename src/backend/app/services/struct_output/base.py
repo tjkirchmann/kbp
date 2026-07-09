@@ -208,7 +208,7 @@ class DynamicDefinition(BaseDefinition):
         self.row = row
 
     @property
-    def name(self) -> str:
+    def name(self) -> str:  # type: ignore[override]
         return self.row.name
 
     @property
@@ -216,11 +216,11 @@ class DynamicDefinition(BaseDefinition):
         return self.row.prompt_template
 
     @property
-    def cron(self) -> str | None:
+    def cron(self) -> str | None:  # type: ignore[override]
         return self.row.cron
 
     @property
-    def model(self) -> str:
+    def model(self) -> str:  # type: ignore[override]
         return self.row.model
 
     def output_model(self) -> type[BaseModel]:

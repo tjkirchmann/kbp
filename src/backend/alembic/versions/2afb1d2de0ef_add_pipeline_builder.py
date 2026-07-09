@@ -46,9 +46,7 @@ def upgrade() -> None:
         op.f("ix_projects_owner_id"), "projects", ["owner_id"], unique=False
     )
 
-    op.add_column(
-        "library_files", sa.Column("project_id", sa.Integer(), nullable=True)
-    )
+    op.add_column("library_files", sa.Column("project_id", sa.Integer(), nullable=True))
     op.create_index(
         op.f("ix_library_files_project_id"),
         "library_files",

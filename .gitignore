@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
 .venv/
 node_modules/
 dist/
@@ -28,3 +29,5 @@ temp/
 # Pi Plans
 .plans/
 .worktrees
+
+.excalidraw.png

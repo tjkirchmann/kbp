@@ -18,7 +18,8 @@ import ProjectsList from './pages/admin/projects/ProjectsList'
 import ProjectDetail from './pages/admin/projects/ProjectDetail'
 import AiStructsList from './pages/admin/AiStructsList'
 import AiStructDetail from './pages/admin/AiStructDetail'
-import CfbdWorkspace from './pages/admin/cfbd/CfbdWorkspace'
+import CfbdExplorer from './pages/admin/cfbd/CfbdExplorer'
+import CfbdTableRedirect from './pages/admin/cfbd/CfbdTableRedirect'
 import CoverageDashboard from './pages/admin/cfbd/CoverageDashboard'
 import SubmissionShell from './pages/submission/SubmissionShell'
 import PoolSelectStep from './pages/submission/PoolSelectStep'
@@ -48,7 +49,8 @@ export default function App() {
         <Route path="cfbd" element={<Outlet />}>
           <Route index element={<Navigate to="coverage" replace />} />
           <Route path="coverage" element={<CoverageDashboard />} />
-          <Route path=":tableSlug" element={<CfbdWorkspace />} />
+          <Route path="explorer" element={<CfbdExplorer />} />
+          <Route path=":tableSlug" element={<CfbdTableRedirect />} />
         </Route>
         <Route path="ai-structs" element={<AiStructsList />} />
         <Route path="ai-structs/:name" element={<AiStructDetail />} />

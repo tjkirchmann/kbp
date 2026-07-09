@@ -43,7 +43,7 @@ def _probe(url: str) -> dict:
         timeout=_FFPROBE_TIMEOUT_S,
         check=True,
     )
-    return json.loads(result.stdout)
+    return json.loads(result.stdout)  # type: ignore[no-any-return]
 
 
 def _extract_metadata(probe: dict) -> dict:

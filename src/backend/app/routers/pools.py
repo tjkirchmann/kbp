@@ -73,7 +73,7 @@ async def create_pool(body: PoolCreate, db: AsyncSession = Depends(get_db)):
     db.add(pool)
     await db.commit()
     await db.refresh(pool)
-    pool.game_count = 0
+    pool.game_count = 0  # type: ignore[attr-defined]
     return pool
 
 
@@ -134,7 +134,7 @@ async def patch_pool(pool_id: int, body: PoolPatch, db: AsyncSession = Depends(g
         pool.submissions_open = body.submissions_open
     await db.commit()
     await db.refresh(pool)
-    pool.game_count = 0
+    pool.game_count = 0  # type: ignore[attr-defined]
     return pool
 
 

@@ -1,6 +1,6 @@
 """Activities for ESPN live-game polling — all the I/O lives here.
 
-Relocated from ``app/tasks/espn_poller.py`` (the Procrastinate task). The logic is
+The poll logic is
 preserved; only the orchestration changed: the old single ``_run_poll`` loop is
 split into a per-game ``poll_espn_game`` activity (driven by ``EspnGameWorkflow``)
 plus selection/seed/maintenance activities (driven by ``EspnSeederWorkflow``).
@@ -148,7 +148,7 @@ async def prune_event_log() -> None:
     """Drop event_log rows older than the retention window (replaces Redis maxlen)."""
     async with SessionLocal() as db:
         await db.execute(
-            EventLog.__table__.delete().where(
+            EventLog.__table__.delete().where(  # type: ignore[attr-defined]
                 EventLog.at < text(f"now() - interval '{_EVENT_LOG_RETENTION}'")
             )
         )

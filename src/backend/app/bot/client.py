@@ -3,7 +3,7 @@
 build_bot() assembles the discord.py Bot: intents, an explicit cog list, and an
 on_ready hook that syncs slash commands (per-guild in dev for instant
 propagation; global otherwise). Handlers live in cogs and stay thin — real work
-is pushed into services and Procrastinate tasks.
+is pushed into services and Temporal workflows.
 """
 
 import logging

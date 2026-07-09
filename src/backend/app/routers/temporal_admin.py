@@ -5,7 +5,8 @@ status, and results — for the Coverage dashboard side panel.
 """
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
+from typing import TypedDict
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -19,7 +20,15 @@ router = APIRouter(prefix="/admin/temporal", dependencies=[Depends(require_admin
 
 # ── workflow registry (declarative — add new ones here) ─────────────────────
 
-_SYNC_WORKFLOWS = [
+
+class _SyncWorkflow(TypedDict):
+    id: str
+    schedule_id: str | None
+    label: str
+    kind: str
+
+
+_SYNC_WORKFLOWS: list[_SyncWorkflow] = [
     {
         "id": "cfbd-dims",
         "schedule_id": "cfbd-dims",
@@ -122,8 +131,8 @@ async def get_cfbd_sync_status():
         # ── schedule info ──────────────────────────────────────────────
         if w["schedule_id"] is not None:
             try:
-                handle = client.get_schedule_handle(w["schedule_id"])
-                desc = await handle.describe()
+                sched_handle = client.get_schedule_handle(w["schedule_id"])
+                desc = await sched_handle.describe()
                 schedule = desc.schedule
                 if schedule and schedule.spec and schedule.spec.cron_expressions:
                     status.schedule_cron = schedule.spec.cron_expressions[0]
@@ -140,9 +149,7 @@ async def get_cfbd_sync_status():
                     if status.next_run_at is None and next_actions:
                         status.next_run_at = _iso(next_actions[0])
             except Exception as exc:
-                logger.warning(
-                    "Failed to query schedule %s: %s", w["schedule_id"], exc
-                )
+                logger.warning("Failed to query schedule %s: %s", w["schedule_id"], exc)
 
         # ── last execution ─────────────────────────────────────────────
         try:
@@ -160,9 +167,7 @@ async def get_cfbd_sync_status():
                     latest = wf
 
             if latest is not None:
-                status.workflow_status = (
-                    latest.status.name if latest.status else None
-                )
+                status.workflow_status = latest.status.name if latest.status else None
                 status.last_run_at = _iso(latest.start_time)
                 status.last_run_duration_seconds = _duration_seconds(
                     latest.start_time, latest.close_time
@@ -179,17 +184,15 @@ async def get_cfbd_sync_status():
                         if isinstance(result, dict):
                             status.result = result
                     except Exception as exc:
-                        logger.warning(
-                            "Failed to get result for %s: %s", w["id"], exc
-                        )
+                        logger.warning("Failed to get result for %s: %s", w["id"], exc)
 
                 # Surface failure reason
                 if status.workflow_status == "FAILED":
                     try:
                         handle = client.get_workflow_handle(w["id"])
-                        desc = await handle.describe()
-                        if hasattr(desc, "failure") and desc.failure:
-                            status.error = desc.failure.message or "Unknown error"
+                        wf_desc = await handle.describe()
+                        if hasattr(wf_desc, "failure") and wf_desc.failure:
+                            status.error = wf_desc.failure.message or "Unknown error"
                     except Exception:
                         status.error = "Unable to retrieve error details"
 
@@ -198,6 +201,4 @@ async def get_cfbd_sync_status():
 
         results.append(status)
 
-    return CfbdTemporalStatusResponse(
-        temporal_reachable=True, workflows=results
-    )
+    return CfbdTemporalStatusResponse(temporal_reachable=True, workflows=results)

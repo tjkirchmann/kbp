@@ -185,10 +185,7 @@ export function useStartRun() {
   const { getToken } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (args: {
-      pipelineId: number
-      projectId: number
-    }): Promise<PipelineRun> => {
+    mutationFn: async (args: { pipelineId: number; projectId: number }): Promise<PipelineRun> => {
       const token = await getToken()
       return apiFetch(token!, `/admin/pipelines/${args.pipelineId}/run`, {
         method: 'POST',

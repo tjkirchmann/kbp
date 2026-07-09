@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useAdminConfig, useUpdateAdminConfig } from '@/services/useAdminConfig'
-import { useChannels } from '@/services/useAdminChannels'
+import { useAdminConfig, useUpdateAdminConfig } from '@/services/admin/useAdminConfig'
+import { useChannels } from '@/services/admin/useAdminChannels'
 import { useEventLog, useEspnStatus } from '@/services/useEventLog'
 import EspnPollChart from './EspnPollChart'
 

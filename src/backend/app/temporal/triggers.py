@@ -2,7 +2,7 @@
 
 A single place mapping the sync names a human types (e.g. ``cfbd_games``) to how
 that work is kicked off on Temporal. Used by the Discord bot's ``/sync`` command
-(and reusable by a future admin endpoint), replacing the old Procrastinate
+(and reusable by a future admin endpoint),
 ``task.defer_async()`` path.
 
 Each entry starts a fresh workflow run with a timestamped id so manual triggers

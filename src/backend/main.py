@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import app.models  # noqa: F401 — registers models with Base.metadata
+import app.models as _models  # noqa: F401 — registers models with Base.metadata
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.routers.admin import router as admin_router
@@ -30,9 +30,7 @@ async def lifespan(app: FastAPI):
 
     async with SessionLocal() as db:
         await ensure_none_channel(db)
-    # All background work runs on Temporal now (app/temporal/*); the API process no
-    # longer opens a Procrastinate pool or defers startup tasks — Temporal Schedules
-    # and the workflows' own coverage self-heal cover "ensure data present on boot."
+    # All background work runs on Temporal (app/temporal/*).
     yield
 
 
