@@ -15,20 +15,13 @@ function percentileColor(pct: number | null): string {
   return '#e5534b'
 }
 
-export default function PercentileDashboard({
-  percentiles,
-  teamColor,
-}: Props) {
+export default function PercentileDashboard({ percentiles, teamColor }: Props) {
   if (percentiles.length === 0) return null
 
   return (
     <div className="glass-panel rounded-xl p-3">
-      <h3 className="text-xs font-semibold text-foreground mb-2">
-        National Percentiles
-      </h3>
-      <p className="text-[10px] text-muted-foreground mb-2">
-        Percentile rank among all FBS teams
-      </p>
+      <h3 className="text-xs font-semibold text-foreground mb-2">National Percentiles</h3>
+      <p className="text-[10px] text-muted-foreground mb-2">Percentile rank among all FBS teams</p>
 
       <div className="flex flex-col gap-1.5">
         {percentiles.map((p) => {

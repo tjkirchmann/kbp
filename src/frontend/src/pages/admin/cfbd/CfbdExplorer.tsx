@@ -57,8 +57,7 @@ export default function CfbdExplorer() {
         e.preventDefault()
         const tab = state.tabs.find((t) => t.id === state.activeTabId)
         if (tab) {
-          const next: typeof tab.viewType =
-            tab.viewType === 'table' ? 'analysis' : 'table'
+          const next: typeof tab.viewType = tab.viewType === 'table' ? 'analysis' : 'table'
           state.setTabViewType(tab.id, next)
         }
       }

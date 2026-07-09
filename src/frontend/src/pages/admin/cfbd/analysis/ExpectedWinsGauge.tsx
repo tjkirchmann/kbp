@@ -9,18 +9,14 @@ export default function ExpectedWinsGauge({ expectedWins, record }: Props) {
   if (expectedWins == null) {
     return (
       <div className="glass-panel rounded-xl p-3">
-        <h3 className="text-xs font-semibold text-foreground mb-1">
-          Expected Wins
-        </h3>
+        <h3 className="text-xs font-semibold text-foreground mb-1">Expected Wins</h3>
         <p className="text-xs text-muted-foreground">No data</p>
       </div>
     )
   }
 
   // Parse actual wins from record (e.g. "11-4" → 11)
-  const actualWins = record
-    ? parseInt(record.split('-')[0], 10) || 0
-    : 0
+  const actualWins = record ? parseInt(record.split('-')[0], 10) || 0 : 0
 
   // Gauge: filled = expected / total, remainder = unfilled
   // Total = expected + some buffer for visual context
@@ -55,9 +51,7 @@ export default function ExpectedWinsGauge({ expectedWins, record }: Props) {
 
   return (
     <div className="glass-panel rounded-xl p-3">
-      <h3 className="text-xs font-semibold text-foreground mb-2">
-        Expected Wins
-      </h3>
+      <h3 className="text-xs font-semibold text-foreground mb-2">Expected Wins</h3>
 
       {/* Gauge */}
       <div className="relative h-28">
@@ -85,9 +79,7 @@ export default function ExpectedWinsGauge({ expectedWins, record }: Props) {
           <span className="text-lg font-bold text-foreground tabular-nums leading-tight">
             {expectedWins.toFixed(1)}
           </span>
-          <span className="text-[10px] text-muted-foreground">
-            expected wins
-          </span>
+          <span className="text-[10px] text-muted-foreground">expected wins</span>
         </div>
       </div>
 
@@ -95,9 +87,7 @@ export default function ExpectedWinsGauge({ expectedWins, record }: Props) {
       <div className="flex items-center justify-between mt-1">
         <div className="flex flex-col items-center">
           <span className="text-[10px] text-muted-foreground">Actual</span>
-          <span className="text-xs font-semibold tabular-nums text-foreground">
-            {actualWins}
-          </span>
+          <span className="text-xs font-semibold tabular-nums text-foreground">{actualWins}</span>
         </div>
         <div className="flex flex-col items-center">
           <span
@@ -111,14 +101,10 @@ export default function ExpectedWinsGauge({ expectedWins, record }: Props) {
           </span>
         </div>
         <div className="flex flex-col items-center">
-          <span className="text-[10px] text-muted-foreground">
-            Diff
-          </span>
+          <span className="text-[10px] text-muted-foreground">Diff</span>
           <span
             className={`text-xs font-semibold tabular-nums ${
-              actualWins >= expectedWins
-                ? 'text-emerald-400'
-                : 'text-rose-400'
+              actualWins >= expectedWins ? 'text-emerald-400' : 'text-rose-400'
             }`}
           >
             {actualWins >= expectedWins ? '+' : ''}

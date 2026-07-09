@@ -13,11 +13,7 @@ function TeamRow({
   return (
     <div className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/[0.04] transition-colors">
       {team.logo ? (
-        <img
-          src={team.logo}
-          alt={team.team}
-          className="size-7 rounded object-contain"
-        />
+        <img src={team.logo} alt={team.team} className="size-7 rounded object-contain" />
       ) : (
         <div
           className="size-7 rounded flex items-center justify-center text-[9px] font-bold text-white"
@@ -59,7 +55,12 @@ export default function OverUnderCards({ overachievers, underachievers }: Props)
         </div>
         <div className="flex flex-col">
           {overachievers.map((t) => (
-            <TeamRow key={t.team} team={t} label="Over" icon={<TrendingUp className="size-3 text-emerald-400/60" />} />
+            <TeamRow
+              key={t.team}
+              team={t}
+              label="Over"
+              icon={<TrendingUp className="size-3 text-emerald-400/60" />}
+            />
           ))}
         </div>
       </div>
@@ -72,7 +73,12 @@ export default function OverUnderCards({ overachievers, underachievers }: Props)
         </div>
         <div className="flex flex-col">
           {underachievers.map((t) => (
-            <TeamRow key={t.team} team={t} label="Under" icon={<TrendingDown className="size-3 text-rose-400/60" />} />
+            <TeamRow
+              key={t.team}
+              team={t}
+              label="Under"
+              icon={<TrendingDown className="size-3 text-rose-400/60" />}
+            />
           ))}
         </div>
       </div>

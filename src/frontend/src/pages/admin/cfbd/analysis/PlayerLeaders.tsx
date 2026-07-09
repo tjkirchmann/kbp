@@ -87,12 +87,8 @@ export default function PlayerLeaders({ season }: Props) {
               {i + 1}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-foreground truncate">
-                {p.player}
-              </p>
-              <p className="text-[10px] text-muted-foreground truncate">
-                {p.team}
-              </p>
+              <p className="text-xs font-medium text-foreground truncate">{p.player}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{p.team}</p>
             </div>
             <span className="text-xs font-semibold text-primary tabular-nums shrink-0">
               {p.stat_value}

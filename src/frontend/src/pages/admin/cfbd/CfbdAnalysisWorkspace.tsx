@@ -39,10 +39,7 @@ export default function CfbdAnalysisWorkspace({ tabId }: { tabId: string }) {
       <div className="flex items-center gap-2">
         <ViewTypeSelector viewType={tab.viewType} onChange={handleViewTypeChange} />
         <div className="flex-1">
-          <CfbdCategoryBar
-            activeKey={tab.analysis.category}
-            onSelect={handleCategorySelect}
-          />
+          <CfbdCategoryBar activeKey={tab.analysis.category} onSelect={handleCategorySelect} />
         </div>
       </div>
 

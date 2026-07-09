@@ -139,10 +139,7 @@ export function useSeasonSummary(season: number | null) {
   })
 }
 
-export function usePlayerLeaders(
-  season: number | null,
-  category: string,
-) {
+export function usePlayerLeaders(season: number | null, category: string) {
   const { getToken } = useAuth()
   return useQuery<PlayerLeaders>({
     queryKey: ['admin', 'cfbd', 'analytics', 'player-leaders', season, category],
@@ -158,22 +155,10 @@ export function usePlayerLeaders(
   })
 }
 
-export function useTeamSlicer(
-  season: number | null,
-  metric: string,
-  conference?: string | null,
-) {
+export function useTeamSlicer(season: number | null, metric: string, conference?: string | null) {
   const { getToken } = useAuth()
   return useQuery<TeamSlicer>({
-    queryKey: [
-      'admin',
-      'cfbd',
-      'analytics',
-      'team-slicer',
-      season,
-      metric,
-      conference ?? 'all',
-    ],
+    queryKey: ['admin', 'cfbd', 'analytics', 'team-slicer', season, metric, conference ?? 'all'],
     enabled: season != null,
     queryFn: async () => {
       const token = await getToken()

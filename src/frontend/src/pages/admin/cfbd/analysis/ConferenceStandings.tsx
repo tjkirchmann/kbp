@@ -21,9 +21,7 @@ interface Props {
 }
 
 export default function ConferenceStandings({ standings }: Props) {
-  const entries = Object.entries(standings).filter(
-    ([, rows]) => rows.length > 0,
-  )
+  const entries = Object.entries(standings).filter(([, rows]) => rows.length > 0)
   const [index, setIndex] = useState(0)
 
   const prev = useCallback(() => {
@@ -85,17 +83,11 @@ export default function ConferenceStandings({ standings }: Props) {
             className="flex items-center gap-2 rounded px-2 py-1 hover:bg-white/[0.04] transition-colors"
           >
             {row.logo ? (
-              <img
-                src={row.logo}
-                alt={row.team}
-                className="size-4 rounded object-contain"
-              />
+              <img src={row.logo} alt={row.team} className="size-4 rounded object-contain" />
             ) : (
               <div className="size-4 rounded bg-white/10" />
             )}
-            <span className="flex-1 text-xs text-foreground truncate">
-              {row.team}
-            </span>
+            <span className="flex-1 text-xs text-foreground truncate">{row.team}</span>
             <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
               {row.conf_wins}-{row.conf_losses}
             </span>

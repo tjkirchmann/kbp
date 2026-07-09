@@ -69,9 +69,7 @@ function newTab(
     viewType,
     table: {
       slug: slug ?? DEFAULT_TABLE_SLUG,
-      filters: viewType === 'table' && slug
-        ? { ...defaultTabFilters(slug), ...seedFilters }
-        : {},
+      filters: viewType === 'table' && slug ? { ...defaultTabFilters(slug), ...seedFilters } : {},
       sort: null,
       selectedIds: [],
       scrollRow: 0,
@@ -90,18 +88,14 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
 
       openTab: (slug, seedFilters) => {
         if (get().tabs.length >= MAX_TABS) return null
-        const tab = slug
-          ? newTab('table', slug, seedFilters)
-          : newTab('analysis')
+        const tab = slug ? newTab('table', slug, seedFilters) : newTab('analysis')
         set((s) => ({ tabs: [...s.tabs, tab], activeTabId: tab.id }))
         return tab.id
       },
 
       openOrFocusTab: (slug, seedFilters) => {
         const { tabs, activeTabId, openTab, changeTabTable } = get()
-        const existing = tabs.find(
-          (t) => t.viewType === 'table' && t.table.slug === slug,
-        )
+        const existing = tabs.find((t) => t.viewType === 'table' && t.table.slug === slug)
         if (existing) {
           const season = seedFilters?.season
           if (
@@ -192,9 +186,7 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
             if (t.id !== id) return t
             // When switching to analysis for the first time, set default category
             const analysis: CfbdAnalysisState =
-              viewType === 'analysis'
-                ? { category: t.analysis.category ?? 'teams' }
-                : {}
+              viewType === 'analysis' ? { category: t.analysis.category ?? 'teams' } : {}
             return { ...t, viewType, analysis }
           }),
         }))
@@ -203,9 +195,7 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
       setAnalysisCategory: (id, category) => {
         set((s) => ({
           tabs: s.tabs.map((t) =>
-            t.id === id
-              ? { ...t, analysis: { ...t.analysis, category } }
-              : t,
+            t.id === id ? { ...t, analysis: { ...t.analysis, category } } : t,
           ),
         }))
       },
@@ -247,9 +237,7 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
       setTabSort: (id, sort) => {
         set((s) => ({
           tabs: s.tabs.map((t) =>
-            t.id === id
-              ? { ...t, table: { ...t.table, sort, scrollRow: 0 } }
-              : t,
+            t.id === id ? { ...t, table: { ...t.table, sort, scrollRow: 0 } } : t,
           ),
         }))
       },
@@ -264,9 +252,7 @@ export const useCfbdExplorerStore = create<CfbdExplorerState>()(
 
       setTabScrollRow: (id, scrollRow) => {
         set((s) => ({
-          tabs: s.tabs.map((t) =>
-            t.id === id ? { ...t, table: { ...t.table, scrollRow } } : t,
-          ),
+          tabs: s.tabs.map((t) => (t.id === id ? { ...t, table: { ...t.table, scrollRow } } : t)),
         }))
       },
     }),

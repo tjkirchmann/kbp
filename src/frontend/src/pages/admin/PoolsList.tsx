@@ -192,11 +192,7 @@ export default function PoolsList() {
 
       {/* ── Edit modal ──────────────────────────────────────────── */}
       {editPoolId !== null && (
-        <PoolEditModal
-          poolId={editPoolId}
-          open={true}
-          onClose={() => setEditPoolId(null)}
-        />
+        <PoolEditModal poolId={editPoolId} open={true} onClose={() => setEditPoolId(null)} />
       )}
 
       <Modal

@@ -9,12 +9,8 @@ export default function TeamSchedulePanel({ schedule }: Props) {
   if (schedule.length === 0) {
     return (
       <div className="glass-panel rounded-xl p-3">
-        <h3 className="text-xs font-semibold text-foreground mb-1">
-          Schedule
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          No game data available.
-        </p>
+        <h3 className="text-xs font-semibold text-foreground mb-1">Schedule</h3>
+        <p className="text-xs text-muted-foreground">No game data available.</p>
       </div>
     )
   }
@@ -22,9 +18,7 @@ export default function TeamSchedulePanel({ schedule }: Props) {
   return (
     <div className="glass-panel rounded-xl flex flex-col">
       <div className="shrink-0 p-3 pb-2">
-        <h3 className="text-xs font-semibold text-foreground">
-          Schedule & Results
-        </h3>
+        <h3 className="text-xs font-semibold text-foreground">Schedule & Results</h3>
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto scrollbar-themed">
@@ -58,9 +52,7 @@ export default function TeamSchedulePanel({ schedule }: Props) {
                 ) : (
                   <div className="size-4 rounded bg-white/10" />
                 )}
-                <span className="text-xs text-foreground truncate">
-                  {g.opponent}
-                </span>
+                <span className="text-xs text-foreground truncate">{g.opponent}</span>
               </div>
 
               {/* Home/Away marker */}
@@ -77,9 +69,7 @@ export default function TeamSchedulePanel({ schedule }: Props) {
 
               {/* Bowl indicator */}
               {g.bowl_name && (
-                <span className="text-[10px] text-amber-400/80 font-medium">
-                  Bowl
-                </span>
+                <span className="text-[10px] text-amber-400/80 font-medium">Bowl</span>
               )}
             </div>
           ))}

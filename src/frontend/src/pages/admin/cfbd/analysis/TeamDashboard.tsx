@@ -28,9 +28,7 @@ export default function TeamDashboard({ season, team, onBack }: Props) {
   if (isError || !data) {
     return (
       <div className="flex-1 min-h-0 flex items-center justify-center">
-        <span className="text-sm text-muted-foreground">
-          Failed to load team data.
-        </span>
+        <span className="text-sm text-muted-foreground">Failed to load team data.</span>
       </div>
     )
   }
@@ -49,11 +47,7 @@ export default function TeamDashboard({ season, team, onBack }: Props) {
         <span className="text-muted-foreground text-xs">›</span>
         <div className="flex items-center gap-2">
           {data.logo ? (
-            <img
-              src={data.logo}
-              alt={data.team}
-              className="size-5 rounded object-contain"
-            />
+            <img src={data.logo} alt={data.team} className="size-5 rounded object-contain" />
           ) : (
             <div
               className="size-5 rounded flex items-center justify-center text-[8px] font-bold text-white"
@@ -64,9 +58,7 @@ export default function TeamDashboard({ season, team, onBack }: Props) {
           )}
           <span className="font-medium text-foreground">{data.team}</span>
           {data.record && (
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {data.record}
-            </span>
+            <span className="text-xs text-muted-foreground tabular-nums">{data.record}</span>
           )}
         </div>
       </div>
@@ -80,14 +72,8 @@ export default function TeamDashboard({ season, team, onBack }: Props) {
 
         {/* Center: Expected Wins + Percentiles */}
         <div className="min-h-0 flex flex-col gap-3 overflow-auto">
-          <ExpectedWinsGauge
-            expectedWins={data.expected_wins}
-            record={data.record}
-          />
-          <PercentileDashboard
-            percentiles={data.percentiles}
-            teamColor={data.color || '#009cde'}
-          />
+          <ExpectedWinsGauge expectedWins={data.expected_wins} record={data.record} />
+          <PercentileDashboard percentiles={data.percentiles} teamColor={data.color || '#009cde'} />
         </div>
 
         {/* Right: Schedule */}

@@ -120,9 +120,7 @@ export default function PoolEditModal({ poolId, open, onClose }: PoolEditModalPr
   const [finderConference, setFinderConference] = useState('all')
   const [search, setSearch] = useState('')
 
-  const { data: cfbdGames = [], isLoading: cfbdLoading } = useCfbdGames(
-    detail?.season_year ?? null,
-  )
+  const { data: cfbdGames = [], isLoading: cfbdLoading } = useCfbdGames(detail?.season_year ?? null)
 
   const poolGames = detail?.games ?? []
 
@@ -210,7 +208,15 @@ export default function PoolEditModal({ poolId, open, onClose }: PoolEditModalPr
         }
         return true
       }),
-    [cfbdGames, existingCfbdIds, finderSeasonType, finderClass, finderWeek, finderConference, search],
+    [
+      cfbdGames,
+      existingCfbdIds,
+      finderSeasonType,
+      finderClass,
+      finderWeek,
+      finderConference,
+      search,
+    ],
   )
 
   const [finderModel] = useState(() => localModel<CfbdGame>({ data: [] }))
@@ -665,11 +671,7 @@ function GamesTab({
           </div>
 
           <div className="flex items-center justify-between">
-            <AdminTableToolbar
-              count={finderGames.length}
-              total={cfbdCount}
-              noun="game"
-            />
+            <AdminTableToolbar count={finderGames.length} total={cfbdCount} noun="game" />
             <button
               type="button"
               onClick={onAddSelected}
@@ -961,9 +963,7 @@ function MultipliersTab({
 
   return (
     <div className="space-y-2">
-      <p className="text-sm text-muted-foreground">
-        Set multipliers for each game. Default is 1x.
-      </p>
+      <p className="text-sm text-muted-foreground">Set multipliers for each game. Default is 1x.</p>
       <div className="bg-white/[0.03] border border-border/20 rounded-2xl overflow-hidden">
         <div className="flex items-center border-b border-border/40 text-xs font-medium text-muted-foreground">
           <div className="px-5 py-2.5 flex-[4]">Matchup</div>

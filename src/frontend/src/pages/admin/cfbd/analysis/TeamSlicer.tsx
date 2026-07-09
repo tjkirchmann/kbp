@@ -33,9 +33,7 @@ export default function TeamSlicer({ season, onSelectTeam }: Props) {
     if (!search.trim()) return data.teams
     const q = search.toLowerCase()
     return data.teams.filter(
-      (t) =>
-        t.team.toLowerCase().includes(q) ||
-        t.abbreviation?.toLowerCase().includes(q),
+      (t) => t.team.toLowerCase().includes(q) || t.abbreviation?.toLowerCase().includes(q),
     )
   }, [data, search])
 
@@ -50,9 +48,7 @@ export default function TeamSlicer({ season, onSelectTeam }: Props) {
     <div className="glass-panel rounded-xl flex flex-col h-full">
       {/* Header */}
       <div className="shrink-0 p-3 pb-2">
-        <h3 className="text-xs font-semibold text-foreground mb-2">
-          Team Rankings
-        </h3>
+        <h3 className="text-xs font-semibold text-foreground mb-2">Team Rankings</h3>
 
         {/* Metric filter chips */}
         <div className="flex flex-wrap gap-1 mb-2">
@@ -75,18 +71,11 @@ export default function TeamSlicer({ season, onSelectTeam }: Props) {
         <div className="flex items-center gap-1">
           <div className="flex flex-wrap gap-1 flex-1">
             {currentGroup.map((conf) => {
-              const isActive =
-                conf === 'All FBS'
-                  ? conference === undefined
-                  : conference === conf
+              const isActive = conf === 'All FBS' ? conference === undefined : conference === conf
               return (
                 <button
                   key={conf}
-                  onClick={() =>
-                    setConference(
-                      conf === 'All FBS' ? undefined : conf,
-                    )
-                  }
+                  onClick={() => setConference(conf === 'All FBS' ? undefined : conf)}
                   className={`rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
                     isActive
                       ? 'bg-primary/15 text-primary border border-primary/20'
@@ -142,11 +131,7 @@ export default function TeamSlicer({ season, onSelectTeam }: Props) {
 
                 {/* Team logo/color badge */}
                 {t.logo ? (
-                  <img
-                    src={t.logo}
-                    alt={t.team}
-                    className="size-6 rounded object-contain"
-                  />
+                  <img src={t.logo} alt={t.team} className="size-6 rounded object-contain" />
                 ) : (
                   <div
                     className="size-6 rounded flex items-center justify-center text-[9px] font-bold text-white shrink-0"
@@ -154,16 +139,13 @@ export default function TeamSlicer({ season, onSelectTeam }: Props) {
                       backgroundColor: t.color || '#333',
                     }}
                   >
-                    {t.abbreviation?.slice(0, 2) ||
-                      t.team.slice(0, 2).toUpperCase()}
+                    {t.abbreviation?.slice(0, 2) || t.team.slice(0, 2).toUpperCase()}
                   </div>
                 )}
 
                 {/* Team name */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">
-                    {t.team}
-                  </p>
+                  <p className="text-xs font-medium text-foreground truncate">{t.team}</p>
                 </div>
 
                 {/* Metric value */}

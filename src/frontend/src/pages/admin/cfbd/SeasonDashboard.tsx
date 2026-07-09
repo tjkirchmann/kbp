@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronDown, ChevronLeft, Loader2 } from 'lucide-react'
-import {
-  useAvailableSeasons,
-  useSeasonSummary,
-} from '@/services/cfbd/useCfbdAnalytics'
+import { useAvailableSeasons, useSeasonSummary } from '@/services/cfbd/useCfbdAnalytics'
 import RatingsCharts from './analysis/RatingsCharts'
 import OverUnderCards from './analysis/OverUnderCards'
 import ConferenceStandings from './analysis/ConferenceStandings'
@@ -37,13 +34,7 @@ export default function SeasonDashboard() {
 
   // ── Team Dashboard mode ──
   if (selectedTeam && season) {
-    return (
-      <TeamDashboard
-        season={season}
-        team={selectedTeam}
-        onBack={handleBackToSeason}
-      />
-    )
+    return <TeamDashboard season={season} team={selectedTeam} onBack={handleBackToSeason} />
   }
 
   // ── Loading state ──
@@ -61,9 +52,7 @@ export default function SeasonDashboard() {
   if (isError) {
     return (
       <div className="flex-1 min-h-0 flex items-center justify-center">
-        <span className="text-sm text-muted-foreground">
-          Failed to load season data.
-        </span>
+        <span className="text-sm text-muted-foreground">Failed to load season data.</span>
       </div>
     )
   }
@@ -89,14 +78,10 @@ export default function SeasonDashboard() {
 
         <div className="flex items-center gap-2 text-muted-foreground">
           <ChevronLeft className="size-3.5" />
-          <span className="font-medium text-foreground">
-            {season} Season
-          </span>
+          <span className="font-medium text-foreground">{season} Season</span>
         </div>
 
-        <span className="text-xs text-muted-foreground ml-auto">
-          {summary.team_count} teams
-        </span>
+        <span className="text-xs text-muted-foreground ml-auto">{summary.team_count} teams</span>
       </div>
 
       {/* 3-column dashboard layout */}
@@ -122,10 +107,7 @@ export default function SeasonDashboard() {
 
         {/* Right column: Team Slicer */}
         <div className="min-h-0">
-          <TeamSlicer
-            season={season!}
-            onSelectTeam={handleSelectTeam}
-          />
+          <TeamSlicer season={season!} onSelectTeam={handleSelectTeam} />
         </div>
       </div>
     </div>

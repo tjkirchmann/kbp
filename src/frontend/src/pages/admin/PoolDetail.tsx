@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState, forwardRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Loader2, Pencil, Star, Flag, Calendar, Users, Building2, Trash2, ClipboardList } from 'lucide-react'
+import {
+  Loader2,
+  Pencil,
+  Star,
+  Flag,
+  Calendar,
+  Users,
+  Building2,
+  Trash2,
+  ClipboardList,
+} from 'lucide-react'
 import { localModel } from '@virtuoso.dev/data-table'
 import {
   useAdminPools,
@@ -416,11 +426,7 @@ export default function PoolDetail() {
       </div>
 
       {/* ── Edit modal ──────────────────────────────────────────── */}
-      <PoolEditModal
-        poolId={live.id}
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-      />
+      <PoolEditModal poolId={live.id} open={editOpen} onClose={() => setEditOpen(false)} />
 
       {/* ── Delete confirmation modal ────────────────────────────── */}
       <Modal

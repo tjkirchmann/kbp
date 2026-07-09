@@ -24,10 +24,7 @@ const TABS: { key: ChartTab; label: string }[] = [
   { key: 'fpi', label: 'FPI' },
 ]
 
-function mapToChartData(
-  summary: SeasonSummary,
-  tab: ChartTab,
-) {
+function mapToChartData(summary: SeasonSummary, tab: ChartTab) {
   const raw =
     tab === 'elo'
       ? summary.ratings.elo
@@ -80,9 +77,7 @@ export default function RatingsCharts({ season, summary }: Props) {
     <div className="glass-panel rounded-xl flex flex-col h-full">
       {/* Header with tabs */}
       <div className="shrink-0 flex items-center justify-between px-3 pt-3 pb-1">
-        <h3 className="text-xs font-semibold text-foreground">
-          Ratings
-        </h3>
+        <h3 className="text-xs font-semibold text-foreground">Ratings</h3>
         <div className="flex gap-0.5">
           {TABS.map((t) => (
             <button

@@ -30,7 +30,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 function tabLabel(tab: CfbdTabState): string {
   if (tab.viewType === 'analysis') {
     return tab.analysis.category
-      ? CATEGORY_LABELS[tab.analysis.category] ?? tab.analysis.category
+      ? (CATEGORY_LABELS[tab.analysis.category] ?? tab.analysis.category)
       : 'Analysis'
   }
   const label = getCfbdTableConfig(tab.table.slug)?.label ?? tab.table.slug

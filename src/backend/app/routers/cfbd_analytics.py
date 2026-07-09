@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import require_admin
 from app.core.database import get_db
 from app.models.cfbd import (
-    CfbdConference,
     CfbdEloRating,
     CfbdFpiRating,
     CfbdGame,
@@ -462,7 +461,7 @@ async def _standings(
     # Catch any conferences not in our ordered list
     for conf_name in by_conf:
         mapped = False
-        for cname, cfield in CONFERENCE_STANDING_ORDER:
+        for cname, _cfield in CONFERENCE_STANDING_ORDER:
             if cname == conf_name:
                 mapped = True
                 break
@@ -661,13 +660,13 @@ async def team_slicer(
 
     stmt = (
         select(model)
-        .where(getattr(model, "year") == season)
+        .where(model.year == season)
         .order_by(
             getattr(model, value_col).desc() if is_desc else getattr(model, value_col).asc()
         )
     )
     if conference and hasattr(model, "conference"):
-        stmt = stmt.where(getattr(model, "conference") == conference)
+        stmt = stmt.where(model.conference == conference)
 
     rows = (await db.execute(stmt)).scalars().all()
     team_names = {r.team for r in rows if r.team}  # type: ignore[attr-defined]

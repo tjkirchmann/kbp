@@ -90,11 +90,15 @@ function toCellValue(value: unknown): string {
 export default function CfbdWorkspace({ tabId }: { tabId: string }) {
   const changeTabTable = useCfbdExplorerStore((s) => s.changeTabTable)
   const setTabViewType = useCfbdExplorerStore((s) => s.setTabViewType)
-  const viewType = useCfbdExplorerStore((s) => s.tabs.find((t) => t.id === tabId)?.viewType ?? 'table')
+  const viewType = useCfbdExplorerStore(
+    (s) => s.tabs.find((t) => t.id === tabId)?.viewType ?? 'table',
+  )
   // Read the tab's slug from the store (not URL params).
   // The parent CfbdExplorer keys us by `${tabId}-${slug}` so a slug
   // change causes a full remount — filters/state reset naturally.
-  const tabSlug = useCfbdExplorerStore((s) => s.tabs.find((t) => t.id === tabId)?.table.slug ?? 'rankings')
+  const tabSlug = useCfbdExplorerStore(
+    (s) => s.tabs.find((t) => t.id === tabId)?.table.slug ?? 'rankings',
+  )
   const table = getCfbdTableConfig(tabSlug) ?? CFBD_TABLES[0]
   const { getToken } = useAuth()
 
